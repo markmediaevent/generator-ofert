@@ -176,29 +176,30 @@ function listLocalDrafts() {
 }
 
 
-function getOfferPrefixForDate(date = new Date()) {
+function getOfferSuffixForDate(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = String(date.getFullYear());
-  return `OFERTA/MMedia/${month}/${year}`;
+  return `${month}/${year}`;
+}
+
+function parseOfferSequence(value, expectedSuffix) {
+  const raw = String(value || '').trim();
+  if (!raw.endsWith(`/${expectedSuffix}`)) return null;
+  const seqPart = raw.slice(0, -(expectedSuffix.length + 1));
+  const seq = Number(seqPart);
+  return Number.isFinite(seq) && seq > 0 ? seq : null;
 }
 
 async function getNextOfferNumber() {
-  const prefix = getOfferPrefixForDate(new Date());
+  const suffix = getOfferSuffixForDate(new Date());
   const local = listLocalDrafts();
   const github = githubEnabled() ? await listGithubDrafts() : [];
   const allNumbers = [...local, ...github].map(item => String(item.offerNumber || ''));
-  const matching = allNumbers
-    .filter(value => value === prefix || value.startsWith(prefix + '/'))
-    .map(value => {
-      if (value === prefix) return 1;
-      const suffix = value.slice(prefix.length + 1);
-      const parsed = Number(suffix);
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-    })
+  const sequences = allNumbers
+    .map(value => parseOfferSequence(value, suffix))
     .filter(Boolean);
-  if (!matching.length) return prefix;
-  const next = Math.max(...matching) + 1;
-  return `${prefix}/${String(next).padStart(2, '0')}`;
+  const next = sequences.length ? Math.max(...sequences) + 1 : 1;
+  return `${String(next).padStart(3, '0')}/${suffix}`;
 }
 
 function createEmptyDbTemplate(baseDb = null) {

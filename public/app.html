@@ -169,6 +169,19 @@
     .small-actions{display:flex;gap:8px;flex-wrap:wrap}
     .small-actions .btn{padding:9px 11px;font-size:12px}
 
+
+    .pdf-header{display:grid;grid-template-columns:1.35fr .9fr;gap:16px;align-items:stretch;margin-bottom:16px}
+    .pdf-title-card{background:linear-gradient(135deg,#ffffff,#f6f8fb);border:1px solid #dbe3ee;border-radius:20px;padding:22px 22px 18px}
+    .pdf-overline{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:#7d889b;font-weight:900}
+    .pdf-title-card h1{margin:12px 0 8px;font-size:33px;line-height:1.02;letter-spacing:-.05em;color:#17233a}
+    .pdf-title-card p{margin:0;max-width:520px;color:#697588;line-height:1.65;font-size:13px}
+    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:16px 18px;display:grid;gap:12px;align-content:start}
+    .pdf-meta-grid{display:grid;gap:10px}
+    .pdf-meta-row{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:start;padding-bottom:10px;border-bottom:1px solid #edf1f6}
+    .pdf-meta-row:last-child{padding-bottom:0;border-bottom:none}
+    .pdf-meta-key{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#7b8799;font-weight:900}
+    .pdf-meta-val{font-size:15px;font-weight:800;color:#17233a}
+
     .pdf-sheet{display:none}
     @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
     @media (max-width:940px){.fields-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.equipment-grid{grid-template-columns:1fr}.hero-stats{grid-template-columns:1fr}.quick-add{grid-template-columns:1fr 1fr}.quick-add > :nth-last-child(-n+2){grid-column:span 1}}
@@ -260,13 +273,13 @@
               <div class="field"><label>Numer oferty</label><input id="offerNumber" /></div>
               <div class="field"><label>Status</label><select id="offerStatus"><option>Szkic</option><option>Wysłana</option><option>Zaakceptowana</option><option>Anulowana</option></select></div>
               <div class="field"><label>Data oferty</label><input id="offerDate" type="date" /></div>
-              <div class="field"><label>Data wydarzenia</label><input id="eventDate" type="date" /></div>
+              <div class="field"><label>Ważna do</label><input id="validUntil" type="date" /></div>
               <div class="field span-2"><label>Klient</label><input id="clientName" placeholder="Np. XYZ Sp. z o.o." /></div>
               <div class="field"><label>Osoba kontaktowa</label><input id="contactName" placeholder="Np. Jan Kowalski" /></div>
               <div class="field"><label>E-mail klienta</label><input id="clientEmail" placeholder="kontakt@firma.pl" /></div>
               <div class="field span-2"><label>Tytuł oferty / wydarzenie</label><input id="eventName" placeholder="Np. Gala, konferencja, koncert" /></div>
               <div class="field"><label>Miejscowość</label><input id="location" placeholder="Warszawa" /></div>
-              <div class="field"><label>Kod / projekt</label><input id="postalCode" placeholder="00-000 / kod wewn." /></div>
+              <div class="field"><label>Data wydarzenia</label><input id="eventDate" type="date" /></div>
               <div class="field span-4"><label>Uwagi do oferty</label><textarea id="notes" placeholder="Warunki realizacji, zakres, terminy, informacje dodatkowe..."></textarea></div>
             </div>
           </div>
@@ -426,15 +439,21 @@
         byId('offerNumber').value = json.offerNumber || '';
       }catch(e){
         const d = new Date();
-        byId('offerNumber').value = `OFERTA/MMedia/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+        byId('offerNumber').value = `001/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
       }
     }
 
     function todayISO(){ return new Date().toISOString().slice(0,10); }
+    function plusDaysISO(days){
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0,10);
+    }
 
     function initForm(){
       if (!byId('offerNumber').value) generateOfferNumber();
       byId('offerDate').value = todayISO();
+      byId('validUntil').value = plusDaysISO(7);
       byId('eventDate').value = todayISO();
       byId('offerStatus').value = 'Szkic';
       byId('statusPill').textContent = 'Szkic';
@@ -689,13 +708,13 @@
         offerNumber: byId('offerNumber').value.trim(),
         offerStatus: byId('offerStatus').value,
         offerDate: byId('offerDate').value,
+        validUntil: byId('validUntil').value,
         eventDate: byId('eventDate').value,
         clientName: byId('clientName').value.trim(),
         contactName: byId('contactName').value.trim(),
         clientEmail: byId('clientEmail').value.trim(),
         eventName: byId('eventName').value.trim(),
         location: byId('location').value.trim(),
-        postalCode: byId('postalCode').value.trim(),
         notes: byId('notes').value.trim(),
         discountPercent: Number(byId('discountPercent').value || 0),
         items: offerItems
@@ -706,13 +725,13 @@
       byId('offerNumber').value = data.offerNumber || '';
       byId('offerStatus').value = data.offerStatus || 'Szkic';
       byId('offerDate').value = data.offerDate || todayISO();
+      byId('validUntil').value = data.validUntil || plusDaysISO(7);
       byId('eventDate').value = data.eventDate || todayISO();
       byId('clientName').value = data.clientName || '';
       byId('contactName').value = data.contactName || '';
       byId('clientEmail').value = data.clientEmail || '';
       byId('eventName').value = data.eventName || '';
       byId('location').value = data.location || '';
-      byId('postalCode').value = data.postalCode || '';
       byId('notes').value = data.notes || '';
       byId('discountPercent').value = data.discountPercent || 0;
       offerItems = Array.isArray(data.items) ? data.items.map(item => ({ uid: item.uid || cryptoRandom(), ...item })) : [];
@@ -790,6 +809,7 @@
         `Wydarzenie: ${data.eventName}`,
         `Lokalizacja: ${data.location}`,
         `Data oferty: ${data.offerDate}`,
+        `Ważna do: ${data.validUntil || '—'}`,
         `Data wydarzenia: ${data.eventDate}`,
         '',
         'Pozycje:'
@@ -804,10 +824,11 @@
 
     function resetForm(){
       if(!confirm('Wyczyścić całą ofertę?')) return;
-      ['clientName','contactName','clientEmail','eventName','location','postalCode','notes'].forEach(id => byId(id).value = '');
+      ['clientName','contactName','clientEmail','eventName','location','notes'].forEach(id => byId(id).value = '');
       byId('offerStatus').value = 'Szkic';
       byId('discountPercent').value = 0;
       byId('offerDate').value = todayISO();
+      byId('validUntil').value = plusDaysISO(7);
       byId('eventDate').value = todayISO();
       generateOfferNumber();
       offerItems = [];
@@ -844,21 +865,39 @@
     function buildPdf(){
       const d = collectData();
       const totals = computeTotals();
-      const daysTotal = offerItems.reduce((sum, item) => sum + Number(item.days || 0), 0) || 1;
+      const daysTotal = Math.max(...offerItems.map(item => Number(item.days || 0)), 0) || 1;
       const preparedDate = d.offerDate ? new Date(d.offerDate + 'T12:00:00') : new Date();
+      const validUntilDate = d.validUntil ? new Date(d.validUntil + 'T12:00:00') : null;
       const preparedLabel = preparedDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+      const validUntilLabel = validUntilDate ? validUntilDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
       const sheet = byId('pdfSheet');
       sheet.innerHTML = `
         <div class="pdf-page">
-          <div style="display:grid;grid-template-columns:1.4fr .8fr;gap:14px;align-items:stretch;margin-bottom:14px">
-            <div class="pdf-card" style="padding:18px 18px 16px;background:linear-gradient(135deg,#12243f,#16345d);color:#fff;border:none">
-              <div class="pdf-label" style="color:rgba(255,255,255,.7)">Mark Media Event Solution</div>
-              <h1 style="margin:10px 0 8px;font-size:30px;line-height:1.05;letter-spacing:-.04em">Profesjonalna oferta realizacji wydarzenia</h1>
-              <p style="margin:0;color:rgba(255,255,255,.85);line-height:1.6;font-size:13px">Kompleksowa obsługa techniczna wydarzeń: LED, nagłośnienie, oświetlenie, streaming, infrastruktura i montaż.</p>
+          <div class="pdf-header">
+            <div class="pdf-title-card">
+              <div class="pdf-overline">Mark Media Event Solution</div>
+              <h1>Oferta techniczna</h1>
+              <p>${escapeHtml(d.eventName || 'Obsługa wydarzenia')}</p>
             </div>
-            <div style="display:grid;gap:14px">
-              <div class="pdf-card"><div class="pdf-label">Oferta przygotowana</div><div class="pdf-value">${escapeHtml(preparedLabel)}</div></div>
-              <div class="pdf-card" style="background:#13294b;color:#fff;border:none"><div class="pdf-label" style="color:rgba(255,255,255,.72)">Wartość brutto</div><div class="pdf-value" style="font-size:26px;color:#fff">${formatMoney(totals.gross)}</div></div>
+            <div class="pdf-meta-card">
+              <div class="pdf-meta-grid">
+                <div class="pdf-meta-row">
+                  <div class="pdf-meta-key">Numer oferty</div>
+                  <div class="pdf-meta-val">${escapeHtml(d.offerNumber || '—')}</div>
+                </div>
+                <div class="pdf-meta-row">
+                  <div class="pdf-meta-key">Data</div>
+                  <div class="pdf-meta-val">${escapeHtml(preparedLabel)}</div>
+                </div>
+                <div class="pdf-meta-row">
+                  <div class="pdf-meta-key">Ważna do</div>
+                  <div class="pdf-meta-val">${escapeHtml(validUntilLabel)}</div>
+                </div>
+                <div class="pdf-meta-row">
+                  <div class="pdf-meta-key">Wartość brutto</div>
+                  <div class="pdf-meta-val">${formatMoney(totals.gross)}</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -866,14 +905,14 @@
             <div class="pdf-card">
               <div class="pdf-label" style="margin-bottom:10px">Dane oferty</div>
               <div class="pdf-grid" style="margin:0">
-                <div><div class="pdf-label">Numer oferty</div><div class="pdf-value">${escapeHtml(d.offerNumber || '—')}</div></div>
-                <div><div class="pdf-label">Status</div><div class="pdf-value">${escapeHtml(d.offerStatus || 'Szkic')}</div></div>
-                <div><div class="pdf-label">Liczba dni</div><div class="pdf-value">${escapeHtml(String(daysTotal))}</div></div>
                 <div><div class="pdf-label">Klient</div><div class="pdf-value">${escapeHtml(d.clientName || '—')}</div></div>
+                <div><div class="pdf-label">Status</div><div class="pdf-value">${escapeHtml(d.offerStatus || 'Szkic')}</div></div>
                 <div><div class="pdf-label">Osoba kontaktowa</div><div class="pdf-value">${escapeHtml(d.contactName || '—')}</div></div>
-                <div><div class="pdf-label">Wydarzenie</div><div class="pdf-value">${escapeHtml(d.eventName || '—')}</div></div>
-                <div><div class="pdf-label">Data eventu</div><div class="pdf-value">${escapeHtml(d.eventDate || 'Do ustalenia')}</div></div>
+                <div><div class="pdf-label">E-mail</div><div class="pdf-value">${escapeHtml(d.clientEmail || '—')}</div></div>
+                <div><div class="pdf-label">Data wydarzenia</div><div class="pdf-value">${escapeHtml(d.eventDate || 'Do ustalenia')}</div></div>
                 <div><div class="pdf-label">Lokalizacja</div><div class="pdf-value">${escapeHtml(d.location || 'Do ustalenia')}</div></div>
+                <div><div class="pdf-label">Liczba dni</div><div class="pdf-value">${escapeHtml(String(daysTotal))}</div></div>
+                <div><div class="pdf-label">Ważna do</div><div class="pdf-value">${escapeHtml(validUntilLabel)}</div></div>
               </div>
             </div>
             <div class="pdf-card">
