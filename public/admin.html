@@ -30,9 +30,9 @@
     .field{display:flex;flex-direction:column;gap:8px}.field label{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
     .field input{padding:12px 13px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(5,13,25,.72);color:#fff}
     .group-form{display:grid;grid-template-columns:1fr auto;gap:10px}
-    .item-form{display:grid;grid-template-columns:1.2fr .65fr .75fr .6fr 1.35fr auto;gap:10px;margin-top:10px}
+    .item-form{display:grid;grid-template-columns:1.2fr .65fr .75fr 1.35fr auto;gap:10px;margin-top:10px}
     .item-list{display:grid;gap:8px;margin-top:12px}
-    .item-row{display:grid;grid-template-columns:minmax(0,1.25fr) .55fr .8fr .5fr auto auto;gap:8px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+    .item-row{display:grid;grid-template-columns:minmax(0,1.25fr) .55fr .8fr auto auto;gap:8px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
     .item-row strong{display:block}.item-row small{display:block;color:var(--muted);margin-top:4px}.pill{padding:6px 10px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.05);font-size:12px;font-weight:800}
     @media (max-width:1100px){.toolbar,.grid{grid-template-columns:1fr}.item-form,.item-row,.group-form,.topbar{grid-template-columns:1fr;display:grid}.topbar{align-items:start}.stats{grid-template-columns:1fr}}
   </style>
@@ -47,14 +47,11 @@
       <div class="top-actions">
         <a class="btn" href="/app">Generator ofert</a>
         <a class="btn" href="/live">Live</a>
-        <button class="btn green" id="exportExcelBtn" type="button">Export Excel</button>
-        <button class="btn blue" id="importExcelBtn" type="button">Import Excel</button>
-        <input id="importExcelInput" type="file" accept=".xlsx,.xls" style="display:none" />
         <button class="btn red" id="logoutBtn" type="button">Wyloguj</button>
       </div>
     </div>
 
-    <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz też wyeksportować do Excela i później zaimportować z powrotem.</div>
+    <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>.</div>
 
     <div class="toolbar">
       <div class="card">
@@ -170,7 +167,6 @@
                 <input id="name_${group.id}" placeholder="Nazwa pozycji" />
                 <input id="price_${group.id}" type="number" min="0" placeholder="Cena netto" />
                 <input id="unit_${group.id}" placeholder="np. szt. / dzień" />
-                <input id="stock_${group.id}" type="number" min="0" placeholder="Stan" />
                 <input id="desc_${group.id}" placeholder="Opis pozycji" />
                 <button class="btn blue" type="button" onclick="addItem('${sectionKey}','${group.id}')">Dodaj</button>
               </div>
@@ -180,7 +176,6 @@
                     <div><strong>${esc(item.name)}</strong><small>${esc(item.desc || '')}</small></div>
                     <div>${zl(item.price)}</div>
                     <div>${esc(item.unit || '')}</div>
-                    <div>${esc(item.stock ?? 0)}</div>
                     <button class="btn" type="button"
                       data-section="${esc(sectionKey)}"
                       data-group="${esc(group.id)}"
@@ -188,7 +183,6 @@
                       data-name="${esc(item.name)}"
                       data-price="${esc(item.price)}"
                       data-unit="${esc(item.unit || '')}"
-                      data-stock="${esc(item.stock ?? 0)}"
                       data-desc="${esc(item.desc || '')}"
                       onclick="openEditFromButton(this)">Edytuj</button>
                     <button class="btn red" type="button" onclick="deleteItem('${sectionKey}','${group.id}','${item.id}')">Usuń</button>
@@ -224,14 +218,12 @@
       const name = document.getElementById('name_' + groupId).value.trim();
       const price = Number(document.getElementById('price_' + groupId).value || 0);
       const unit = document.getElementById('unit_' + groupId).value.trim();
-      const stock = Number(document.getElementById('stock_' + groupId).value || 0);
       const desc = document.getElementById('desc_' + groupId).value.trim();
       if (!name) return alert('Podaj nazwę pozycji.');
-      await api('/api/admin/items', { method: 'POST', body: JSON.stringify({ sectionKey, groupId, name, price, unit, stock, desc }) });
+      await api('/api/admin/items', { method: 'POST', body: JSON.stringify({ sectionKey, groupId, name, price, unit, desc }) });
       document.getElementById('name_' + groupId).value = '';
       document.getElementById('price_' + groupId).value = '';
       document.getElementById('unit_' + groupId).value = '';
-      document.getElementById('stock_' + groupId).value = '';
       document.getElementById('desc_' + groupId).value = '';
       await loadDb();
     }
@@ -245,17 +237,15 @@
         data.name || '',
         data.price || 0,
         data.unit || '',
-        data.stock || 0,
         data.desc || ''
       );
     }
-    async function editItem(sectionKey, groupId, itemId, name, price, unit, stock, desc) {
+    async function editItem(sectionKey, groupId, itemId, name, price, unit, desc) {
       const newName = prompt('Nazwa pozycji:', name); if (newName === null) return;
       const newPrice = prompt('Cena netto:', price); if (newPrice === null) return;
       const newUnit = prompt('Jednostka:', unit); if (newUnit === null) return;
-      const newStock = prompt('Stan magazynowy:', stock); if (newStock === null) return;
       const newDesc = prompt('Opis:', desc || ''); if (newDesc === null) return;
-      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: Number(newPrice || 0), unit: newUnit, stock: Number(newStock || 0), desc: newDesc }) });
+      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: Number(newPrice || 0), unit: newUnit, desc: newDesc }) });
       await loadDb();
     }
     async function deleteItem(sectionKey, groupId, itemId) {
@@ -264,59 +254,7 @@
       await loadDb();
     }
 
-
-    async function exportExcel() {
-      try {
-        const response = await fetch('/api/admin/equipment-db/export', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (response.status === 401) {
-          localStorage.removeItem('admin_token');
-          location.href = '/login';
-          return;
-        }
-        if (!response.ok) throw new Error('Nie udało się pobrać pliku Excel.');
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `magazyn-markmedia-${new Date().toISOString().slice(0,10)}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        document.getElementById('dbStatus').textContent = 'Export Excel';
-      } catch (e) {
-        alert(e.message || 'Nie udało się wyeksportować magazynu.');
-      }
-    }
-
-    async function importExcelFile(file) {
-      if (!file) return;
-      if (!confirm('Import z Excela nadpisze cały magazyn. Kontynuować?')) return;
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          document.getElementById('dbStatus').textContent = 'Import...';
-          const base64 = String(reader.result || '').split(',').pop();
-          await api('/api/admin/equipment-db/import', {
-            method: 'POST',
-            body: JSON.stringify({ fileName: file.name, fileBase64: base64 })
-          });
-          await loadDb();
-          alert('Import z Excela zakończony.');
-        } catch (e) {
-          alert(e.message || 'Nie udało się zaimportować Excela.');
-          document.getElementById('dbStatus').textContent = 'Błąd importu';
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
     document.getElementById('searchInput').addEventListener('input', (e) => { filterText = e.target.value.trim(); render(); });
-    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
-    document.getElementById('importExcelBtn').addEventListener('click', () => document.getElementById('importExcelInput').click());
-    document.getElementById('importExcelInput').addEventListener('change', (e) => importExcelFile(e.target.files?.[0]));
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       try { await api('/api/logout', { method: 'POST' }); } catch (e) {}
       localStorage.removeItem('admin_token');
