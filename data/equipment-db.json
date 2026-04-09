@@ -1,0 +1,251 @@
+{
+  "sections": {
+    "led": {
+      "label": "Ekran LED",
+      "groups": [
+        {
+          "id": "led-ekrany",
+          "name": "Ekrany",
+          "items": [
+            {
+              "id": "led-1",
+              "name": "Ekran LED P3.9",
+              "price": 3200,
+              "unit": "komplet / dzień",
+              "desc": "Komplet bazowy z procesorem i okablowaniem"
+            },
+            {
+              "id": "led-2",
+              "name": "Ekran LED P4.8",
+              "price": 2600,
+              "unit": "komplet / dzień",
+              "desc": "Wersja ekonomiczna indoor / outdoor"
+            }
+          ]
+        },
+        {
+          "id": "led-procesory",
+          "name": "Sterowanie",
+          "items": [
+            {
+              "id": "led-3",
+              "name": "Procesor NovaStar VX600",
+              "price": 650,
+              "unit": "szt. / dzień",
+              "desc": "Sterowanie ekranem LED"
+            }
+          ]
+        }
+      ]
+    },
+    "audio": {
+      "label": "Nagłośnienie",
+      "groups": [
+        {
+          "id": "audio-zestawy",
+          "name": "Zestawy",
+          "items": [
+            {
+              "id": "audio-1",
+              "name": "Zestaw konferencyjny",
+              "price": 2500,
+              "unit": "komplet / dzień",
+              "desc": "Kolumny, mikser, podstawowe okablowanie"
+            },
+            {
+              "id": "audio-2",
+              "name": "Zestaw eventowy",
+              "price": 4500,
+              "unit": "komplet / dzień",
+              "desc": "Mocniejszy system na średni event"
+            },
+            {
+              "id": "audio-3",
+              "name": "Zestaw koncertowy",
+              "price": 7000,
+              "unit": "komplet / dzień",
+              "desc": "Rozbudowane nagłośnienie plenerowe / koncertowe"
+            }
+          ]
+        }
+      ]
+    },
+    "light": {
+      "label": "Oświetlenie",
+      "groups": [
+        {
+          "id": "light-ruchome",
+          "name": "Ruchome głowy",
+          "items": [
+            {
+              "id": "light-1",
+              "name": "Beam 230",
+              "price": 180,
+              "unit": "szt. / dzień",
+              "desc": "Ruchoma głowa beam"
+            },
+            {
+              "id": "light-2",
+              "name": "Wash LED",
+              "price": 90,
+              "unit": "szt. / dzień",
+              "desc": "Szeroki wash kolorystyczny"
+            }
+          ]
+        },
+        {
+          "id": "light-stat",
+          "name": "Statyczne",
+          "items": [
+            {
+              "id": "light-3",
+              "name": "PAR LED",
+              "price": 60,
+              "unit": "szt. / dzień",
+              "desc": "Podstawowe doświetlenie sceny"
+            }
+          ]
+        }
+      ]
+    },
+    "video": {
+      "label": "Wideo / streaming",
+      "groups": [
+        {
+          "id": "video-kamery",
+          "name": "Kamery",
+          "items": [
+            {
+              "id": "video-1",
+              "name": "Kamera Full HD",
+              "price": 900,
+              "unit": "szt. / dzień",
+              "desc": "Kamera operatorska z osprzętem"
+            },
+            {
+              "id": "video-2",
+              "name": "Kamera PTZ",
+              "price": 1200,
+              "unit": "szt. / dzień",
+              "desc": "Zdalnie sterowana kamera PTZ"
+            }
+          ]
+        },
+        {
+          "id": "video-realizacja",
+          "name": "Realizacja",
+          "items": [
+            {
+              "id": "video-3",
+              "name": "vMix / ATEM realizacja",
+              "price": 1800,
+              "unit": "dzień",
+              "desc": "Stanowisko realizacji live"
+            }
+          ]
+        }
+      ]
+    },
+    "internet": {
+      "label": "Internet / Starlink",
+      "groups": [
+        {
+          "id": "internet-sat",
+          "name": "Internet satelitarny",
+          "items": [
+            {
+              "id": "internet-1",
+              "name": "Starlink Mini",
+              "price": 1200,
+              "unit": "dzień",
+              "desc": "Mobilny internet satelitarny"
+            },
+            {
+              "id": "internet-2",
+              "name": "Starlink Standard",
+              "price": 1800,
+              "unit": "dzień",
+              "desc": "Wydajniejszy zestaw standard"
+            }
+          ]
+        },
+        {
+          "id": "internet-siec",
+          "name": "Sieć eventowa",
+          "items": [
+            {
+              "id": "internet-3",
+              "name": "MikroTik / sieć eventowa",
+              "price": 700,
+              "unit": "dzień",
+              "desc": "Konfiguracja routera i VLAN / Wi‑Fi"
+            }
+          ]
+        }
+      ]
+    },
+    "stage": {
+      "label": "Scena",
+      "groups": [
+        {
+          "id": "stage-podesty",
+          "name": "Podesty / scena",
+          "items": [
+            {
+              "id": "stage-1",
+              "name": "Scena modułowa",
+              "price": 3200,
+              "unit": "komplet",
+              "desc": "Podesty bazowe + nogi + fartuch"
+            },
+            {
+              "id": "stage-2",
+              "name": "Scena z zadaszeniem",
+              "price": 9500,
+              "unit": "komplet",
+              "desc": "Większa scena z konstrukcją"
+            }
+          ]
+        },
+        {
+          "id": "stage-access",
+          "name": "Akcesoria",
+          "items": [
+            {
+              "id": "stage-3",
+              "name": "Schody sceniczne",
+              "price": 450,
+              "unit": "komplet",
+              "desc": "Schody do sceny modułowej"
+            }
+          ]
+        }
+      ]
+    },
+    "transport": {
+      "label": "Transport / montaż",
+      "groups": [
+        {
+          "id": "transport-log",
+          "name": "Logistyka",
+          "items": [
+            {
+              "id": "transport-1",
+              "name": "Bus techniczny",
+              "price": 900,
+              "unit": "kurs",
+              "desc": "Dojazd sprzętu i ekipy"
+            },
+            {
+              "id": "transport-2",
+              "name": "Dodatkowa logistyka",
+              "price": 600,
+              "unit": "usługa",
+              "desc": "Noszenie, wnoszenie, dodatkowy czas"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "generator-ofert-pro-max",
+  "version": "4.1.0",
+  "description": "Generator ofert eventowych PRO MAX z landingiem, panelem admina i podstroną live",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

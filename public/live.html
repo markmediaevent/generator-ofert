@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transmisja live — Mark Media Event Solution</title>
+  <style>
+    :root{--bg:#050b14;--panel:#0f1726;--line:rgba(255,255,255,.08);--text:#eef4ff;--muted:#98a9c7}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at top right, rgba(78,161,255,.14), transparent 24%), linear-gradient(180deg,#040a13,#09111f)}
+    .wrap{max-width:1280px;margin:0 auto;padding:28px}
+    .top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:22px;padding:18px 20px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.03)}
+    .brand{display:flex;gap:16px;align-items:center}.brand img{height:54px;object-fit:contain}.brand h1{margin:0;font-size:34px;letter-spacing:-.04em}.brand p{margin:6px 0 0;color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.14);color:#fff;text-decoration:none;background:rgba(255,255,255,.05);font-weight:800}
+    .card{border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg, rgba(18,30,52,.94), rgba(10,19,35,.96));overflow:hidden}
+    .player-wrap{aspect-ratio:16/9;background:#000} iframe{width:100%;height:100%;border:0;display:block}
+    .content{padding:22px}.grid{display:grid;grid-template-columns:1.4fr .6fr;gap:22px;margin-top:22px}.info-card{padding:20px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.03)}
+    .label{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(78,161,255,.12);color:#cbe1ff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    h2{margin:14px 0 10px;font-size:24px;letter-spacing:-.03em} p{line-height:1.75}.note{font-size:13px;color:var(--muted)}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}.top{flex-direction:column;align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <img src="logo.png" alt="Mark Media Event Solution" />
+        <div><h1>Transmisja live</h1><p>Podstrona do oglądania transmisji online.</p></div>
+      </div>
+      <div class="actions"><a class="btn" href="/">Start</a><a class="btn" href="/app">Generator</a><a class="btn" href="/login">Panel magazynu</a></div>
+    </div>
+    <div class="card">
+      <div class="player-wrap">
+        <iframe src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=0&rel=0" title="Transmisja live" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+      <div class="content">
+        <span class="label">Live stream</span>
+        <h2>Oglądaj transmisję na żywo</h2>
+        <p>Ta podstrona jest gotowa pod osadzenie transmisji z YouTube, Vimeo, Facebook Live lub innego odtwarzacza iframe.</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="info-card"><h2>Jak podmienić transmisję</h2><p>W pliku <strong>public/live.html</strong> zmień adres w polu <strong>src</strong> wewnątrz iframe.</p><p class="note">Adres podstrony po wdrożeniu: <strong>/live</strong></p></div>
+      <div class="info-card"><h2>Szybki dostęp</h2><p><strong>Strona główna:</strong> /</p><p><strong>Generator ofert:</strong> /app</p><p><strong>Logowanie:</strong> /login</p><p><strong>Panel magazynu:</strong> /admin</p><p><strong>Transmisja live:</strong> /live</p></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generator ofert v3 MIX</title>
+  <style>
+    :root{
+      --bg:#0a0f17;
+      --bg2:#111827;
+      --panel:#f4f6f9;
+      --panel-2:#ffffff;
+      --line:#dde3ec;
+      --line-strong:#c5cedb;
+      --text:#172033;
+      --muted:#6b7587;
+      --navy:#13294b;
+      --navy-2:#1d3e6e;
+      --blue:#2f6fed;
+      --blue-soft:#e8f0ff;
+      --green:#10905d;
+      --green-soft:#e9fbf3;
+      --red:#d8415b;
+      --red-soft:#fff0f4;
+      --orange:#d98a00;
+      --chip:#edf2f7;
+      --shadow:0 18px 40px rgba(6,18,38,.09);
+      --radius:18px;
+      --radius-sm:14px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(47,111,237,.13), transparent 22%),
+        linear-gradient(180deg,#090e16 0,#0d1420 340px,#eef2f6 340px,#eef2f6 100%);
+    }
+    button,input,select,textarea{font:inherit}
+    .app{max-width:1540px;margin:0 auto;padding:24px 20px 42px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:18px;
+      padding:16px 18px;margin-bottom:22px;border-radius:22px;
+      background:linear-gradient(135deg,rgba(16,24,39,.92),rgba(19,41,75,.95));
+      color:#fff;box-shadow:0 20px 50px rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08)
+    }
+    .brand{display:flex;align-items:center;gap:16px;min-width:0}
+    .brand-logo{width:178px;height:62px;border-radius:16px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid rgba(255,255,255,.08)}
+    .brand-logo img{max-width:100%;max-height:100%;object-fit:contain}
+    .brand-copy h1{margin:0;font-size:28px;letter-spacing:-.03em}
+    .brand-copy p{margin:5px 0 0;color:rgba(255,255,255,.72);font-size:13px}
+    .navtabs{display:flex;gap:8px;flex-wrap:wrap}
+    .navtab{padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#fff;text-decoration:none;font-weight:700;font-size:14px}
+    .navtab.active{background:#fff;color:var(--navy)}
+
+    .page-grid{display:grid;grid-template-columns:minmax(0,1.5fr) 360px;gap:22px;align-items:start}
+    .stack{display:grid;gap:18px}
+    .card{
+      background:var(--panel-2);border:1px solid var(--line);border-radius:22px;
+      box-shadow:var(--shadow);overflow:hidden
+    }
+    .card-head{
+      display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+      padding:20px 22px 0 22px
+    }
+    .card-head h2,.card-head h3{margin:0;font-size:22px;letter-spacing:-.03em}
+    .card-head p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .card-body{padding:20px 22px 22px}
+    .hero{
+      background:linear-gradient(135deg,#0f1b2d 0,#163152 55%,#2357a5 100%);color:#fff;
+      border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 45px rgba(7,20,41,.28)
+    }
+    .hero .card-body{padding:24px 24px}
+    .hero-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+    .eyebrow{display:inline-flex;align-items:center;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.11);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .hero h2{margin:14px 0 10px;font-size:35px;line-height:1.02;letter-spacing:-.045em;max-width:770px}
+    .hero p{margin:0;max-width:840px;color:rgba(255,255,255,.82);line-height:1.65}
+    .hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+    .hero-stat{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+    .hero-stat small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.72);font-weight:800}
+    .hero-stat strong{display:block;margin-top:7px;font-size:20px}
+
+    .fields-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field label{font-size:12px;font-weight:800;color:#4f5b70;text-transform:uppercase;letter-spacing:.06em}
+    .field input,.field select,.field textarea{
+      width:100%;border:1px solid var(--line);background:#fff;color:var(--text);
+      border-radius:14px;padding:13px 14px;outline:none;transition:.16s ease
+    }
+    .field textarea{min-height:92px;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:#9ab5ef;box-shadow:0 0 0 4px rgba(47,111,237,.08)}
+    .field.span-2{grid-column:span 2}
+    .field.span-4{grid-column:1/-1}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--line-strong);background:#fff;color:var(--text);
+      border-radius:12px;padding:11px 14px;cursor:pointer;font-weight:800;font-size:14px
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    .btn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+    .btn.green{background:var(--green);border-color:var(--green);color:#fff}
+    .btn.soft{background:#f8fafc}
+    .btn.red{background:#fff;border-color:#f0c6cf;color:var(--red)}
+    .status-pill{display:inline-flex;align-items:center;padding:9px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;background:var(--chip);color:#41506a}
+
+    .section-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .section-tab{padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:800;color:#31405a}
+    .section-tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+    .search-row{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px;margin-bottom:14px}
+    .search-row input,.search-row select{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff}
+
+    .equipment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .equip-card{
+      display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+      padding:14px 15px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff,#f8fafc)
+    }
+    .equip-main{min-width:0}
+    .equip-path{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#7a879d;margin-bottom:7px}
+    .equip-name{font-size:16px;font-weight:900;letter-spacing:-.02em;margin-bottom:4px}
+    .equip-desc{font-size:13px;color:var(--muted);line-height:1.45}
+    .equip-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+    .chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#eef3fb;color:#4a5a75;font-size:11px;font-weight:800}
+    .equip-action{display:grid;gap:8px;justify-items:end;min-width:130px}
+    .equip-price{font-size:22px;font-weight:900;letter-spacing:-.03em;color:var(--navy)}
+    .equip-price small{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-top:3px}
+    .muted-box{padding:14px;border:1px dashed var(--line-strong);border-radius:14px;background:#fafbfd;color:var(--muted)}
+
+    .quick-add{display:grid;grid-template-columns:1.15fr 1.4fr .55fr .55fr .7fr auto;gap:10px;align-items:end;padding:14px;border:1px dashed var(--line-strong);border-radius:16px;background:#fafcff;margin-bottom:14px}
+
+    .table-wrap{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:#f5f7fb;color:#566277;font-size:12px;text-transform:uppercase;letter-spacing:.08em;padding:13px 12px;text-align:left;border-bottom:1px solid var(--line)}
+    tbody td{padding:12px;border-bottom:1px solid #edf1f6;vertical-align:top;font-size:14px}
+    tbody tr:hover{background:#fafcff}
+    .section-row td{background:#eef3fb;font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#2a3d5f}
+    .item-name{font-weight:800}
+    .item-desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+    .qty-box{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:4px;background:#fff}
+    .qty-box button{width:30px;height:30px;border:0;border-radius:9px;background:#edf2f8;cursor:pointer;font-weight:900}
+    .qty-box input{width:44px;border:0;text-align:center;font-weight:800;outline:none}
+    .price-input{width:110px;border:1px solid var(--line);border-radius:12px;padding:10px 10px}
+    .mini-btn{width:38px;height:38px;border:1px solid #efc7cf;border-radius:12px;background:#fff;color:var(--red);cursor:pointer;font-weight:900}
+    .subtotal-row td{background:#fbfcfe;font-weight:800;color:#33425d}
+
+    .sidebar{position:sticky;top:18px;display:grid;gap:18px}
+    .summary-card{background:linear-gradient(180deg,#fff,#f7f9fc);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+    .summary-head{padding:20px 20px 0}
+    .summary-head h3{margin:0;font-size:22px;letter-spacing:-.03em}
+    .summary-head p{margin:7px 0 0;color:var(--muted);font-size:13px}
+    .summary-body{padding:18px 20px 20px;display:grid;gap:14px}
+    .summary-list{display:grid;gap:8px}
+    .sum-line{display:flex;justify-content:space-between;gap:14px;padding:11px 12px;border-radius:13px;background:#fff;border:1px solid var(--line)}
+    .sum-line .label{color:#536077}
+    .sum-total{padding:18px;border-radius:18px;background:linear-gradient(135deg,#0f1d35,#1a3f73);color:#fff}
+    .sum-total small{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+    .sum-total strong{display:block;margin-top:8px;font-size:34px;letter-spacing:-.04em}
+    .summary-actions{display:grid;gap:10px}
+    .summary-actions .btn{width:100%;justify-content:center}
+    .summary-note{font-size:13px;color:var(--muted);line-height:1.6}
+    .draft-list{display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:2px}
+    .draft-card{padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff;display:grid;gap:8px}
+    .draft-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .draft-card strong{font-size:15px}
+    .draft-meta{font-size:12px;color:var(--muted);line-height:1.5}
+    .small-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .small-actions .btn{padding:9px 11px;font-size:12px}
+
+    .pdf-sheet{display:none}
+    @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
+    @media (max-width:940px){.fields-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.equipment-grid{grid-template-columns:1fr}.hero-stats{grid-template-columns:1fr}.quick-add{grid-template-columns:1fr 1fr}.quick-add > :nth-last-child(-n+2){grid-column:span 1}}
+    @media (max-width:680px){.app{padding:14px}.topbar{flex-direction:column;align-items:flex-start}.brand{flex-direction:column;align-items:flex-start}.fields-grid,.search-row,.quick-add{grid-template-columns:1fr}.field.span-2,.field.span-4{grid-column:auto}.card-head{flex-direction:column;align-items:flex-start}.navtabs{width:100%}.navtab{flex:1;text-align:center}}
+
+    @media print{
+      @page{size:A4;margin:12mm}
+      body{background:#fff}
+      .app>*:not(.pdf-sheet){display:none !important}
+      .pdf-sheet{display:block !important;font-family:Inter,Arial,sans-serif;color:#1a2435}
+      .pdf-page{min-height:273mm;padding:16mm;background:#edf1f6;page-break-after:always}
+      .pdf-page:last-child{page-break-after:auto}
+      .pdf-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:14px}
+      .pdf-hero h1{margin:10px 0 6px;font-size:28px;letter-spacing:-.04em}
+      .pdf-hero p{margin:0;color:rgba(255,255,255,.82);line-height:1.6}
+      .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+      .pdf-card{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:12px}
+      .pdf-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7b8799;font-weight:800}
+      .pdf-value{margin-top:6px;font-size:14px;font-weight:700;color:#172033}
+      .pdf-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden}
+      .pdf-table th,.pdf-table td{padding:10px 9px;border-bottom:1px solid #e6ebf2;text-align:left;font-size:12px}
+      .pdf-table th:last-child,.pdf-table td:last-child{text-align:right}
+      .pdf-section{background:#eef3fb;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#2b4064}
+      .pdf-total{margin-top:14px;display:grid;grid-template-columns:1fr 240px;gap:12px}
+      .pdf-total-box{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:12px}
+      .pdf-total-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:16px;padding:14px 16px}
+      .pdf-total-hero strong{display:block;font-size:28px;margin-top:6px;letter-spacing:-.04em}
+      .pdf-note{line-height:1.7;color:#5e6b7f;font-size:12px}
+      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px}
+      .pdf-line-sign{padding-top:42px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo"><img src="logo.png" alt="logo" onerror="this.style.display='none'"></div>
+        <div class="brand-copy">
+          <h1>Generator ofert v3 <span style="color:#9ec0ff">MIX</span></h1>
+          <p>Układ jak w dobrym systemie handlowym: szybkie dodawanie pozycji, prawa kolumna sticky i czytelna tabela oferty.</p>
+        </div>
+      </div>
+      <nav class="navtabs">
+        <a class="navtab active" href="/app">Kreator ofert</a>
+        <a class="navtab" href="#draftsBlock">Przeglądarka ofert</a>
+        <a class="navtab" href="/admin">Magazyn</a>
+        <a class="navtab" href="/">Strona główna</a>
+      </nav>
+    </header>
+
+    <section class="card hero">
+      <div class="card-body">
+        <div class="hero-top">
+          <div>
+            <span class="eyebrow">Mark Media Event Solution</span>
+            <h2>Przebudowany generator w stylu handlowym — mniej chaosu, więcej realnej pracy na ofercie.</h2>
+            <p>Masz wyraźny podział: dane oferty, baza sprzętu, pozycje i stałe podsumowanie po prawej. Na ekranie dark + event vibe, a wydruk PDF jest elegancki i biznesowy.</p>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><small>Układ</small><strong>2 kolumny + sticky</strong></div>
+          <div class="hero-stat"><small>Styl</small><strong>Dark UI + clean PDF</strong></div>
+          <div class="hero-stat"><small>Tryb pracy</small><strong>Szybkie ofertowanie</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-grid" style="margin-top:18px;">
+      <main class="stack">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Dane oferty</h2>
+              <p>Uporządkowany nagłówek, jak w normalnym systemie ofertowym.</p>
+            </div>
+            <div class="toolbar">
+              <span class="status-pill" id="statusPill">Szkic</span>
+              <button class="btn soft" type="button" onclick="generateOfferNumber()">Nowy numer</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="fields-grid">
+              <div class="field"><label>Numer oferty</label><input id="offerNumber" /></div>
+              <div class="field"><label>Status</label><select id="offerStatus"><option>Szkic</option><option>Wysłana</option><option>Zaakceptowana</option><option>Anulowana</option></select></div>
+              <div class="field"><label>Data oferty</label><input id="offerDate" type="date" /></div>
+              <div class="field"><label>Data wydarzenia</label><input id="eventDate" type="date" /></div>
+              <div class="field span-2"><label>Klient</label><input id="clientName" placeholder="Np. XYZ Sp. z o.o." /></div>
+              <div class="field"><label>Osoba kontaktowa</label><input id="contactName" placeholder="Np. Jan Kowalski" /></div>
+              <div class="field"><label>E-mail klienta</label><input id="clientEmail" placeholder="kontakt@firma.pl" /></div>
+              <div class="field span-2"><label>Tytuł oferty / wydarzenie</label><input id="eventName" placeholder="Np. Gala, konferencja, koncert" /></div>
+              <div class="field"><label>Miejscowość</label><input id="location" placeholder="Warszawa" /></div>
+              <div class="field"><label>Kod / projekt</label><input id="postalCode" placeholder="00-000 / kod wewn." /></div>
+              <div class="field span-4"><label>Uwagi do oferty</label><textarea id="notes" placeholder="Warunki realizacji, zakres, terminy, informacje dodatkowe..."></textarea></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Baza sprzętu</h2>
+              <p>Małe kafle, szybkie dodawanie do oferty i filtry jak w sensownym systemie.</p>
+            </div>
+            <div class="toolbar">
+              <button class="btn soft" type="button" onclick="refreshEquipment()">Odśwież bazę</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="section-tabs" id="categoryTabs"></div>
+            <div class="search-row">
+              <input id="equipmentSearch" type="text" placeholder="Szukaj po nazwie, opisie lub grupie..." />
+              <select id="equipmentSort">
+                <option value="default">Sortowanie domyślne</option>
+                <option value="priceAsc">Cena rosnąco</option>
+                <option value="priceDesc">Cena malejąco</option>
+                <option value="nameAsc">Nazwa A-Z</option>
+              </select>
+            </div>
+            <div id="equipmentGrid" class="equipment-grid"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Pozycje oferty</h2>
+              <p>Kompaktowa tabela z ilością, dniami, ceną i sumą — bez wielkich kart i bałaganu.</p>
+            </div>
+            <div class="toolbar">
+              <button class="btn soft" type="button" onclick="addManualItem()">Dodaj pozycję własną</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="quick-add" id="manualForm" style="display:none;">
+              <div class="field"><label>Kategoria</label><select id="manualCategory"></select></div>
+              <div class="field"><label>Nazwa pozycji</label><input id="manualName" placeholder="Np. Operator wizji" /></div>
+              <div class="field"><label>Ilość</label><input id="manualQty" type="number" min="1" value="1" /></div>
+              <div class="field"><label>Dni</label><input id="manualDays" type="number" min="1" value="1" /></div>
+              <div class="field"><label>Cena netto</label><input id="manualPrice" type="number" min="0" step="0.01" value="0" /></div>
+              <div class="toolbar"><button class="btn primary" type="button" onclick="confirmManualItem()">Dodaj</button></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:56px">LP</th>
+                    <th>Pozycja</th>
+                    <th style="width:120px">Ilość</th>
+                    <th style="width:120px">Dni</th>
+                    <th style="width:130px">Cena</th>
+                    <th style="width:130px">Suma</th>
+                    <th style="width:64px"></th>
+                  </tr>
+                </thead>
+                <tbody id="offerTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="sidebar">
+        <section class="summary-card">
+          <div class="summary-head">
+            <h3>Podsumowanie</h3>
+            <p>Stały panel po prawej, żeby suma zawsze była pod ręką.</p>
+          </div>
+          <div class="summary-body">
+            <div class="summary-list" id="categorySummary"></div>
+            <div class="field">
+              <label>Rabat %</label>
+              <input id="discountPercent" type="number" min="0" max="100" step="0.01" value="0" />
+            </div>
+            <div class="sum-total">
+              <small>Suma netto po rabacie</small>
+              <strong id="grandTotal">0,00 zł</strong>
+            </div>
+            <div class="summary-list">
+              <div class="sum-line"><span class="label">Wartość przed rabatem</span><strong id="beforeDiscount">0,00 zł</strong></div>
+              <div class="sum-line"><span class="label">Rabat</span><strong id="discountValue">0,00 zł</strong></div>
+              <div class="sum-line"><span class="label">VAT 23%</span><strong id="vatValue">0,00 zł</strong></div>
+              <div class="sum-line"><span class="label">Brutto</span><strong id="grossValue">0,00 zł</strong></div>
+            </div>
+            <div class="summary-actions">
+              <button class="btn dark" type="button" onclick="saveDraft()">Zapisz szkic</button>
+              <button class="btn primary" type="button" onclick="preparePdfAndPrint()">Generuj PDF</button>
+              <button class="btn green" type="button" onclick="copyOfferText()">Kopiuj tekst</button>
+              <button class="btn red" type="button" onclick="resetForm()">Wyczyść</button>
+            </div>
+            <div class="summary-note" id="saveStatus">Gotowe do pracy.</div>
+          </div>
+        </section>
+
+        <section class="summary-card" id="draftsBlock">
+          <div class="summary-head">
+            <h3>Przeglądarka ofert</h3>
+            <p>Lista szkiców do szybkiego wczytania i edycji.</p>
+          </div>
+          <div class="summary-body">
+            <div class="toolbar">
+              <button class="btn soft" type="button" onclick="refreshDraftList()">Odśwież</button>
+              <button class="btn soft" type="button" onclick="loadDraftByPrompt()">Wczytaj po numerze</button>
+            </div>
+            <div class="draft-list" id="draftList"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="pdf-sheet" id="pdfSheet"></div>
+  </div>
+
+  <script>
+    const categories = {
+      led: { label: 'Ekran LED' },
+      audio: { label: 'Nagłośnienie' },
+      light: { label: 'Oświetlenie' },
+      video: { label: 'Wideo / streaming' },
+      internet: { label: 'Internet / Starlink' },
+      stage: { label: 'Scena' },
+      transport: { label: 'Transport / montaż' },
+      custom: { label: 'Obsługa / inne' }
+    };
+
+    let equipmentDb = { sections: {} };
+    let selectedCategory = 'all';
+    let offerItems = [];
+
+    const currency = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' });
+    const byId = (id) => document.getElementById(id);
+    const formatMoney = (n) => currency.format(Number(n || 0));
+    const escapeHtml = (v='') => String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+    function generateOfferNumber(){
+      const d = new Date();
+      const year = d.getFullYear();
+      const stamp = `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+      byId('offerNumber').value = `OF-${year}-${stamp}`;
+    }
+
+    function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+    function initForm(){
+      if (!byId('offerNumber').value) generateOfferNumber();
+      byId('offerDate').value = todayISO();
+      byId('eventDate').value = todayISO();
+      byId('offerStatus').value = 'Szkic';
+      byId('statusPill').textContent = 'Szkic';
+      byId('manualCategory').innerHTML = Object.entries(categories).filter(([k]) => k !== 'all').map(([key,val]) => `<option value="${key}">${val.label}</option>`).join('');
+    }
+
+    function renderTabs(){
+      const entries = [['all','Wszystko'], ...Object.entries(categories).filter(([k]) => k !== 'custom').map(([k,v]) => [k,v.label]), ['custom','Obsługa / inne']];
+      byId('categoryTabs').innerHTML = entries.map(([key,label]) => `<button class="section-tab ${selectedCategory===key?'active':''}" onclick="selectCategory('${key}')">${label}</button>`).join('');
+    }
+    function selectCategory(key){ selectedCategory = key; renderTabs(); renderEquipment(); }
+
+    async function refreshEquipment(){
+      try{
+        const res = await fetch('/api/equipment-db');
+        equipmentDb = await res.json();
+      }catch(e){ equipmentDb = { sections: {} }; }
+      renderEquipment();
+    }
+
+    function flattenEquipment(){
+      const list = [];
+      const sections = equipmentDb.sections || {};
+      for(const [sectionKey, section] of Object.entries(sections)){
+        for(const group of section.groups || []){
+          for(const item of group.items || []){
+            list.push({ sectionKey, sectionLabel: section.label, groupName: group.name, ...item });
+          }
+        }
+      }
+      return list;
+    }
+
+    function renderEquipment(){
+      const q = byId('equipmentSearch').value.trim().toLowerCase();
+      const sort = byId('equipmentSort').value;
+      let items = flattenEquipment();
+      if(selectedCategory !== 'all') items = items.filter(i => i.sectionKey === selectedCategory);
+      if(q) items = items.filter(i => [i.name, i.desc, i.groupName, i.sectionLabel].join(' ').toLowerCase().includes(q));
+      if(sort === 'priceAsc') items.sort((a,b)=>Number(a.price)-Number(b.price));
+      if(sort === 'priceDesc') items.sort((a,b)=>Number(b.price)-Number(a.price));
+      if(sort === 'nameAsc') items.sort((a,b)=>String(a.name).localeCompare(String(b.name), 'pl'));
+      const grid = byId('equipmentGrid');
+      if(!items.length){ grid.innerHTML = '<div class="muted-box">Brak pozycji w tej kategorii lub dla tego wyszukiwania.</div>'; return; }
+      grid.innerHTML = items.map(item => `
+        <div class="equip-card">
+          <div class="equip-main">
+            <div class="equip-path">${escapeHtml(item.sectionLabel)} / ${escapeHtml(item.groupName)}</div>
+            <div class="equip-name">${escapeHtml(item.name)}</div>
+            <div class="equip-desc">${escapeHtml(item.desc || '')}</div>
+            <div class="equip-meta">
+              <span class="chip">${formatMoney(item.price)}</span>
+              <span class="chip">${escapeHtml(item.unit || 'szt.')}</span>
+            </div>
+          </div>
+          <div class="equip-action">
+            <div class="equip-price">${formatMoney(item.price)}<small>${escapeHtml(item.unit || '')}</small></div>
+            <button class="btn primary" type="button" onclick="addDbItem('${item.sectionKey}','${item.id}')">Dodaj</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addDbItem(sectionKey, itemId){
+      const found = flattenEquipment().find(i => i.sectionKey === sectionKey && i.id === itemId);
+      if(!found) return;
+      offerItems.push({
+        uid: cryptoRandom(),
+        category: sectionKey,
+        categoryLabel: categories[sectionKey]?.label || found.sectionLabel || sectionKey,
+        name: found.name,
+        desc: found.desc || found.groupName || '',
+        qty: 1,
+        days: 1,
+        price: Number(found.price || 0),
+        source: 'db'
+      });
+      renderOfferTable();
+    }
+
+    function addManualItem(){
+      const form = byId('manualForm');
+      form.style.display = form.style.display === 'none' ? 'grid' : 'none';
+    }
+
+    function confirmManualItem(){
+      const category = byId('manualCategory').value;
+      const name = byId('manualName').value.trim();
+      if(!name){ alert('Podaj nazwę pozycji.'); return; }
+      offerItems.push({
+        uid: cryptoRandom(),
+        category,
+        categoryLabel: categories[category]?.label || 'Pozycja własna',
+        name,
+        desc: 'Pozycja dodana ręcznie',
+        qty: Math.max(1, Number(byId('manualQty').value || 1)),
+        days: Math.max(1, Number(byId('manualDays').value || 1)),
+        price: Math.max(0, Number(byId('manualPrice').value || 0)),
+        source: 'manual'
+      });
+      byId('manualName').value = '';
+      byId('manualQty').value = 1;
+      byId('manualDays').value = 1;
+      byId('manualPrice').value = 0;
+      renderOfferTable();
+    }
+
+    function cryptoRandom(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+
+    function groupedItems(){
+      const order = ['led','audio','light','video','internet','stage','transport','custom'];
+      const groups = [];
+      order.forEach(key => {
+        const rows = offerItems.filter(i => i.category === key);
+        if(rows.length) groups.push({ key, label: categories[key]?.label || key, rows });
+      });
+      return groups;
+    }
+
+    function updateItem(uid, field, value){
+      const item = offerItems.find(i => i.uid === uid);
+      if(!item) return;
+      if(field === 'qty' || field === 'days') item[field] = Math.max(1, Number(value || 1));
+      else if(field === 'price') item.price = Math.max(0, Number(value || 0));
+      else item[field] = value;
+      renderOfferTable();
+    }
+
+    function stepItem(uid, field, step){
+      const item = offerItems.find(i => i.uid === uid);
+      if(!item) return;
+      item[field] = Math.max(1, Number(item[field] || 1) + step);
+      renderOfferTable();
+    }
+
+    function removeItem(uid){
+      offerItems = offerItems.filter(i => i.uid !== uid);
+      renderOfferTable();
+    }
+
+    function lineTotal(item){ return Number(item.qty||0) * Number(item.days||0) * Number(item.price||0); }
+
+    function renderOfferTable(){
+      const body = byId('offerTableBody');
+      const groups = groupedItems();
+      if(!groups.length){
+        body.innerHTML = '<tr><td colspan="7"><div class="muted-box" style="margin:6px 0">Brak pozycji w ofercie. Dodaj coś z bazy sprzętu albo pozycję własną.</div></td></tr>';
+        updateSummary();
+        return;
+      }
+      let lp = 1;
+      body.innerHTML = groups.map(group => {
+        const subtotal = group.rows.reduce((sum, item) => sum + lineTotal(item), 0);
+        const rows = group.rows.map(item => `
+          <tr>
+            <td>${lp++}</td>
+            <td>
+              <div class="item-name">${escapeHtml(item.name)}</div>
+              <div class="item-desc">${escapeHtml(item.desc || '')}</div>
+            </td>
+            <td>
+              <div class="qty-box">
+                <button type="button" onclick="stepItem('${item.uid}','qty',-1)">−</button>
+                <input value="${item.qty}" onchange="updateItem('${item.uid}','qty',this.value)" />
+                <button type="button" onclick="stepItem('${item.uid}','qty',1)">+</button>
+              </div>
+            </td>
+            <td>
+              <div class="qty-box">
+                <button type="button" onclick="stepItem('${item.uid}','days',-1)">−</button>
+                <input value="${item.days}" onchange="updateItem('${item.uid}','days',this.value)" />
+                <button type="button" onclick="stepItem('${item.uid}','days',1)">+</button>
+              </div>
+            </td>
+            <td><input class="price-input" type="number" min="0" step="0.01" value="${item.price}" onchange="updateItem('${item.uid}','price',this.value)" /></td>
+            <td><strong>${formatMoney(lineTotal(item))}</strong></td>
+            <td><button class="mini-btn" type="button" onclick="removeItem('${item.uid}')">×</button></td>
+          </tr>
+        `).join('');
+        return `<tr class="section-row"><td colspan="7">${escapeHtml(group.label)}</td></tr>${rows}<tr class="subtotal-row"><td colspan="5">Suma sekcji: ${escapeHtml(group.label)}</td><td colspan="2">${formatMoney(subtotal)}</td></tr>`;
+      }).join('');
+      updateSummary();
+    }
+
+    function computeTotals(){
+      const categoryTotals = {};
+      let subtotal = 0;
+      for(const item of offerItems){
+        const val = lineTotal(item);
+        subtotal += val;
+        categoryTotals[item.category] = (categoryTotals[item.category] || 0) + val;
+      }
+      const discountPercent = Math.max(0, Number(byId('discountPercent').value || 0));
+      const discount = subtotal * (discountPercent / 100);
+      const afterDiscount = subtotal - discount;
+      const vat = afterDiscount * 0.23;
+      const gross = afterDiscount + vat;
+      return { categoryTotals, subtotal, discountPercent, discount, afterDiscount, vat, gross };
+    }
+
+    function updateSummary(){
+      const totals = computeTotals();
+      byId('categorySummary').innerHTML = Object.entries(totals.categoryTotals).length
+        ? Object.entries(totals.categoryTotals).map(([key,val]) => `<div class="sum-line"><span class="label">${escapeHtml(categories[key]?.label || key)}</span><strong>${formatMoney(val)}</strong></div>`).join('')
+        : '<div class="muted-box">Podsumowanie pojawi się po dodaniu pozycji.</div>';
+      byId('beforeDiscount').textContent = formatMoney(totals.subtotal);
+      byId('discountValue').textContent = formatMoney(totals.discount);
+      byId('grandTotal').textContent = formatMoney(totals.afterDiscount);
+      byId('vatValue').textContent = formatMoney(totals.vat);
+      byId('grossValue').textContent = formatMoney(totals.gross);
+      byId('statusPill').textContent = byId('offerStatus').value || 'Szkic';
+    }
+
+    function collectData(){
+      return {
+        offerNumber: byId('offerNumber').value.trim(),
+        offerStatus: byId('offerStatus').value,
+        offerDate: byId('offerDate').value,
+        eventDate: byId('eventDate').value,
+        clientName: byId('clientName').value.trim(),
+        contactName: byId('contactName').value.trim(),
+        clientEmail: byId('clientEmail').value.trim(),
+        eventName: byId('eventName').value.trim(),
+        location: byId('location').value.trim(),
+        postalCode: byId('postalCode').value.trim(),
+        notes: byId('notes').value.trim(),
+        discountPercent: Number(byId('discountPercent').value || 0),
+        items: offerItems
+      };
+    }
+
+    function applyData(data){
+      byId('offerNumber').value = data.offerNumber || '';
+      byId('offerStatus').value = data.offerStatus || 'Szkic';
+      byId('offerDate').value = data.offerDate || todayISO();
+      byId('eventDate').value = data.eventDate || todayISO();
+      byId('clientName').value = data.clientName || '';
+      byId('contactName').value = data.contactName || '';
+      byId('clientEmail').value = data.clientEmail || '';
+      byId('eventName').value = data.eventName || '';
+      byId('location').value = data.location || '';
+      byId('postalCode').value = data.postalCode || '';
+      byId('notes').value = data.notes || '';
+      byId('discountPercent').value = data.discountPercent || 0;
+      offerItems = Array.isArray(data.items) ? data.items.map(item => ({ uid: item.uid || cryptoRandom(), ...item })) : [];
+      renderOfferTable();
+    }
+
+    async function saveDraft(){
+      const data = collectData();
+      if(!data.offerNumber){ alert('Podaj numer oferty.'); return; }
+      try{
+        const res = await fetch('/api/drafts/save', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ offerNumber: data.offerNumber, data })
+        });
+        const json = await res.json();
+        if(!res.ok) throw new Error(json.message || 'Błąd zapisu');
+        byId('saveStatus').textContent = json.message || 'Szkic zapisany.';
+        refreshDraftList();
+      }catch(e){
+        byId('saveStatus').textContent = e.message || 'Nie udało się zapisać szkicu.';
+        alert(e.message || 'Nie udało się zapisać szkicu.');
+      }
+    }
+
+    async function refreshDraftList(){
+      const list = byId('draftList');
+      list.innerHTML = '<div class="muted-box">Ładowanie szkiców...</div>';
+      try{
+        const res = await fetch('/api/drafts');
+        const json = await res.json();
+        const drafts = json.drafts || [];
+        if(!drafts.length){ list.innerHTML = '<div class="muted-box">Brak zapisanych szkiców.</div>'; return; }
+        list.innerHTML = drafts.map(d => `
+          <div class="draft-card">
+            <div class="draft-card-top">
+              <strong>${escapeHtml(d.offerNumber || '')}</strong>
+              <span class="chip">${escapeHtml(d.source || 'local')}</span>
+            </div>
+            <div>${escapeHtml(d.clientName || 'Bez klienta')}</div>
+            <div class="draft-meta">${escapeHtml(d.eventName || 'Bez tytułu')}<br>${escapeHtml(d.location || '')}${d.updatedAt ? '<br>Aktualizacja: ' + escapeHtml(String(d.updatedAt).slice(0,16).replace('T',' ')) : ''}</div>
+            <div class="small-actions">
+              <button class="btn soft" type="button" onclick="loadDraft('${escapeHtml(d.offerNumber || '')}')">Wczytaj</button>
+            </div>
+          </div>
+        `).join('');
+      }catch(e){
+        list.innerHTML = '<div class="muted-box">Nie udało się pobrać szkiców.</div>';
+      }
+    }
+
+    async function loadDraft(offerNumber){
+      try{
+        const res = await fetch('/api/drafts/' + encodeURIComponent(offerNumber));
+        const json = await res.json();
+        if(!res.ok) throw new Error(json.message || 'Nie znaleziono szkicu');
+        applyData(json.data || {});
+        byId('saveStatus').textContent = `Wczytano szkic ${offerNumber}.`;
+      }catch(e){ alert(e.message || 'Nie udało się wczytać szkicu.'); }
+    }
+
+    async function loadDraftByPrompt(){
+      const offerNumber = prompt('Podaj numer oferty do wczytania:');
+      if(offerNumber) loadDraft(offerNumber.trim());
+    }
+
+    function copyOfferText(){
+      const data = collectData();
+      const totals = computeTotals();
+      const lines = [
+        `Oferta: ${data.offerNumber}`,
+        `Status: ${data.offerStatus}`,
+        `Klient: ${data.clientName}`,
+        `Kontakt: ${data.contactName}`,
+        `E-mail: ${data.clientEmail}`,
+        `Wydarzenie: ${data.eventName}`,
+        `Lokalizacja: ${data.location}`,
+        `Data oferty: ${data.offerDate}`,
+        `Data wydarzenia: ${data.eventDate}`,
+        '',
+        'Pozycje:'
+      ];
+      offerItems.forEach((item, i) => lines.push(`${i+1}. ${item.name} | ${categories[item.category]?.label || item.category} | ${item.qty} x ${item.days} x ${formatMoney(item.price)} = ${formatMoney(lineTotal(item))}`));
+      lines.push('', `Suma netto: ${formatMoney(totals.afterDiscount)}`, `VAT 23%: ${formatMoney(totals.vat)}`, `Brutto: ${formatMoney(totals.gross)}`);
+      if(data.notes) lines.push('', 'Uwagi:', data.notes);
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        byId('saveStatus').textContent = 'Skopiowano tekst oferty.';
+      }).catch(() => alert('Nie udało się skopiować.'));
+    }
+
+    function resetForm(){
+      if(!confirm('Wyczyścić całą ofertę?')) return;
+      ['clientName','contactName','clientEmail','eventName','location','postalCode','notes'].forEach(id => byId(id).value = '');
+      byId('offerStatus').value = 'Szkic';
+      byId('discountPercent').value = 0;
+      byId('offerDate').value = todayISO();
+      byId('eventDate').value = todayISO();
+      generateOfferNumber();
+      offerItems = [];
+      renderOfferTable();
+      byId('saveStatus').textContent = 'Wyczyszczono formularz.';
+    }
+
+    function pdfRows(){
+      const groups = groupedItems();
+      let rows = '';
+      groups.forEach(group => {
+        rows += `<tr class="pdf-section"><td colspan="5">${escapeHtml(group.label)}</td></tr>`;
+        group.rows.forEach(item => {
+          rows += `<tr><td>${escapeHtml(item.name)}</td><td>${item.qty}</td><td>${item.days}</td><td>${formatMoney(item.price)}</td><td>${formatMoney(lineTotal(item))}</td></tr>`;
+        });
+      });
+      return rows || '<tr><td colspan="5">Brak pozycji</td></tr>';
+    }
+
+    function buildPdf(){
+      const d = collectData();
+      const totals = computeTotals();
+      const sheet = byId('pdfSheet');
+      sheet.innerHTML = `
+        <div class="pdf-page">
+          <div class="pdf-hero">
+            <div class="pdf-label">Mark Media Event Solution</div>
+            <h1>Oferta eventowa ${escapeHtml(d.offerNumber || '')}</h1>
+            <p>Przygotowana dla klienta ${escapeHtml(d.clientName || '—')} · ${escapeHtml(d.eventName || 'Usługa eventowa')}</p>
+          </div>
+          <div class="pdf-grid">
+            <div class="pdf-card"><div class="pdf-label">Klient</div><div class="pdf-value">${escapeHtml(d.clientName || '—')}</div></div>
+            <div class="pdf-card"><div class="pdf-label">Osoba kontaktowa</div><div class="pdf-value">${escapeHtml(d.contactName || '—')}</div></div>
+            <div class="pdf-card"><div class="pdf-label">E-mail</div><div class="pdf-value">${escapeHtml(d.clientEmail || '—')}</div></div>
+            <div class="pdf-card"><div class="pdf-label">Lokalizacja</div><div class="pdf-value">${escapeHtml(d.location || '—')}</div></div>
+            <div class="pdf-card"><div class="pdf-label">Data oferty</div><div class="pdf-value">${escapeHtml(d.offerDate || '—')}</div></div>
+            <div class="pdf-card"><div class="pdf-label">Data wydarzenia</div><div class="pdf-value">${escapeHtml(d.eventDate || '—')}</div></div>
+          </div>
+          <table class="pdf-table">
+            <thead>
+              <tr><th>Pozycja</th><th>Ilość</th><th>Dni</th><th>Cena netto</th><th>Suma netto</th></tr>
+            </thead>
+            <tbody>${pdfRows()}</tbody>
+          </table>
+          <div class="pdf-total">
+            <div class="pdf-total-box">
+              <div class="pdf-label">Uwagi</div>
+              <div class="pdf-note">${escapeHtml(d.notes || 'Zakres i warunki realizacji zgodnie z ustaleniami. W razie zmian przygotujemy aktualizację oferty.')}</div>
+            </div>
+            <div class="pdf-total-hero">
+              <div class="pdf-label" style="color:rgba(255,255,255,.72)">Podsumowanie</div>
+              <div style="display:grid;gap:6px;margin-top:10px;font-size:13px;color:rgba(255,255,255,.9)">
+                <div style="display:flex;justify-content:space-between;gap:10px"><span>Przed rabatem</span><strong>${formatMoney(totals.subtotal)}</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:10px"><span>Rabat</span><strong>${formatMoney(totals.discount)}</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:10px"><span>VAT 23%</span><strong>${formatMoney(totals.vat)}</strong></div>
+              </div>
+              <strong>${formatMoney(totals.gross)}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="pdf-page">
+          <div class="pdf-card" style="min-height:170mm;display:grid;gap:18px;align-content:start;">
+            <div>
+              <div class="pdf-label">Podsumowanie realizacji</div>
+              <div class="pdf-value">${escapeHtml(d.eventName || 'Oferta eventowa')}</div>
+            </div>
+            <div class="pdf-note">Dziękujemy za możliwość przygotowania oferty. Jesteśmy gotowi doprecyzować konfigurację sprzętu, zakres obsługi, logistykę, montaż oraz warianty premium zależnie od budżetu i charakteru wydarzenia.</div>
+            <div class="pdf-note">Oferta ma charakter roboczy i może zostać doprecyzowana po potwierdzeniu terminu, lokalizacji oraz ostatecznej specyfikacji technicznej.</div>
+            <div class="pdf-sign">
+              <div class="pdf-line-sign">Podpis i pieczęć wykonawcy</div>
+              <div class="pdf-line-sign">Podpis klienta / akceptacja</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function preparePdfAndPrint(){
+      buildPdf();
+      window.print();
+    }
+
+    document.addEventListener('input', (e) => {
+      if(['discountPercent','offerStatus'].includes(e.target.id)) updateSummary();
+      if(['equipmentSearch'].includes(e.target.id)) renderEquipment();
+    });
+    document.addEventListener('change', (e) => {
+      if(['equipmentSort'].includes(e.target.id)) renderEquipment();
+      if(['offerStatus'].includes(e.target.id)) updateSummary();
+    });
+
+    initForm();
+    renderTabs();
+    refreshEquipment();
+    refreshDraftList();
+    renderOfferTable();
+  </script>
+</body>
+</html>

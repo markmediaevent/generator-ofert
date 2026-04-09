@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mark Media Event Solution</title>
+  <style>
+    :root{
+      --bg:#040915;
+      --bg2:#091427;
+      --line:rgba(255,255,255,.10);
+      --text:#eef4ff;
+      --muted:#9cb1d6;
+      --blue:#63b3ff;
+      --blue2:#3b82f6;
+      --glow:rgba(99,179,255,.35);
+      --card:rgba(255,255,255,.04);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden}
+    body{
+      font-family:Inter,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(98,164,255,.20), transparent 24%),
+        radial-gradient(circle at 80% 15%, rgba(94,190,255,.18), transparent 22%),
+        radial-gradient(circle at 50% 75%, rgba(42,103,255,.12), transparent 30%),
+        linear-gradient(180deg, #030813 0%, #07111e 45%, #050a14 100%);
+    }
+
+    .noise,.grid,.vignette,.flare{position:fixed;inset:0;pointer-events:none}
+    .noise{
+      opacity:.06;
+      background-image:
+        radial-gradient(circle at 25% 25%, rgba(255,255,255,.5) 0 1px, transparent 1px),
+        radial-gradient(circle at 75% 75%, rgba(255,255,255,.45) 0 1px, transparent 1px);
+      background-size: 22px 22px, 26px 26px;
+      mix-blend-mode:soft-light;
+      animation: noiseShift 18s linear infinite;
+    }
+    .grid{
+      background:
+        linear-gradient(rgba(99,179,255,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,179,255,.06) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 30%, transparent 82%);
+      opacity:.28;
+    }
+    .flare{
+      background:
+        radial-gradient(circle at center, rgba(92,171,255,.12), transparent 34%),
+        radial-gradient(circle at center, rgba(255,255,255,.06), transparent 18%);
+      animation: pulse 5.5s ease-in-out infinite;
+    }
+    .vignette{
+      background: radial-gradient(circle at center, transparent 36%, rgba(2,6,12,.55) 100%);
+    }
+
+    .particles{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+    .particle{
+      position:absolute;
+      width:4px;height:4px;border-radius:50%;
+      background:rgba(160,210,255,.8);
+      box-shadow:0 0 14px rgba(116,190,255,.75);
+      animation: floatUp linear infinite;
+      opacity:.0;
+    }
+
+    .wrap{
+      position:relative;
+      z-index:2;
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .hero{
+      width:min(1180px, 100%);
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:26px;
+      align-items:center;
+    }
+
+    .left{
+      transform: translateY(26px);
+      opacity:0;
+      animation: riseIn .95s cubic-bezier(.2,.8,.2,1) .22s forwards;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      color:#d8e8ff;
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-weight:800;
+      backdrop-filter: blur(12px);
+      box-shadow:0 10px 30px rgba(0,0,0,.15);
+    }
+
+    h1{
+      margin:18px 0 12px;
+      font-size:clamp(42px, 8vw, 92px);
+      line-height:.95;
+      letter-spacing:-.055em;
+      max-width:720px;
+      text-shadow:0 10px 60px rgba(76,148,255,.20);
+    }
+    h1 .grad{
+      background:linear-gradient(135deg,#ffffff 0%, #e5f1ff 38%, #8fd1ff 72%, #4ea1ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .lead{
+      margin:0;
+      max-width:720px;
+      font-size:18px;
+      line-height:1.8;
+      color:var(--muted);
+    }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:24px;
+    }
+    .btn{
+      min-height:52px;
+      padding:0 20px;
+      border-radius:16px;
+      text-decoration:none;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:.2s ease;
+      border:1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(14px);
+    }
+    .btn:hover{transform:translateY(-2px); box-shadow:0 16px 40px rgba(0,0,0,.22)}
+    .btn.primary{
+      color:white;
+      background:linear-gradient(135deg,#1d4ed8,#4ea1ff);
+      border:none;
+      box-shadow:0 12px 40px rgba(29,78,216,.28);
+    }
+    .btn.secondary{
+      color:#e8f2ff;
+      background:rgba(255,255,255,.05);
+    }
+
+    .meta{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+    .chip{
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.04);
+      color:#d2e4ff;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .right{
+      display:flex;
+      justify-content:center;
+      transform: scale(.92);
+      opacity:0;
+      animation: zoomIn 1.1s cubic-bezier(.2,.8,.2,1) .08s forwards;
+    }
+
+    .logo-stage{
+      position:relative;
+      width:min(560px, 100%);
+      aspect-ratio:1.08/1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .ring, .ring2, .ring3{
+      position:absolute;
+      border-radius:50%;
+      border:1px solid rgba(117,185,255,.20);
+      filter: blur(.2px);
+    }
+    .ring{width:90%; height:90%; animation: spin 16s linear infinite}
+    .ring2{width:70%; height:70%; animation: spinReverse 12s linear infinite}
+    .ring3{width:108%; height:108%; border-style:dashed; opacity:.45; animation: spin 20s linear infinite}
+    .glow{
+      position:absolute;
+      width:72%;
+      height:72%;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(94,190,255,.36), rgba(59,130,246,.10) 42%, transparent 72%);
+      filter: blur(28px);
+      animation: pulse 6s ease-in-out infinite;
+    }
+    .logo-card{
+      position:relative;
+      width:min(520px, 86%);
+      padding:26px 28px;
+      border-radius:32px;
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:
+        0 30px 90px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.10),
+        0 0 80px rgba(78,161,255,.12);
+      backdrop-filter: blur(18px);
+      overflow:hidden;
+    }
+    .logo-card::before{
+      content:"";
+      position:absolute;
+      inset:-20% auto auto -20%;
+      width:60%;
+      height:120%;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+      transform:rotate(18deg);
+      animation: sweep 7s ease-in-out infinite;
+    }
+    .logo-card img{
+      position:relative;
+      z-index:2;
+      width:100%;
+      display:block;
+      object-fit:contain;
+      filter: drop-shadow(0 12px 30px rgba(68,153,255,.18));
+      animation: logoFloat 5s ease-in-out infinite;
+    }
+
+    .footer-note{
+      position:fixed;
+      left:28px;
+      right:28px;
+      bottom:22px;
+      z-index:2;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      color:rgba(220,232,255,.62);
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+
+    @keyframes riseIn{to{opacity:1; transform:translateY(0)}}
+    @keyframes zoomIn{to{opacity:1; transform:scale(1)}}
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes spinReverse{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+    @keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes sweep{0%,100%{transform:translateX(-30%) rotate(18deg)}50%{transform:translateX(180%) rotate(18deg)}}
+    @keyframes noiseShift{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(-1.2%,1.2%,0)}100%{transform:translate3d(0,0,0)}}
+    @keyframes floatUp{
+      0%{transform:translateY(18vh) scale(.6); opacity:0}
+      12%{opacity:.9}
+      85%{opacity:.45}
+      100%{transform:translateY(-110vh) scale(1.15); opacity:0}
+    }
+
+    @media (max-width: 980px){
+      .hero{grid-template-columns:1fr; text-align:center}
+      .left{display:flex; flex-direction:column; align-items:center}
+      .lead{max-width:720px}
+      .actions,.meta{justify-content:center}
+      .footer-note{position:static; margin:14px 28px 18px; flex-direction:column; align-items:center}
+      .wrap{height:auto; min-height:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="grid"></div>
+  <div class="flare"></div>
+  <div class="vignette"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="left">
+        <div class="eyebrow">Mark Media Event Solution · premium event tech</div>
+        <h1><span class="grad">Technologia eventowa</span><br>z wejściem, które robi efekt wow.</h1>
+        <p class="lead">
+          Ekrany LED, nagłośnienie, oświetlenie, streaming i kompleksowa realizacja wydarzeń.
+          Strona główna została przebudowana tak, żeby od pierwszej sekundy wyglądała premium i nowocześnie.
+        </p>
+
+        <div class="actions">
+          <a class="btn primary" href="/live">Oglądaj live</a>
+          <a class="btn secondary" href="/app">Otwórz generator</a>
+          <a class="btn secondary" href="/login">Panel magazynu</a>
+        </div>
+
+        <div class="meta">
+          <div class="chip">LED · Audio · Light · Streaming</div>
+          <div class="chip">markmediaevent.pl</div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="logo-stage">
+          <div class="ring3"></div>
+          <div class="ring"></div>
+          <div class="ring2"></div>
+          <div class="glow"></div>
+          <div class="logo-card">
+            <img src="logo.png" alt="Mark Media Event Solution">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer-note">
+    <span>Event technology · visual impact · premium presentation</span>
+    <span>Mark Media Event Solution</span>
+  </div>
+
+  <script>
+    const particles = document.getElementById('particles');
+    const count = window.innerWidth < 900 ? 28 : 46;
+
+    for(let i = 0; i < count; i++){
+      const p = document.createElement('span');
+      p.className = 'particle';
+      const left = Math.random() * 100;
+      const delay = Math.random() * 12;
+      const duration = 10 + Math.random() * 16;
+      const size = 2 + Math.random() * 4;
+      p.style.left = left + 'vw';
+      p.style.bottom = (-10 - Math.random()*30) + 'vh';
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.animationDuration = duration + 's';
+      p.style.animationDelay = delay + 's';
+      p.style.opacity = String(0.25 + Math.random() * 0.45);
+      particles.appendChild(p);
+    }
+  </script>
+</body>
+</html>
