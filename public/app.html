@@ -189,9 +189,14 @@
       .pdf-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7b8799;font-weight:800}
       .pdf-value{margin-top:6px;font-size:14px;font-weight:700;color:#172033}
       .pdf-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden}
-      .pdf-table th,.pdf-table td{padding:10px 9px;border-bottom:1px solid #e6ebf2;text-align:left;font-size:12px}
+      .pdf-table th,.pdf-table td{padding:10px 9px;border-bottom:1px solid #e6ebf2;text-align:left;font-size:11px;vertical-align:top}
       .pdf-table th:last-child,.pdf-table td:last-child{text-align:right}
+      .pdf-table .num{text-align:right;white-space:nowrap}
+      .pdf-table .center{text-align:center;white-space:nowrap}
+      .pdf-item-name{font-weight:800;color:#172033}
+      .pdf-item-desc{margin-top:4px;color:#5d687b;line-height:1.5}
       .pdf-section{background:#eef3fb;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#2b4064}
+      .pdf-subtotal td{background:#fbfcfe;font-weight:800;color:#2a3d5f}
       .pdf-total{margin-top:14px;display:grid;grid-template-columns:1fr 240px;gap:12px}
       .pdf-total-box{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:12px}
       .pdf-total-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:16px;padding:14px 16px}
@@ -225,14 +230,14 @@
         <div class="hero-top">
           <div>
             <span class="eyebrow">Mark Media Event Solution</span>
-            <h2>Przebudowany generator w stylu handlowym — mniej chaosu, więcej realnej pracy na ofercie.</h2>
-            <p>Masz wyraźny podział: dane oferty, baza sprzętu, pozycje i stałe podsumowanie po prawej. Na ekranie dark + event vibe, a wydruk PDF jest elegancki i biznesowy.</p>
+            <h2>Profesjonalny kreator ofert eventowych</h2>
+            <p>Przygotuj czytelną ofertę, dodaj pozycje sprzętowe i wygeneruj estetyczny dokument PDF dla klienta.</p>
           </div>
         </div>
         <div class="hero-stats">
-          <div class="hero-stat"><small>Układ</small><strong>2 kolumny + sticky</strong></div>
-          <div class="hero-stat"><small>Styl</small><strong>Dark UI + clean PDF</strong></div>
-          <div class="hero-stat"><small>Tryb pracy</small><strong>Szybkie ofertowanie</strong></div>
+          <div class="hero-stat"><small>Ofertowanie</small><strong>Szybki kreator pozycji</strong></div>
+          <div class="hero-stat"><small>PDF</small><strong>Czytelny układ premium</strong></div>
+          <div class="hero-stat"><small>Magazyn</small><strong>Sprzęt i stany w jednym miejscu</strong></div>
         </div>
       </div>
     </section>
@@ -814,12 +819,26 @@
       const groups = groupedItems();
       let rows = '';
       groups.forEach(group => {
-        rows += `<tr class="pdf-section"><td colspan="5">${escapeHtml(group.label)}</td></tr>`;
+        const sectionTotal = group.rows.reduce((sum, item) => sum + lineTotal(item), 0);
+        rows += `<tr class="pdf-section"><td colspan="7">${escapeHtml(group.label)}</td></tr>`;
         group.rows.forEach(item => {
-          rows += `<tr><td><strong>${escapeHtml(item.name)}</strong>${item.desc ? `<div style=\"font-size:11px;color:#6b7587;margin-top:4px\">${escapeHtml(item.desc)}</div>` : ''}</td><td>${item.pricingMode === 'per_m2' ? Number(item.qty).toFixed(2).replace('.',',') + ' m²' : item.qty}</td><td>${item.days}</td><td>${formatMoney(item.price)}</td><td>${formatMoney(lineTotal(item))}</td></tr>`;
+          const qtyLabel = item.pricingMode === 'per_m2'
+            ? `${Number(item.qty || 0).toFixed(2).replace('.', ',')} m²`
+            : `${Number(item.qty || 0).toFixed(0)}${item.unitLabel ? ' ' + escapeHtml(item.unitLabel) : ''}`;
+          rows += `
+            <tr>
+              <td>${escapeHtml(group.label)}</td>
+              <td><div class="pdf-item-name">${escapeHtml(item.name)}</div></td>
+              <td>${item.desc ? `<div class="pdf-item-desc">${escapeHtml(item.desc)}</div>` : '—'}</td>
+              <td class="center">${qtyLabel}</td>
+              <td class="center">${escapeHtml(String(item.days || 1))}</td>
+              <td class="num">${formatMoney(item.price)}</td>
+              <td class="num">${formatMoney(lineTotal(item))}</td>
+            </tr>`;
         });
+        rows += `<tr class="pdf-subtotal"><td colspan="6">Razem ${escapeHtml(group.label)}</td><td class="num">${formatMoney(sectionTotal)}</td></tr>`;
       });
-      return rows || '<tr><td colspan="5">Brak pozycji</td></tr>';
+      return rows || '<tr><td colspan="7">Brak pozycji</td></tr>';
     }
 
     function buildPdf(){
@@ -873,14 +892,9 @@
             <div style="padding:14px 16px 10px"><div class="pdf-label">Zakres realizacji</div></div>
             <table class="pdf-table">
               <thead>
-                <tr><th>Moduł</th><th>Zakres</th><th>Dni</th><th>Wartość netto</th></tr>
+                <tr><th>Moduł</th><th>Pozycja</th><th>Opis</th><th class="center">Ilość</th><th class="center">Dni</th><th class="num">Cena netto</th><th class="num">Suma netto</th></tr>
               </thead>
-              <tbody>${groupedItems().map(group => {
-                const desc = group.rows.map(item => `${item.name}${item.desc ? ' · ' + item.desc : ''}`).join(' · ');
-                const days = Math.max(...group.rows.map(item => Number(item.days || 1)));
-                const total = group.rows.reduce((sum, item) => sum + lineTotal(item), 0);
-                return `<tr><td>${escapeHtml(group.label)}</td><td>${escapeHtml(desc)}</td><td>${days} dzień/dni</td><td>${formatMoney(total)}</td></tr>`;
-              }).join('') || '<tr><td colspan="4">Brak pozycji</td></tr>'}</tbody>
+              <tbody>${pdfRows()}</tbody>
             </table>
           </div>
         </div>
