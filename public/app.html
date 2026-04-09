@@ -403,11 +403,16 @@
     const formatMoney = (n) => currency.format(Number(n || 0));
     const escapeHtml = (v='') => String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-    function generateOfferNumber(){
-      const d = new Date();
-      const year = d.getFullYear();
-      const stamp = `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-      byId('offerNumber').value = `OF-${year}-${stamp}`;
+    async function generateOfferNumber(){
+      try{
+        const res = await fetch('/api/offers/next-number');
+        const json = await res.json();
+        if(!res.ok) throw new Error(json.message || 'Nie udało się wygenerować numeru');
+        byId('offerNumber').value = json.offerNumber || '';
+      }catch(e){
+        const d = new Date();
+        byId('offerNumber').value = `OFERTA/MMedia/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      }
     }
 
     function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -468,6 +473,7 @@
             <div class="equip-meta">
               <span class="chip">${formatMoney(item.price)}</span>
               <span class="chip">${escapeHtml(item.unit || 'szt.')}</span>
+              <span class="chip">Stan: ${escapeHtml(item.stock ?? 0)}</span>
             </div>
           </div>
           <div class="equip-action">
