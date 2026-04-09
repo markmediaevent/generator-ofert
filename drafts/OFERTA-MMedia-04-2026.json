@@ -1,0 +1,49 @@
+{
+  "offerNumber": "OFERTA/MMedia/04/2026",
+  "offerStatus": "Szkic",
+  "offerDate": "2026-04-09",
+  "eventDate": "2026-04-09",
+  "clientName": "",
+  "contactName": "",
+  "clientEmail": "",
+  "eventName": "",
+  "location": "",
+  "postalCode": "",
+  "notes": "",
+  "discountPercent": 0,
+  "items": [
+    {
+      "uid": "lbvr00tr1zlt",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "reaizator wizji live",
+      "qty": 1,
+      "days": 3,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "yfddxq0125jd",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera Full HD",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 1,
+      "days": 3,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "uar8ooix27rk",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "vMix / ATEM realizacja",
+      "desc": "Stanowisko realizacji live",
+      "qty": 1,
+      "days": 3,
+      "price": 1800,
+      "source": "db"
+    }
+  ]
+}
