@@ -1,0 +1,66 @@
+{
+  "offerNumber": "002/04/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-04-24",
+  "validUntil": "2026-05-24",
+  "eventDate": "",
+  "clientName": "Kamil Rzeniecki",
+  "contactName": "Kamil Rzeniecki",
+  "clientEmail": "",
+  "eventName": "Kolendowa Trasa Koncertowa „Stachursky”",
+  "location": "-kilometrówka-",
+  "notes": "",
+  "discountPercent": 0,
+  "items": [
+    {
+      "uid": "tv3enu7ctjss",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "3 m × 2 m · 6 m² · Stojący",
+      "qty": 6,
+      "days": 1,
+      "price": 150,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "736ekj9jtqtp",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "3 m × 2 m · 6 m² · Stojący",
+      "qty": 6,
+      "days": 1,
+      "price": 150,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "24f3xuvcu0du",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "4 m × 2 m · 8 m² · Stojący",
+      "qty": 8,
+      "days": 1,
+      "price": 150,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "vwtf1ieuvt5b",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 2.85,
+      "source": "db"
+    }
+  ]
+}
