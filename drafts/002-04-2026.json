@@ -10,7 +10,7 @@
   "eventName": "Kolendowa Trasa Koncertowa „Stachursky”",
   "location": "-kilometrówka-",
   "notes": "",
-  "discountPercent": 0,
+  "discountPercent": 5,
   "items": [
     {
       "uid": "tv3enu7ctjss",
@@ -20,7 +20,7 @@
       "desc": "3 m × 2 m · 6 m² · Stojący",
       "qty": 6,
       "days": 1,
-      "price": 150,
+      "price": 160,
       "unitLabel": "m²",
       "pricingMode": "per_m2",
       "source": "led-calc"
@@ -33,7 +33,7 @@
       "desc": "3 m × 2 m · 6 m² · Stojący",
       "qty": 6,
       "days": 1,
-      "price": 150,
+      "price": 160,
       "unitLabel": "m²",
       "pricingMode": "per_m2",
       "source": "led-calc"
@@ -46,7 +46,7 @@
       "desc": "4 m × 2 m · 8 m² · Stojący",
       "qty": 8,
       "days": 1,
-      "price": 150,
+      "price": 160,
       "unitLabel": "m²",
       "pricingMode": "per_m2",
       "source": "led-calc"
