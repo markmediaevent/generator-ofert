@@ -1,0 +1,62 @@
+{
+  "offerNumber": "002/05/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-05-05",
+  "validUntil": "2026-05-12",
+  "eventDate": "2026-12-04",
+  "clientName": "MS AUDIO LIGHTING MACIEJ SZMYT",
+  "contactName": "Maciej Szmyt",
+  "clientEmail": "msaudiolighting@icloud.com",
+  "eventName": "USTKA Firmówka",
+  "location": "Ustka",
+  "notes": "",
+  "discountPercent": 10,
+  "items": [
+    {
+      "uid": "9vjx27jdk3c1",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "4,5 m × 2,5 m · 11,25 m² · Stojący",
+      "qty": 11.25,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "hla9x8pwk76z",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "730dr2l1kf23",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "7egle3dnkt4r",
+      "category": "custom",
+      "categoryLabel": "Obsługa / inne",
+      "name": "Technik",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 500,
+      "source": "manual"
+    }
+  ]
+}
