@@ -1,0 +1,84 @@
+{
+  "offerNumber": "001/05/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-05-05",
+  "validUntil": "2026-05-12",
+  "eventDate": "2026-06-06",
+  "clientName": "TBF Sound & Light",
+  "contactName": "Paweł Zadworny",
+  "clientEmail": "tbf.biuro@gmail.com",
+  "eventName": "Wydarzenie Plenerowe",
+  "location": "Prabuty",
+  "notes": "",
+  "discountPercent": 0,
+  "items": [
+    {
+      "uid": "ywyxyx9ko63p",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "5 m × 3 m · 15 m² · Wiszący",
+      "qty": 15,
+      "days": 1,
+      "price": 260,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "b0dyfugjomz9",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Konstrukcja",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 2800,
+      "source": "manual"
+    },
+    {
+      "uid": "14o3zje8osu9",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera 4K",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 2,
+      "days": 1,
+      "price": 350,
+      "source": "db"
+    },
+    {
+      "uid": "c4ektjnnouqe",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Operator Kamery",
+      "desc": "operator kamery",
+      "qty": 1,
+      "days": 1,
+      "price": 450,
+      "source": "db"
+    },
+    {
+      "uid": "sdw3mhwbovip",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "lulkg87apjhj",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    }
+  ]
+}
