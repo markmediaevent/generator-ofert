@@ -136,17 +136,6 @@
       "source": "db"
     },
     {
-      "uid": "hkqqverz8yr8",
-      "category": "led",
-      "categoryLabel": "Ekran LED",
-      "name": "Realizator Wizji",
-      "desc": "",
-      "qty": 1,
-      "days": 1,
-      "price": 1000,
-      "source": "manual"
-    },
-    {
       "uid": "41wyqv5y9atk",
       "category": "stage",
       "categoryLabel": "Scena",
@@ -210,6 +199,17 @@
       "qty": 1,
       "days": 1,
       "price": 250,
+      "source": "db"
+    },
+    {
+      "uid": "njqmybwa9yvl",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji - osoba odpowiedzialna za wyświetlanie obrazu",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
       "source": "db"
     }
   ]
