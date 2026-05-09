@@ -189,6 +189,17 @@
       "days": 1,
       "price": 25,
       "source": "db"
+    },
+    {
+      "uid": "711vhb5a04sf",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Prompter",
+      "desc": "Prompter - wyświetlacz ułożony na scenie (podgląd dla prelegenta)",
+      "qty": 1,
+      "days": 1,
+      "price": 150,
+      "source": "db"
     }
   ]
 }
