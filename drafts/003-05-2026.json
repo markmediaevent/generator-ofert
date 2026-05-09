@@ -167,6 +167,28 @@
       "days": 1,
       "price": 250,
       "source": "db"
+    },
+    {
+      "uid": "8jqnj8m5vmi3",
+      "category": "stage",
+      "categoryLabel": "Scena",
+      "name": "Fotel",
+      "desc": "Fotel welurowy jasno-niebieski",
+      "qty": 4,
+      "days": 1,
+      "price": 100,
+      "source": "db"
+    },
+    {
+      "uid": "aj59pw2ovnvw",
+      "category": "stage",
+      "categoryLabel": "Scena",
+      "name": "Stolik",
+      "desc": "Stolik kawowy niski - czarny",
+      "qty": 2,
+      "days": 1,
+      "price": 25,
+      "source": "db"
     }
   ]
 }
