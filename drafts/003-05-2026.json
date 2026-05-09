@@ -11,5 +11,162 @@
   "location": "Starogard Gdański",
   "notes": "Centrum Sportowo-Edukacyjne im. Kazimierza Deyny",
   "discountPercent": 0,
-  "items": []
+  "items": [
+    {
+      "uid": "smxz8uy63r21",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "6 m × 2,5 m · 15 m² · Stojący",
+      "qty": 15,
+      "days": 1,
+      "price": 200,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "64f48kwi5k2e",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "LACOUSTICS LA4X",
+      "desc": "Końcówka mocy",
+      "qty": 2,
+      "days": 1,
+      "price": 250,
+      "source": "db"
+    },
+    {
+      "uid": "ow51suyt5yiu",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "SHURE ULXD",
+      "desc": "SHURE ULXD  MIKROFON BEZPRZEWODOWY",
+      "qty": 2,
+      "days": 1,
+      "price": 100,
+      "source": "db"
+    },
+    {
+      "uid": "a72m3y1y693w",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "SHURE QLXD",
+      "desc": "SHURE QLXD  MIKROFON BEZPRZEWODOWY",
+      "qty": 2,
+      "days": 1,
+      "price": 100,
+      "source": "db"
+    },
+    {
+      "uid": "upn4hxkf6je4",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Lacoustics Syva",
+      "desc": "Lacoustics Syva - nagłośnienie konferencyjne",
+      "qty": 1,
+      "days": 1,
+      "price": 1500,
+      "source": "db"
+    },
+    {
+      "uid": "f3g7jo6e6kir",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "LACOUSTICS X8",
+      "desc": "LACOUSTICS X8 - monitor sceniczny (odsłuch)",
+      "qty": 2,
+      "days": 1,
+      "price": 100,
+      "source": "db"
+    },
+    {
+      "uid": "p4cc8dwn6yfe",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Behringer Wing",
+      "desc": "Cyfrowa Konsoleta Dzwięku",
+      "qty": 1,
+      "days": 1,
+      "price": 350,
+      "source": "db"
+    },
+    {
+      "uid": "1cycb9tc70w5",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Realizator Dzwięku",
+      "desc": "Realizator Dzwięku - osoba odpowiedzialna za nagłośnienie",
+      "qty": 1,
+      "days": 1,
+      "price": 1000,
+      "source": "db"
+    },
+    {
+      "uid": "oxkl4nax724y",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Technik",
+      "desc": "Technik- osoba odpowiedzialna za połączenia, ustawianie i podpinanie mikrofonów",
+      "qty": 1,
+      "days": 1,
+      "price": 750,
+      "source": "db"
+    },
+    {
+      "uid": "c263mgho7fqc",
+      "category": "light",
+      "categoryLabel": "Oświetlenie",
+      "name": "Robe Wash 800",
+      "desc": "Robe Wash 800 - oświetlenie sceniczne (oświetlenie twarzy)",
+      "qty": 4,
+      "days": 1,
+      "price": 160,
+      "source": "db"
+    },
+    {
+      "uid": "omax4w1a7obx",
+      "category": "light",
+      "categoryLabel": "Oświetlenie",
+      "name": "Naświetlacz LED",
+      "desc": "Naświetlacz LED - wykorzystywany do nadania koloru architekturze",
+      "qty": 10,
+      "days": 1,
+      "price": 75,
+      "source": "db"
+    },
+    {
+      "uid": "3ikpd9qi8a16",
+      "category": "light",
+      "categoryLabel": "Oświetlenie",
+      "name": "Konstrukcja",
+      "desc": "Konstrukcja aluminiowa",
+      "qty": 2,
+      "days": 1,
+      "price": 100,
+      "source": "db"
+    },
+    {
+      "uid": "hkqqverz8yr8",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator Wizji",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 1000,
+      "source": "manual"
+    },
+    {
+      "uid": "41wyqv5y9atk",
+      "category": "stage",
+      "categoryLabel": "Scena",
+      "name": "ALUSTAGE Podest 2x1",
+      "desc": "ALUSTAGE Podest 2x1",
+      "qty": 12,
+      "days": 1,
+      "price": 50,
+      "source": "db"
+    }
+  ]
 }
