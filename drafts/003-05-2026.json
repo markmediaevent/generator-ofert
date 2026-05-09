@@ -26,17 +26,6 @@
       "source": "led-calc"
     },
     {
-      "uid": "64f48kwi5k2e",
-      "category": "audio",
-      "categoryLabel": "Nagłośnienie",
-      "name": "LACOUSTICS LA4X",
-      "desc": "Końcówka mocy",
-      "qty": 2,
-      "days": 1,
-      "price": 250,
-      "source": "db"
-    },
-    {
       "uid": "ow51suyt5yiu",
       "category": "audio",
       "categoryLabel": "Nagłośnienie",
@@ -99,7 +88,7 @@
       "desc": "Realizator Dzwięku - osoba odpowiedzialna za nagłośnienie",
       "qty": 1,
       "days": 1,
-      "price": 1000,
+      "price": 900,
       "source": "db"
     },
     {
@@ -166,6 +155,17 @@
       "qty": 12,
       "days": 1,
       "price": 50,
+      "source": "db"
+    },
+    {
+      "uid": "rvg2zbkkazij",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "LACOUSTICS LA4X",
+      "desc": "Końcówka mocy",
+      "qty": 2,
+      "days": 1,
+      "price": 250,
       "source": "db"
     }
   ]
