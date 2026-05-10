@@ -10,7 +10,7 @@
   "eventName": "SAMORZĄD BLISKO LUDZI. Polska | Europa | Skuteczność",
   "location": "Starogard Gdański",
   "notes": "Centrum Sportowo-Edukacyjne im. Kazimierza Deyny",
-  "discountPercent": 10,
+  "discountPercent": 19,
   "items": [
     {
       "uid": "smxz8uy63r21",
@@ -177,28 +177,6 @@
       "qty": 2,
       "days": 1,
       "price": 25,
-      "source": "db"
-    },
-    {
-      "uid": "l4glodlr2esb",
-      "category": "video",
-      "categoryLabel": "Wideo / streaming",
-      "name": "Prompter",
-      "desc": "Prompter - wyświetlacz ułożony na scenie (podgląd dla prelegenta)",
-      "qty": 1,
-      "days": 1,
-      "price": 150,
-      "source": "db"
-    },
-    {
-      "uid": "ft9gf8772l5g",
-      "category": "video",
-      "categoryLabel": "Wideo / streaming",
-      "name": "Mównica",
-      "desc": "Mównica multimedialna z wyświetlaczem na froncie - kolor czarny",
-      "qty": 1,
-      "days": 1,
-      "price": 250,
       "source": "db"
     },
     {
