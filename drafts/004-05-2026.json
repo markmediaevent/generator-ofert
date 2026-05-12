@@ -1,0 +1,60 @@
+{
+  "offerNumber": "004/05/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-05-12",
+  "validUntil": "2026-05-14",
+  "eventDate": "2026-05-16",
+  "clientName": "Piotr Müller",
+  "contactName": "Marta Michalska",
+  "clientEmail": "marta.michalska@europarl.europa.eumarta.michalska@europarl.europa.eu",
+  "eventName": "SAMORZĄD BLISKO LUDZI. Polska | Europa | Skuteczność",
+  "location": "Starogard Gdański",
+  "notes": "Realizacja Streamu na platformy internetowe.",
+  "discountPercent": 0,
+  "items": [
+    {
+      "uid": "5vrymz3c5j70",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera 4K",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 3,
+      "days": 1,
+      "price": 400,
+      "source": "db"
+    },
+    {
+      "uid": "d1tvxa985mdy",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Operator Kamery",
+      "desc": "operator kamery",
+      "qty": 1,
+      "days": 1,
+      "price": 450,
+      "source": "db"
+    },
+    {
+      "uid": "5x8wwi2e5nsw",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji - osoba odpowiedzialna za wyświetlanie obrazu",
+      "qty": 1,
+      "days": 1,
+      "price": 800,
+      "source": "db"
+    },
+    {
+      "uid": "21pkw5x05quk",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "vMix / ATEM realizacja",
+      "desc": "Stanowisko realizacji live",
+      "qty": 1,
+      "days": 1,
+      "price": 800,
+      "source": "db"
+    }
+  ]
+}
