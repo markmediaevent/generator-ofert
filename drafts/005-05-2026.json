@@ -1,0 +1,51 @@
+{
+  "offerNumber": "005/05/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-05-13",
+  "validUntil": "2026-05-20",
+  "eventDate": "2026-08-29",
+  "clientName": "TBF Sound & Light",
+  "contactName": "Paweł Zadworny",
+  "clientEmail": "tbf.biuro@gmail.com",
+  "eventName": "Wydarzenie Plenerowe",
+  "location": "Kwidzyn",
+  "notes": "Według rideru LOMBARD",
+  "discountPercent": 10,
+  "items": [
+    {
+      "uid": "ywyxyx9ko63p",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "5 m × 3 m · 15 m² · Wiszący",
+      "qty": 15,
+      "days": 1,
+      "price": 260,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "sdw3mhwbovip",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "lulkg87apjhj",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    }
+  ]
+}
