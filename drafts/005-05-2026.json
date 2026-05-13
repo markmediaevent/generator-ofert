@@ -46,6 +46,17 @@
       "days": 1,
       "price": 900,
       "source": "db"
+    },
+    {
+      "uid": "atxbhta5lg4l",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Technik",
+      "desc": "Technik d/s multimediów",
+      "qty": 1,
+      "days": 1,
+      "price": 750,
+      "source": "db"
     }
   ]
 }
