@@ -1,0 +1,62 @@
+{
+  "offerNumber": "006/05/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-05-14",
+  "validUntil": "2026-05-21",
+  "eventDate": "2026-08-28",
+  "clientName": "MS AUDIO LIGHTING MACIEJ SZMYT",
+  "contactName": "Maciej Szmyt",
+  "clientEmail": "msaudiolighting@icloud.com",
+  "eventName": "Viki Gabor",
+  "location": "Kwidzyn",
+  "notes": "Viki Gabor -Kwidzyn Plener - potwierdzone z Piotrkiem zamiana na p4",
+  "discountPercent": 14,
+  "items": [
+    {
+      "uid": "hla9x8pwk76z",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "730dr2l1kf23",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "7egle3dnkt4r",
+      "category": "custom",
+      "categoryLabel": "Obsługa / inne",
+      "name": "Technik",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 500,
+      "source": "manual"
+    },
+    {
+      "uid": "hhk9i8b2h7e6",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "6 m × 3,5 m · 21 m² · Wiszący",
+      "qty": 21,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    }
+  ]
+}
