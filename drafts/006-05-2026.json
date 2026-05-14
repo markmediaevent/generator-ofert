@@ -24,17 +24,6 @@
       "source": "db"
     },
     {
-      "uid": "730dr2l1kf23",
-      "category": "video",
-      "categoryLabel": "Wideo / streaming",
-      "name": "Realizator Wizji",
-      "desc": "Realizator Wizji",
-      "qty": 1,
-      "days": 1,
-      "price": 900,
-      "source": "db"
-    },
-    {
       "uid": "7egle3dnkt4r",
       "category": "custom",
       "categoryLabel": "Obsługa / inne",
@@ -57,6 +46,17 @@
       "unitLabel": "m²",
       "pricingMode": "per_m2",
       "source": "led-calc"
+    },
+    {
+      "uid": "cjduimp3l3kb",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator Wizji",
+      "desc": "Realizator Wizji - osoba odpowiedzialna za wyświetlanie obrazu",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
     }
   ]
 }
