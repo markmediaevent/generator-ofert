@@ -170,18 +170,18 @@
     .small-actions .btn{padding:9px 11px;font-size:12px}
 
 
-    .pdf-header{display:grid;grid-template-columns:2.35fr 1fr;gap:18px;align-items:stretch;margin-bottom:16px}
-    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:28px;padding:30px 32px 28px;min-height:235px;box-sizing:border-box}
-    .pdf-overline{display:block;width:100%;margin:0 0 42px;color:#091631;font-size:42px;line-height:.95;font-weight:900;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;transform-origin:left center;transform:scaleX(.94)}
-    .pdf-title-card h1{margin:0 0 24px;font-size:72px;line-height:.98;letter-spacing:-.055em;color:#091631;font-weight:900;white-space:nowrap}
-    .pdf-title-card p{margin:0;color:#091631;line-height:1.35;font-size:22px;font-weight:500;white-space:nowrap}
-    .pdf-title-card p strong{color:#123f86;font-weight:900;margin-right:14px}
-    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:28px;padding:28px 30px;display:grid;gap:0;align-content:stretch;min-height:235px;box-sizing:border-box}
-    .pdf-meta-grid{display:grid;gap:0;height:100%}
-    .pdf-meta-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;padding:0 0 18px;margin-bottom:18px;border-bottom:1px solid #dbe3ee}
-    .pdf-meta-row:last-child{padding-bottom:0;margin-bottom:0;border-bottom:none}
-    .pdf-meta-key{font-size:18px;text-transform:uppercase;letter-spacing:.16em;color:#091631;font-weight:900;line-height:1.05}
-    .pdf-meta-val{font-size:22px;font-weight:900;color:#091631;text-align:right;white-space:nowrap}
+    .pdf-header{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(235px,.75fr);gap:16px;align-items:stretch;margin-bottom:16px}
+    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:26px 24px 24px;min-height:190px;overflow:hidden}
+    .pdf-overline{display:block;width:100%;font-size:31px;line-height:.95;text-transform:uppercase;letter-spacing:.045em;color:#0f1b3d;font-weight:950;white-space:nowrap;margin-bottom:36px}
+    .pdf-title-card h1{margin:0 0 22px;font-size:54px;line-height:.95;letter-spacing:-.055em;color:#0f1b3d;font-weight:950;white-space:nowrap}
+    .pdf-event-title{margin:0;color:#0f1b3d;line-height:1.25;font-size:15px;font-weight:500}
+    .pdf-event-title strong{font-weight:900;color:#123f86;margin-right:12px}
+    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:18px 20px;display:grid;align-content:stretch;min-height:190px}
+    .pdf-meta-grid{display:grid;height:100%}
+    .pdf-meta-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:center;padding:0;border-bottom:1px solid #dbe3ee}
+    .pdf-meta-row:last-child{border-bottom:none}
+    .pdf-meta-key{font-size:10px;text-transform:uppercase;letter-spacing:.17em;color:#0f1b3d;font-weight:950;line-height:1.05}
+    .pdf-meta-val{font-size:14px;font-weight:900;color:#0f1b3d;white-space:nowrap;text-align:right;overflow:visible}
 
     .pdf-sheet{display:none}
     @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
@@ -216,9 +216,8 @@
       .pdf-total-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:16px;padding:14px 16px}
       .pdf-total-hero strong{display:block;font-size:28px;margin-top:6px;letter-spacing:-.04em}
       .pdf-note{line-height:1.7;color:#5e6b7f;font-size:12px}
-      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px;align-items:end}
-      .pdf-line-sign{position:relative;min-height:82px;padding-top:54px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
-      .pdf-signature-img{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:210px;max-height:82px;object-fit:contain;opacity:.96}
+      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px}
+      .pdf-line-sign{padding-top:42px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
     }
   </style>
 </head>
@@ -276,7 +275,6 @@
               <div class="field"><label>Status</label><select id="offerStatus"><option>Szkic</option><option>Wysłana</option><option>Zaakceptowana</option><option>Anulowana</option></select></div>
               <div class="field"><label>Data oferty</label><input id="offerDate" type="date" /></div>
               <div class="field"><label>Ważna do</label><input id="validUntil" type="date" /></div>
-              <div class="field"><label>Podpis oferty</label><label style="display:flex;align-items:center;gap:10px;height:46px;padding:0 12px;border:1px solid var(--line);border-radius:14px;background:#fff;font-weight:800;color:#31405a"><input id="includeSignature" type="checkbox" style="width:18px;height:18px"> Dodaj podpis PNG</label></div>
               <div class="field span-2"><label>Klient</label><input id="clientName" placeholder="Np. XYZ Sp. z o.o." /></div>
               <div class="field"><label>Osoba kontaktowa</label><input id="contactName" placeholder="Np. Jan Kowalski" /></div>
               <div class="field"><label>E-mail klienta</label><input id="clientEmail" placeholder="kontakt@firma.pl" /></div>
@@ -457,7 +455,6 @@
       if (!byId('offerNumber').value) generateOfferNumber();
       byId('offerDate').value = todayISO();
       byId('validUntil').value = plusDaysISO(7);
-      byId('includeSignature').checked = false;
       byId('eventDate').value = todayISO();
       byId('offerStatus').value = 'Szkic';
       byId('statusPill').textContent = 'Szkic';
@@ -713,7 +710,6 @@
         offerStatus: byId('offerStatus').value,
         offerDate: byId('offerDate').value,
         validUntil: byId('validUntil').value,
-        includeSignature: byId('includeSignature').checked,
         eventDate: byId('eventDate').value,
         clientName: byId('clientName').value.trim(),
         contactName: byId('contactName').value.trim(),
@@ -731,7 +727,6 @@
       byId('offerStatus').value = data.offerStatus || 'Szkic';
       byId('offerDate').value = data.offerDate || todayISO();
       byId('validUntil').value = data.validUntil || plusDaysISO(7);
-      byId('includeSignature').checked = Boolean(data.includeSignature);
       byId('eventDate').value = data.eventDate || todayISO();
       byId('clientName').value = data.clientName || '';
       byId('contactName').value = data.contactName || '';
@@ -835,7 +830,6 @@
       byId('discountPercent').value = 0;
       byId('offerDate').value = todayISO();
       byId('validUntil').value = plusDaysISO(7);
-      byId('includeSignature').checked = false;
       byId('eventDate').value = todayISO();
       generateOfferNumber();
       offerItems = [];
@@ -877,7 +871,6 @@
       const validUntilDate = d.validUntil ? new Date(d.validUntil + 'T12:00:00') : null;
       const preparedLabel = preparedDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
       const validUntilLabel = validUntilDate ? validUntilDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
-      const signatureHtml = d.includeSignature ? '<img class="pdf-signature-img" src="signature.png" alt="Podpis">' : '';
       const sheet = byId('pdfSheet');
       sheet.innerHTML = `
         <div class="pdf-page">
@@ -885,7 +878,7 @@
             <div class="pdf-title-card">
               <div class="pdf-overline">MARK MEDIA EVENT SOLUTION</div>
               <h1>Oferta techniczna</h1>
-              <p><strong>Tytuł wydarzenia:</strong> ${escapeHtml(d.eventName || '—')}</p>
+              <p class="pdf-event-title"><strong>Tytuł wydarzenia:</strong> ${escapeHtml(d.eventName || 'Obsługa wydarzenia')}</p>
             </div>
             <div class="pdf-meta-card">
               <div class="pdf-meta-grid">
@@ -956,7 +949,7 @@
               <div class="pdf-note" style="margin-top:10px">${escapeHtml(d.notes || 'Brak dodatkowych uwag.')}</div>
             </div>
             <div class="pdf-sign">
-              <div class="pdf-line-sign">${signatureHtml}Podpis i pieczęć wykonawcy</div>
+              <div class="pdf-line-sign">Podpis i pieczęć wykonawcy</div>
               <div class="pdf-line-sign">Podpis klienta / akceptacja</div>
             </div>
           </div>
