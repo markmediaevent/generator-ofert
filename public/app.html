@@ -172,18 +172,18 @@
     .small-actions .btn{padding:9px 11px;font-size:12px}
 
 
-    .pdf-header{display:grid;grid-template-columns:minmax(0,1fr) 72mm;gap:10mm;align-items:stretch;margin-bottom:16px}
-    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:13mm 10mm 10mm;min-height:68mm;overflow:hidden}
-    .pdf-company{display:block;width:100%;white-space:nowrap;font-size:27px;line-height:.95;font-weight:950;letter-spacing:.045em;color:#0b1633;margin:0 0 21mm;text-transform:uppercase}
-    .pdf-title-card h1{margin:0 0 8mm;font-size:43px;line-height:.98;letter-spacing:-.06em;color:#0b1633;font-weight:950;white-space:nowrap}
-    .pdf-event-line{margin:0;font-size:14px;color:#101b34;line-height:1.35;white-space:normal}
+    .pdf-header{display:grid;grid-template-columns:minmax(0,1fr) 75mm;gap:8mm;align-items:stretch;margin-bottom:12px}
+    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:10mm 9mm 9mm;min-height:62mm;overflow:visible}
+    .pdf-company{display:inline-block;width:122%;white-space:nowrap;font-size:31px;line-height:.95;font-weight:950;letter-spacing:0;color:#0b1633;margin:0 0 18mm;text-transform:uppercase;transform:scaleX(.82);transform-origin:left center}
+    .pdf-title-card h1{margin:0 0 7mm;font-size:43px;line-height:.98;letter-spacing:-.06em;color:#0b1633;font-weight:950;white-space:nowrap}
+    .pdf-event-line{margin:0;font-size:13px;color:#101b34;line-height:1.35;white-space:normal;max-width:100%}
     .pdf-event-line strong{color:#103f87;font-weight:950;margin-right:8px}
-    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:9mm 8mm;display:grid;align-content:start;min-height:68mm;overflow:hidden}
+    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:8mm 7mm;display:grid;align-content:start;min-height:62mm;overflow:visible}
     .pdf-meta-grid{display:grid;gap:0}
-    .pdf-meta-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-height:17mm;padding:0;border-bottom:1px solid #dbe3ee}
+    .pdf-meta-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;min-height:15.5mm;padding:0;border-bottom:1px solid #dbe3ee}
     .pdf-meta-row:last-child{border-bottom:none}
-    .pdf-meta-key{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#0f1b33;font-weight:950;white-space:nowrap;line-height:1.15}
-    .pdf-meta-val{font-size:16px;font-weight:950;color:#0b1633;white-space:nowrap;text-align:right;line-height:1.15}
+    .pdf-meta-key{font-size:9.4px;text-transform:uppercase;letter-spacing:.08em;color:#0f1b33;font-weight:950;white-space:nowrap;line-height:1.15}
+    .pdf-meta-val{font-size:14px;font-weight:950;color:#0b1633;white-space:nowrap;text-align:right;line-height:1.15}
 
     .pdf-sheet{display:none}
     @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
@@ -191,27 +191,27 @@
     @media (max-width:680px){.app{padding:14px}.topbar{flex-direction:column;align-items:flex-start}.brand{flex-direction:column;align-items:flex-start}.fields-grid,.search-row,.quick-add{grid-template-columns:1fr}.field.span-2,.field.span-4{grid-column:auto}.card-head{flex-direction:column;align-items:flex-start}.navtabs{width:100%}.navtab{flex:1;text-align:center}}
 
     @media print{
-      @page{size:A4;margin:12mm}
+      @page{size:A4;margin:10mm}
       body{background:#fff}
       .app>*:not(.pdf-sheet){display:none !important}
       .pdf-sheet{display:block !important;font-family:Inter,Arial,sans-serif;color:#1a2435}
-      .pdf-page{min-height:273mm;padding:8mm;background:#fff;page-break-after:always}
+      .pdf-page{min-height:auto;padding:0;background:#fff;page-break-after:always;break-inside:auto;page-break-inside:auto}
       .pdf-page:last-child{page-break-after:auto}
       .pdf-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:14px}
       .pdf-hero h1{margin:10px 0 6px;font-size:28px;letter-spacing:-.04em}
       .pdf-hero p{margin:0;color:rgba(255,255,255,.82);line-height:1.6}
-      .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-      .pdf-card{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:12px}
+      .pdf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+      .pdf-card{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:10px;overflow:visible;break-inside:auto;page-break-inside:auto}
       .pdf-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7b8799;font-weight:800}
       .pdf-value{margin-top:6px;font-size:14px;font-weight:700;color:#172033}
-      .pdf-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden}
-      .pdf-table th,.pdf-table td{padding:8px 7px;border-bottom:1px solid #e6ebf2;text-align:left;font-size:10.5px;vertical-align:top}
+      .pdf-table{width:100%;border-collapse:collapse;background:#fff;border-radius:0;overflow:visible;break-inside:auto;page-break-inside:auto}
+      .pdf-table th,.pdf-table td{padding:6px 6px;border-bottom:1px solid #e6ebf2;text-align:left;font-size:9.4px;vertical-align:top;break-inside:avoid;page-break-inside:avoid}
       .pdf-table th:last-child,.pdf-table td:last-child{text-align:right}
       .pdf-table .num{text-align:right;white-space:nowrap}
       .pdf-table .center{text-align:center;white-space:nowrap}
       .pdf-item-name{font-weight:800;color:#172033}
-      .pdf-item-desc{margin-top:4px;color:#5d687b;line-height:1.5}
-      .pdf-section{background:#eef3fb;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#2b4064}
+      .pdf-item-desc{margin-top:3px;color:#5d687b;line-height:1.35}
+      .pdf-section{background:#eef3fb;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#2b4064;break-after:avoid;page-break-after:avoid}
       .pdf-subtotal td{background:#fbfcfe;font-weight:800;color:#2a3d5f}
       .pdf-total{margin-top:14px;display:grid;grid-template-columns:1fr 240px;gap:12px}
       .pdf-total-box{background:#fff;border:1px solid #dbe3ee;border-radius:16px;padding:12px}
@@ -221,6 +221,11 @@
       .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px}
       .pdf-line-sign{position:relative;padding-top:42px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
       .pdf-signature-img{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);max-width:120px;max-height:58px;object-fit:contain}
+      .pdf-table thead{display:table-header-group}
+      .pdf-table tfoot{display:table-footer-group}
+      .pdf-table tr{break-inside:avoid;page-break-inside:avoid}
+      .pdf-table tr.pdf-section{break-after:avoid;page-break-after:avoid}
+      .pdf-footer-card{min-height:auto !important}
     }
   </style>
 </head>
@@ -934,7 +939,7 @@
             </div>
           </div>
 
-          <div class="pdf-card" style="padding:0;overflow:hidden">
+          <div class="pdf-card pdf-table-card" style="padding:0;overflow:visible">
             <div style="padding:14px 16px 10px"><div class="pdf-label">Zakres realizacji</div></div>
             <table class="pdf-table">
               <thead>
@@ -945,7 +950,7 @@
           </div>
         </div>
         <div class="pdf-page">
-          <div class="pdf-card" style="min-height:170mm;display:grid;gap:18px;align-content:start;">
+          <div class="pdf-card pdf-footer-card" style="min-height:auto;display:grid;gap:18px;align-content:start;">
             <div>
               <div class="pdf-label">Standard realizacji</div>
               <div class="pdf-note" style="margin-top:10px">Wycena obejmuje przygotowanie techniczne, konfigurację i realizację zgodnie z wybranym zakresem. Finalny harmonogram montażu oraz szczegóły logistyczne mogą zostać doprecyzowane po akceptacji oferty.</div>
