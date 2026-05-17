@@ -170,17 +170,20 @@
     .small-actions .btn{padding:9px 11px;font-size:12px}
 
 
-    .pdf-header{display:grid;grid-template-columns:1.35fr .9fr;gap:16px;align-items:stretch;margin-bottom:16px}
-    .pdf-title-card{background:linear-gradient(135deg,#ffffff,#f6f8fb);border:1px solid #dbe3ee;border-radius:20px;padding:22px 22px 18px}
-    .pdf-overline{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:#7d889b;font-weight:900}
-    .pdf-title-card h1{margin:12px 0 8px;font-size:33px;line-height:1.02;letter-spacing:-.05em;color:#17233a}
-    .pdf-title-card p{margin:0;max-width:520px;color:#697588;line-height:1.65;font-size:13px}
-    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:16px 18px;display:grid;gap:12px;align-content:start}
-    .pdf-meta-grid{display:grid;gap:10px}
-    .pdf-meta-row{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:start;padding-bottom:10px;border-bottom:1px solid #edf1f6}
+    .pdf-header{display:grid;grid-template-columns:1.65fr .85fr;gap:16px;align-items:stretch;margin-bottom:16px}
+    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:22px;padding:24px 24px 22px;min-height:255px}
+    .pdf-brand-text{display:block;width:100%;margin:0 0 36px;font-size:32px;line-height:1;letter-spacing:.08em;font-weight:950;text-transform:uppercase;color:#07152d;white-space:nowrap}
+    .pdf-title-card h1{margin:0 0 20px;font-size:58px;line-height:.98;letter-spacing:-.06em;color:#07152d;font-weight:950}
+    .pdf-event-title{display:flex;align-items:baseline;gap:14px;margin:0;color:#07152d;font-size:15px;line-height:1.2}
+    .pdf-event-title strong{font-size:17px;color:#123d7d;font-weight:950}
+    .pdf-event-title span{font-size:17px;color:#07152d;font-weight:600;text-transform:none}
+    .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:22px;padding:20px 22px;display:grid;align-content:stretch;min-height:255px}
+    .pdf-meta-grid{display:grid;height:100%}
+    .pdf-meta-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:0 0 18px;border-bottom:1px solid #dbe3ee}
+    .pdf-meta-row + .pdf-meta-row{padding-top:18px}
     .pdf-meta-row:last-child{padding-bottom:0;border-bottom:none}
-    .pdf-meta-key{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#7b8799;font-weight:900}
-    .pdf-meta-val{font-size:15px;font-weight:800;color:#17233a}
+    .pdf-meta-key{font-size:15px;text-transform:uppercase;letter-spacing:.18em;color:#07152d;font-weight:950;line-height:1.1}
+    .pdf-meta-val{font-size:20px;font-weight:950;color:#07152d;white-space:nowrap;text-align:right}
 
     .pdf-sheet{display:none}
     @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
@@ -882,14 +885,9 @@
         <div class="pdf-page">
           <div class="pdf-header">
             <div class="pdf-title-card">
-              <div class="pdf-overline">Mark Media Event Solution</div>
-              <div style="width:100%;font-size:28px;font-weight:800;letter-spacing:4px;margin-bottom:28px;">
-                MARK MEDIA EVENT SOLUTION
-              </div>
+              <div class="pdf-brand-text">MARK MEDIA EVENT SOLUTION</div>
               <h1>Oferta techniczna</h1>
-              <p style="font-size:12px;font-weight:700;text-transform:uppercase;margin-top:10px;">
-                Tytuł wydarzenia: <span style="font-weight:600">${escapeHtml(d.eventName || '—')}</span>
-              </p>
+              <div class="pdf-event-title"><strong>Tytuł wydarzenia:</strong><span>${escapeHtml(d.eventName || '—')}</span></div>
             </div>
             <div class="pdf-meta-card">
               <div class="pdf-meta-grid">
