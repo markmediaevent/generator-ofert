@@ -215,8 +215,9 @@
       .pdf-total-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:16px;padding:14px 16px}
       .pdf-total-hero strong{display:block;font-size:28px;margin-top:6px;letter-spacing:-.04em}
       .pdf-note{line-height:1.7;color:#5e6b7f;font-size:12px}
-      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px}
-      .pdf-line-sign{padding-top:42px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
+      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px;align-items:end}
+      .pdf-line-sign{position:relative;min-height:82px;padding-top:54px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
+      .pdf-signature-img{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:210px;max-height:82px;object-fit:contain;opacity:.96}
     }
   </style>
 </head>
@@ -274,6 +275,7 @@
               <div class="field"><label>Status</label><select id="offerStatus"><option>Szkic</option><option>Wysłana</option><option>Zaakceptowana</option><option>Anulowana</option></select></div>
               <div class="field"><label>Data oferty</label><input id="offerDate" type="date" /></div>
               <div class="field"><label>Ważna do</label><input id="validUntil" type="date" /></div>
+              <div class="field"><label>Podpis oferty</label><label style="display:flex;align-items:center;gap:10px;height:46px;padding:0 12px;border:1px solid var(--line);border-radius:14px;background:#fff;font-weight:800;color:#31405a"><input id="includeSignature" type="checkbox" style="width:18px;height:18px"> Dodaj podpis PNG</label></div>
               <div class="field span-2"><label>Klient</label><input id="clientName" placeholder="Np. XYZ Sp. z o.o." /></div>
               <div class="field"><label>Osoba kontaktowa</label><input id="contactName" placeholder="Np. Jan Kowalski" /></div>
               <div class="field"><label>E-mail klienta</label><input id="clientEmail" placeholder="kontakt@firma.pl" /></div>
@@ -454,6 +456,7 @@
       if (!byId('offerNumber').value) generateOfferNumber();
       byId('offerDate').value = todayISO();
       byId('validUntil').value = plusDaysISO(7);
+      byId('includeSignature').checked = false;
       byId('eventDate').value = todayISO();
       byId('offerStatus').value = 'Szkic';
       byId('statusPill').textContent = 'Szkic';
@@ -709,6 +712,7 @@
         offerStatus: byId('offerStatus').value,
         offerDate: byId('offerDate').value,
         validUntil: byId('validUntil').value,
+        includeSignature: byId('includeSignature').checked,
         eventDate: byId('eventDate').value,
         clientName: byId('clientName').value.trim(),
         contactName: byId('contactName').value.trim(),
@@ -726,6 +730,7 @@
       byId('offerStatus').value = data.offerStatus || 'Szkic';
       byId('offerDate').value = data.offerDate || todayISO();
       byId('validUntil').value = data.validUntil || plusDaysISO(7);
+      byId('includeSignature').checked = Boolean(data.includeSignature);
       byId('eventDate').value = data.eventDate || todayISO();
       byId('clientName').value = data.clientName || '';
       byId('contactName').value = data.contactName || '';
@@ -829,6 +834,7 @@
       byId('discountPercent').value = 0;
       byId('offerDate').value = todayISO();
       byId('validUntil').value = plusDaysISO(7);
+      byId('includeSignature').checked = false;
       byId('eventDate').value = todayISO();
       generateOfferNumber();
       offerItems = [];
@@ -870,6 +876,7 @@
       const validUntilDate = d.validUntil ? new Date(d.validUntil + 'T12:00:00') : null;
       const preparedLabel = preparedDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
       const validUntilLabel = validUntilDate ? validUntilDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+      const signatureHtml = d.includeSignature ? '<img class="pdf-signature-img" src="signature.png" alt="Podpis">' : '';
       const sheet = byId('pdfSheet');
       sheet.innerHTML = `
         <div class="pdf-page">
@@ -948,7 +955,7 @@
               <div class="pdf-note" style="margin-top:10px">${escapeHtml(d.notes || 'Brak dodatkowych uwag.')}</div>
             </div>
             <div class="pdf-sign">
-              <div class="pdf-line-sign">Podpis i pieczęć wykonawcy</div>
+              <div class="pdf-line-sign">${signatureHtml}Podpis i pieczęć wykonawcy</div>
               <div class="pdf-line-sign">Podpis klienta / akceptacja</div>
             </div>
           </div>
