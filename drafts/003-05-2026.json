@@ -10,7 +10,7 @@
   "eventName": "SAMORZĄD BLISKO LUDZI. Polska | Europa | Skuteczność",
   "location": "Starogard Gdański",
   "notes": "Centrum Sportowo-Edukacyjne im. Kazimierza Deyny",
-  "discountPercent": 19,
+  "discountPercent": 18.5,
   "items": [
     {
       "uid": "smxz8uy63r21",
@@ -31,7 +31,7 @@
       "categoryLabel": "Nagłośnienie",
       "name": "SHURE ULXD",
       "desc": "SHURE ULXD  MIKROFON BEZPRZEWODOWY",
-      "qty": 2,
+      "qty": 3,
       "days": 1,
       "price": 100,
       "source": "db"
@@ -42,7 +42,7 @@
       "categoryLabel": "Nagłośnienie",
       "name": "SHURE QLXD",
       "desc": "SHURE QLXD  MIKROFON BEZPRZEWODOWY",
-      "qty": 2,
+      "qty": 3,
       "days": 1,
       "price": 100,
       "source": "db"
@@ -163,7 +163,7 @@
       "categoryLabel": "Scena",
       "name": "Fotel",
       "desc": "Fotel welurowy jasno-niebieski",
-      "qty": 4,
+      "qty": 5,
       "days": 1,
       "price": 100,
       "source": "db"
