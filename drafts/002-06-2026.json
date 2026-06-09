@@ -1,0 +1,63 @@
+{
+  "offerNumber": "002/06/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-06-09",
+  "validUntil": "2026-06-12",
+  "eventDate": "2026-06-13",
+  "clientName": "Dorian",
+  "contactName": "Dorian Nawasielski",
+  "clientEmail": "",
+  "eventName": "Piknik",
+  "location": "Złota Góra",
+  "notes": "proszę o podanie godziny rozpoczęcia wydarzenia",
+  "discountPercent": 15,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "ekwjzsrhgfpo",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "6 m × 3 m · 18 m² · Stojący",
+      "qty": 18,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "0csmrbymhh1v",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator wizii",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 850,
+      "source": "manual"
+    },
+    {
+      "uid": "i49m1ughhpo9",
+      "category": "stage",
+      "categoryLabel": "Scena",
+      "name": "Scena modułowa",
+      "desc": "Podesty bazowe + nogi + fartuch",
+      "qty": 1,
+      "days": 1,
+      "price": 750,
+      "source": "db"
+    },
+    {
+      "uid": "gsuzxyrrienz",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 300,
+      "source": "db"
+    }
+  ]
+}
