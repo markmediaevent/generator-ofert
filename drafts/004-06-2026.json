@@ -1,0 +1,63 @@
+{
+  "offerNumber": "004/06/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-06-17",
+  "validUntil": "2026-06-24",
+  "eventDate": "2026-07-18",
+  "clientName": "Quadziu",
+  "contactName": "Kamil Rzeniecki",
+  "clientEmail": "quadziu@email.com",
+  "eventName": "SENTINO",
+  "location": "Dziemiany",
+  "notes": "Ekran zawieszony na konstrukcji obiektowej",
+  "discountPercent": 20,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "4ebyazrjchnh",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "5 m × 23 m · 115 m² · Wiszący",
+      "qty": 8,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "ymag6y80duyd",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator Multimediów",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 800,
+      "source": "manual"
+    },
+    {
+      "uid": "7067xq8kdzkz",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "ldhtpmruj91y",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Konstrukcja",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 400,
+      "source": "manual"
+    }
+  ]
+}
