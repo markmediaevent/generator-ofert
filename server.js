@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
-const initSqlJs = require('sql.js');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -19,11 +18,34 @@ const GITHUB_REPO = process.env.GITHUB_REPO || '';
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const GITHUB_DRAFTS_PATH = process.env.GITHUB_DRAFTS_PATH || 'drafts';
 
-const AUTH_DB_FILE = path.join(DATA_DIR, 'auth.sqlite');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-let authDb = null;
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const sessions = new Map();
+
+function ensureUsers() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(USERS_FILE)) {
+    const seed = [{ id: crypto.randomBytes(8).toString('hex'), username: ADMIN_USER, password: ADMIN_PASS, role: 'admin', createdAt: new Date().toISOString() }];
+    fs.writeFileSync(USERS_FILE, JSON.stringify(seed, null, 2), 'utf8');
+  }
+}
+function readUsers() {
+  ensureUsers();
+  try {
+    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    return Array.isArray(users) ? users : [];
+  } catch (e) {
+    return [];
+  }
+}
+function writeUsers(users) {
+  ensureUsers();
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+}
+function publicUser(user) {
+  return { id: user.id, username: user.username, role: user.role || 'user', createdAt: user.createdAt || '' };
+}
 
 function ensureDb() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -360,139 +382,18 @@ function mergeDbWithWorkbookBuffer(buffer) {
 
   return db;
 }
-
-
-let SQL = null;
-
-async function openAuthDb() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!SQL) SQL = await initSqlJs();
-  if (!authDb) {
-    if (fs.existsSync(AUTH_DB_FILE)) {
-      authDb = new SQL.Database(fs.readFileSync(AUTH_DB_FILE));
-    } else {
-      authDb = new SQL.Database();
-    }
-    authDb.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'user',
-        active INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS sessions (
-        token TEXT PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    `);
-    saveAuthDb();
-  }
-  return authDb;
-}
-
-function saveAuthDb() {
-  if (!authDb) return;
-  fs.writeFileSync(AUTH_DB_FILE, Buffer.from(authDb.export()));
-}
-
-function dbRun(sql, params = []) {
-  authDb.run(sql, params);
-  saveAuthDb();
-}
-
-function dbGet(sql, params = []) {
-  const stmt = authDb.prepare(sql);
-  try {
-    stmt.bind(params);
-    if (stmt.step()) return stmt.getAsObject();
-    return null;
-  } finally {
-    stmt.free();
-  }
-}
-
-function dbAll(sql, params = []) {
-  const stmt = authDb.prepare(sql);
-  const rows = [];
-  try {
-    stmt.bind(params);
-    while (stmt.step()) rows.push(stmt.getAsObject());
-    return rows;
-  } finally {
-    stmt.free();
-  }
-}
-
-function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
-  const hash = crypto.scryptSync(String(password || ''), salt, 64).toString('hex');
-  return { salt, hash };
-}
-
-function verifyPassword(password, user) {
-  if (!user || !user.salt || !user.password_hash) return false;
-  const { hash } = hashPassword(password, user.salt);
-  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(user.password_hash, 'hex'));
-}
-
-function publicUser(row) {
-  if (!row) return null;
-  return {
-    id: Number(row.id),
-    username: row.username,
-    role: row.role,
-    active: Boolean(row.active),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
-}
-
-async function ensureAuthDb() {
-  await openAuthDb();
-  const row = dbGet('SELECT COUNT(*) AS count FROM users');
-  if (!Number(row?.count || 0)) {
-    const now = new Date().toISOString();
-    const { salt, hash } = hashPassword(ADMIN_PASS);
-    dbRun('INSERT INTO users (username, password_hash, salt, role, active, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
-      [ADMIN_USER, hash, salt, 'admin', now, now]);
-  }
-  dbRun('DELETE FROM sessions WHERE expires_at < ?', [Date.now()]);
-}
-
-function createToken() { return crypto.randomBytes(32).toString('hex'); }
+function createToken() { return crypto.randomBytes(24).toString('hex'); }
 function getToken(req) {
   const auth = req.headers.authorization || '';
   if (auth.startsWith('Bearer ')) return auth.slice(7);
   return null;
 }
-function getUserByToken(token) {
-  if (!token) return null;
-  const row = dbGet(`
-    SELECT users.* FROM sessions
-    JOIN users ON users.id = sessions.user_id
-    WHERE sessions.token = ? AND sessions.expires_at > ? AND users.active = 1
-  `, [token, Date.now()]);
-  return row || null;
-}
 function requireAuth(req, res, next) {
   const token = getToken(req);
-  const user = getUserByToken(token);
-  if (!user) return res.status(401).json({ ok: false, message: 'Brak autoryzacji' });
-  req.user = publicUser(user);
-  req.authToken = token;
+  if (!token || !sessions.has(token)) return res.status(401).json({ ok: false, message: 'Brak autoryzacji' });
+  req.user = sessions.get(token);
   next();
 }
-function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ ok: false, message: 'Brak uprawnień administratora' });
-  next();
-}
-
 function findGroup(db, sectionKey, groupId) {
   const section = db.sections?.[sectionKey];
   if (!section) return null;
@@ -500,81 +401,78 @@ function findGroup(db, sectionKey, groupId) {
 }
 
 ensureDb();
+ensureUsers();
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
-  const user = dbGet('SELECT * FROM users WHERE username = ?', [String(username || '').trim()]);
-  if (!user || !user.active || !verifyPassword(password, user)) {
+  const users = readUsers();
+  const user = users.find(u => String(u.username) === String(username) && String(u.password) === String(password));
+  if (!user) {
     return res.status(401).json({ ok: false, message: 'Nieprawidłowy login lub hasło' });
   }
   const token = createToken();
-  const now = Date.now();
-  dbRun('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)', [token, user.id, now, now + SESSION_TTL_MS]);
-  res.json({ ok: true, token, user: publicUser(user), username: user.username, role: user.role });
+  sessions.set(token, { id: user.id, username: user.username, role: user.role || 'user', createdAt: Date.now() });
+  res.json({ ok: true, token, username: user.username, role: user.role || 'user' });
 });
-app.get('/api/me', requireAuth, (req, res) => res.json({ ok: true, user: req.user, username: req.user.username, role: req.user.role }));
+app.get('/api/me', requireAuth, (req, res) => res.json({ ok: true, username: req.user.username }));
 app.post('/api/logout', requireAuth, (req, res) => {
-  dbRun('DELETE FROM sessions WHERE token = ?', [req.authToken]);
+  const token = getToken(req);
+  sessions.delete(token);
   res.json({ ok: true });
 });
 
-app.get('/api/admin/users', requireAuth, requireAdmin, (req, res) => {
-  const users = dbAll('SELECT id, username, role, active, created_at, updated_at FROM users ORDER BY id ASC').map(publicUser);
-  res.json({ ok: true, users });
+app.get('/api/admin/users', requireAuth, (req, res) => {
+  res.json({ ok: true, users: readUsers().map(publicUser) });
 });
 
-app.post('/api/admin/users', requireAuth, requireAdmin, (req, res) => {
-  try {
-    const { username, password, role = 'user' } = req.body || {};
-    const cleanUsername = String(username || '').trim();
-    const cleanRole = role === 'admin' ? 'admin' : 'user';
-    if (cleanUsername.length < 3) return res.status(400).json({ ok: false, message: 'Login musi mieć minimum 3 znaki' });
-    if (String(password || '').length < 6) return res.status(400).json({ ok: false, message: 'Hasło musi mieć minimum 6 znaków' });
-    const now = new Date().toISOString();
-    const { salt, hash } = hashPassword(password);
-    dbRun('INSERT INTO users (username, password_hash, salt, role, active, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)', [cleanUsername, hash, salt, cleanRole, now, now]);
-    const user = dbGet('SELECT id, username, role, active, created_at, updated_at FROM users WHERE username = ?', [cleanUsername]);
-    res.json({ ok: true, user: publicUser(user) });
-  } catch (error) {
-    res.status(400).json({ ok: false, message: error.message && error.message.includes('UNIQUE') ? 'Taki login już istnieje' : 'Nie udało się utworzyć użytkownika' });
+app.post('/api/admin/users', requireAuth, (req, res) => {
+  const { username, password, role } = req.body || {};
+  const cleanUsername = String(username || '').trim();
+  const cleanPassword = String(password || '').trim();
+  if (!cleanUsername) return res.status(400).json({ ok: false, message: 'Podaj login.' });
+  if (!cleanPassword) return res.status(400).json({ ok: false, message: 'Podaj hasło.' });
+  const users = readUsers();
+  if (users.some(u => String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
+    return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
+  const user = { id: crypto.randomBytes(8).toString('hex'), username: cleanUsername, password: cleanPassword, role: role || 'user', createdAt: new Date().toISOString() };
+  users.push(user);
+  writeUsers(users);
+  res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
 
-app.put('/api/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const { password, role, active } = req.body || {};
-  const user = dbGet('SELECT * FROM users WHERE id = ?', [id]);
-  if (!user) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika' });
-  const nextRole = role === 'admin' ? 'admin' : (role === 'user' ? 'user' : user.role);
-  const nextActive = typeof active === 'boolean' ? (active ? 1 : 0) : user.active;
-  const now = new Date().toISOString();
-  if (password) {
-    if (String(password).length < 6) return res.status(400).json({ ok: false, message: 'Hasło musi mieć minimum 6 znaków' });
-    const { salt, hash } = hashPassword(password);
-    dbRun('UPDATE users SET password_hash = ?, salt = ?, role = ?, active = ?, updated_at = ? WHERE id = ?', [hash, salt, nextRole, nextActive, now, id]);
-    dbRun('DELETE FROM sessions WHERE user_id = ?', [id]);
-  } else {
-    dbRun('UPDATE users SET role = ?, active = ?, updated_at = ? WHERE id = ?', [nextRole, nextActive, now, id]);
-    if (!nextActive) dbRun('DELETE FROM sessions WHERE user_id = ?', [id]);
+app.put('/api/admin/users/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const { username, password, role } = req.body || {};
+  const users = readUsers();
+  const user = users.find(u => u.id === id);
+  if (!user) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika.' });
+  const cleanUsername = String(username || user.username).trim();
+  if (!cleanUsername) return res.status(400).json({ ok: false, message: 'Podaj login.' });
+  if (users.some(u => u.id !== id && String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
+    return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
-  const updated = dbGet('SELECT id, username, role, active, created_at, updated_at FROM users WHERE id = ?', [id]);
-  res.json({ ok: true, user: publicUser(updated) });
+  user.username = cleanUsername;
+  if (String(password || '').trim()) user.password = String(password).trim();
+  user.role = role || user.role || 'user';
+  writeUsers(users);
+  res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
 
-app.delete('/api/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  if (req.user.id === id) return res.status(400).json({ ok: false, message: 'Nie możesz usunąć własnego konta' });
-  dbRun('DELETE FROM sessions WHERE user_id = ?', [id]);
-  const beforeDelete = dbGet('SELECT id FROM users WHERE id = ?', [id]);
-  dbRun('DELETE FROM users WHERE id = ?', [id]);
-  if (!beforeDelete) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika' });
-  res.json({ ok: true });
+app.delete('/api/admin/users/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const users = readUsers();
+  if (users.length <= 1) return res.status(400).json({ ok: false, message: 'Nie można usunąć ostatniego użytkownika.' });
+  const next = users.filter(u => u.id !== id);
+  if (next.length === users.length) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika.' });
+  writeUsers(next);
+  res.json({ ok: true, users: next.map(publicUser) });
 });
 
-app.get('/api/equipment-db', requireAuth, (req, res) => res.json(readDb()));
+app.get('/api/equipment-db', (req, res) => res.json(readDb()));
 app.get('/api/admin/equipment-db', requireAuth, (req, res) => res.json(readDb()));
 
 app.post('/api/admin/groups', requireAuth, (req, res) => {
@@ -639,7 +537,7 @@ app.delete('/api/admin/items/:sectionKey/:groupId/:itemId', requireAuth, (req, r
 
 
 
-app.get('/api/offers/next-number', requireAuth, async (req, res) => {
+app.get('/api/offers/next-number', async (req, res) => {
   try {
     const offerNumber = await getNextOfferNumber();
     res.json({ ok: true, offerNumber });
@@ -680,7 +578,7 @@ app.post('/api/admin/equipment-db/import', requireAuth, (req, res) => {
   }
 });
 
-app.post('/api/drafts/save', requireAuth, async (req, res) => {
+app.post('/api/drafts/save', async (req, res) => {
   try {
     const { offerNumber, data } = req.body || {};
     if (!offerNumber || !data) return res.status(400).json({ ok: false, message: 'Brak numeru oferty lub danych szkicu' });
@@ -698,7 +596,7 @@ app.post('/api/drafts/save', requireAuth, async (req, res) => {
 
 
 
-app.get('/api/drafts', requireAuth, async (req, res) => {
+app.get('/api/drafts', async (req, res) => {
   try {
     const local = listLocalDrafts();
     const github = githubEnabled() ? await listGithubDrafts() : [];
@@ -715,7 +613,7 @@ app.get('/api/drafts', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/drafts/:offerNumber', requireAuth, async (req, res) => {
+app.get('/api/drafts/:offerNumber', async (req, res) => {
   try {
     const { offerNumber } = req.params;
     if (githubEnabled()) {
@@ -736,12 +634,7 @@ app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'log
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 
-const PORT = process.env.PORT || 10000;
-ensureAuthDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Mark Media Oferty działa na porcie ${PORT}`);
-  });
-}).catch((error) => {
-  console.error('Nie udało się uruchomić bazy logowania SQLite:', error);
-  process.exit(1);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Mark Media Oferty działa na porcie ${PORT}`);
 });

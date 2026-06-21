@@ -1,0 +1,9 @@
+[
+  {
+    "id": "defaultadmin",
+    "username": "admin",
+    "password": "markmedia123",
+    "role": "admin",
+    "createdAt": "2026-06-21T00:00:00.000Z"
+  }
+]

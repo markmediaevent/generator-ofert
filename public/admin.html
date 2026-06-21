@@ -56,6 +56,18 @@
 
     <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz wyeksportować do Excela i później zaimportować z powrotem.</div>
 
+    <div class="card" style="margin-bottom:18px">
+      <div class="section-head"><h2>Loginy i hasła</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
+      <div class="item-form" style="grid-template-columns:1fr 1fr .7fr auto">
+        <input id="newUserLogin" placeholder="Nowy login" />
+        <input id="newUserPass" placeholder="Nowe hasło" type="text" />
+        <input id="newUserRole" placeholder="Rola" value="user" />
+        <button class="btn green" type="button" id="addUserBtn">Dodaj użytkownika</button>
+      </div>
+      <div class="item-list" id="usersList" style="margin-top:14px"></div>
+      <div class="muted" style="margin-top:10px">Domyślne konto po pierwszym uruchomieniu: admin / markmedia123. Po dodaniu nowego konta możesz zmienić lub usunąć stare.</div>
+    </div>
+
     <div class="toolbar">
       <div class="card">
         <div class="section-head"><h2>Wyszukiwarka</h2><span class="pill" id="dbStatus">Ładowanie…</span></div>
@@ -202,6 +214,52 @@
       updateStats();
     }
 
+
+
+    async function loadUsers() {
+      const status = document.getElementById('usersStatus');
+      const list = document.getElementById('usersList');
+      if (!status || !list) return;
+      status.textContent = 'Ładowanie…';
+      const data = await api('/api/admin/users');
+      list.innerHTML = (data.users || []).map(user => `
+        <div class="item-row" style="grid-template-columns:1fr .7fr 1fr auto auto">
+          <div><strong>${esc(user.username)}</strong><small>ID: ${esc(user.id)}</small></div>
+          <div>${esc(user.role || 'user')}</div>
+          <div>${esc(user.createdAt || '')}</div>
+          <button class="btn" type="button" onclick="editUser('${esc(user.id)}','${esc(user.username)}','${esc(user.role || 'user')}')">Edytuj</button>
+          <button class="btn red" type="button" onclick="deleteUser('${esc(user.id)}')">Usuń</button>
+        </div>
+      `).join('') || '<div class="muted">Brak użytkowników.</div>';
+      status.textContent = `${(data.users || []).length} kont`;
+    }
+
+    async function addUser() {
+      const username = document.getElementById('newUserLogin').value.trim();
+      const password = document.getElementById('newUserPass').value.trim();
+      const role = document.getElementById('newUserRole').value.trim() || 'user';
+      if (!username || !password) return alert('Podaj login i hasło.');
+      await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username, password, role }) });
+      document.getElementById('newUserLogin').value = '';
+      document.getElementById('newUserPass').value = '';
+      document.getElementById('newUserRole').value = 'user';
+      await loadUsers();
+    }
+
+    async function editUser(id, username, role) {
+      const newLogin = prompt('Login:', username); if (newLogin === null) return;
+      const newPass = prompt('Nowe hasło. Zostaw puste, żeby nie zmieniać:', ''); if (newPass === null) return;
+      const newRole = prompt('Rola:', role || 'user'); if (newRole === null) return;
+      await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ username: newLogin, password: newPass, role: newRole || 'user' }) });
+      await loadUsers();
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Usunąć tego użytkownika?')) return;
+      await api('/api/admin/users/' + id, { method: 'DELETE' });
+      await loadUsers();
+    }
+
     async function loadDb() {
       document.getElementById('dbStatus').textContent = 'Ładowanie…';
       db = await api('/api/admin/equipment-db');
@@ -313,6 +371,7 @@
       reader.readAsDataURL(file);
     }
 
+    document.getElementById('addUserBtn').addEventListener('click', addUser);
     document.getElementById('searchInput').addEventListener('input', (e) => { filterText = e.target.value.trim(); render(); });
     document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
     document.getElementById('importExcelBtn').addEventListener('click', () => document.getElementById('importExcelInput').click());
@@ -322,6 +381,7 @@
       localStorage.removeItem('admin_token');
       location.href = '/login';
     });
+    loadUsers().catch(err => { const el=document.getElementById('usersStatus'); if(el) el.textContent='Błąd'; });
     loadDb().catch(err => { document.getElementById('sectionsGrid').innerHTML = `<div class="card"><div class="muted">${esc(err.message || 'Nie udało się załadować bazy.')}</div></div>`; document.getElementById('dbStatus').textContent = 'Błąd'; });
   </script>
 </body>

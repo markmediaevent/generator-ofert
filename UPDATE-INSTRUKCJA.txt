@@ -1,0 +1,19 @@
+FINALNA PACZKA v4.3
+
+Render:
+Build Command: npm install
+Start Command: npm start
+
+Ważne:
+1. Projekt nie ma komendy npm run build.
+2. Aplikacja używa process.env.PORT, więc Render sam nada port.
+3. Panel logowania: /login
+4. Panel admina: /admin
+5. Domyślne konto: admin / markmedia123
+6. W panelu admina dodano sekcję „Loginy i hasła” do tworzenia, edycji i usuwania użytkowników.
+
+Magazyn sprzętu:
+- Kod nie czyści magazynu przy starcie.
+- Plik data/equipment-db.json jest tworzony tylko, jeśli go brakuje.
+- Przed aktualizacją na GitHub najlepiej pobierz z panelu Export Excel jako backup magazynu.
+- Jeżeli masz już własny magazyn, nie nadpisuj swojego data/equipment-db.json pustym/starym plikiem.
