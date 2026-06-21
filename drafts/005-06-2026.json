@@ -1,0 +1,96 @@
+{
+  "offerNumber": "005/06/2026",
+  "offerStatus": "Szkic",
+  "offerDate": "2026-06-21",
+  "validUntil": "2026-06-22",
+  "eventDate": "2026-06-23",
+  "clientName": "MS Audio Lighting",
+  "contactName": "Maciej Szmyt",
+  "clientEmail": "",
+  "eventName": "Telekonferencja",
+  "location": "Sopot",
+  "notes": "",
+  "discountPercent": 15,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "dw6g9mwuifcg",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Zestaw konferencyjny",
+      "desc": "Kolumny, mikser, podstawowe okablowanie",
+      "qty": 1,
+      "days": 1,
+      "price": 2500,
+      "source": "db"
+    },
+    {
+      "uid": "mucta3eoijuw",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Mikrofon nabiurkowy \"do obrad\"",
+      "desc": "Mikrofon biurkowy gęsia szyja",
+      "qty": 19,
+      "days": 1,
+      "price": 15,
+      "source": "db"
+    },
+    {
+      "uid": "lgiczacoio6h",
+      "category": "internet",
+      "categoryLabel": "Internet / Starlink",
+      "name": "Starlink Standard",
+      "desc": "Wydajniejszy zestaw standard",
+      "qty": 1,
+      "days": 1,
+      "price": 600,
+      "source": "db"
+    },
+    {
+      "uid": "phgtjc64irlo",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "2rj2o5bmjg41",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera 4K",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 1,
+      "days": 1,
+      "price": 400,
+      "source": "db"
+    },
+    {
+      "uid": "o7ierym2jv0g",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "vMix / ATEM realizacja",
+      "desc": "Stanowisko realizacji live",
+      "qty": 1,
+      "days": 1,
+      "price": 800,
+      "source": "db"
+    },
+    {
+      "uid": "uvvox3ntklck",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "4 m × 2,5 m · 10 m² · Stojący",
+      "qty": 10,
+      "days": 1,
+      "price": 220,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    }
+  ]
+}
