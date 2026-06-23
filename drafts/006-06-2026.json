@@ -1,0 +1,61 @@
+{
+  "offerNumber": "006/06/2026",
+  "offerStatus": "Szkic",
+  "offerDate": "2026-06-23",
+  "validUntil": "2026-06-23",
+  "eventDate": "2026-06-24",
+  "clientName": "KS BENIAMINEK",
+  "contactName": "Łukasz Kowalski",
+  "clientEmail": "wideomania@WP.PL",
+  "eventName": "Podsumowanie Sezonu",
+  "location": "Starogard Gdański",
+  "notes": "",
+  "discountPercent": 0,
+  "includeSignature": false,
+  "items": [
+    {
+      "uid": "mchhj9idxy0v",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Zestaw konferencyjny",
+      "desc": "Kolumny, mikser, podstawowe okablowanie",
+      "qty": 1,
+      "days": 1,
+      "price": 1000,
+      "source": "db"
+    },
+    {
+      "uid": "x6fk8cldsd8j",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4.8",
+      "desc": "Wersja ekonomiczna indoor / outdoor",
+      "qty": 1,
+      "days": 1,
+      "price": 2000,
+      "source": "db"
+    },
+    {
+      "uid": "68v0uajmtm7s",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "vMix / ATEM realizacja",
+      "desc": "Stanowisko realizacji live",
+      "qty": 1,
+      "days": 1,
+      "price": 400,
+      "source": "db"
+    },
+    {
+      "uid": "zogqicmntmvm",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera 4K",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 1,
+      "days": 1,
+      "price": 200,
+      "source": "db"
+    }
+  ]
+}
