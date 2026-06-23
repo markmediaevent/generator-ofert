@@ -5,25 +5,14 @@
   "validUntil": "2026-06-23",
   "eventDate": "2026-06-24",
   "clientName": "KS BENIAMINEK",
-  "contactName": "LUKASZ KOWALSKI",
+  "contactName": "Marcin Kaszubowski",
   "clientEmail": "wideomania@WP.PL",
   "eventName": "Podsumowanie Sezonu",
   "location": "Starogard Gdański",
-  "notes": "",
-  "discountPercent": 0,
-  "includeSignature": false,
+  "notes": "Start wydarzenia o godzinie 17:00",
+  "discountPercent": 15,
+  "includeSignature": true,
   "items": [
-    {
-      "uid": "1167qb892qx9",
-      "category": "led",
-      "categoryLabel": "Ekran LED",
-      "name": "Ekran LED P4.8",
-      "desc": "Wersja ekonomiczna indoor / outdoor",
-      "qty": 1,
-      "days": 1,
-      "price": 2000,
-      "source": "db"
-    },
     {
       "uid": "swpn91tt2v1a",
       "category": "audio",
@@ -56,6 +45,32 @@
       "days": 1,
       "price": 200,
       "source": "db"
+    },
+    {
+      "uid": "3zg2zkxocudp",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "2 m × 3 m · 6 m² · Stojący",
+      "qty": 6,
+      "days": 1,
+      "price": 220,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "kj496keicy7e",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "2 m × 3 m · 6 m² · Stojący",
+      "qty": 6,
+      "days": 1,
+      "price": 220,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
     }
   ]
 }
