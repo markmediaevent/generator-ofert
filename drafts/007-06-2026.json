@@ -11,7 +11,7 @@
   "location": "Starogard Gdański",
   "notes": "Grodzisko Owidz -  2 x dioda led 2x3 m , gotowość godzina 16;00",
   "discountPercent": 30,
-  "includeSignature": false,
+  "includeSignature": true,
   "items": [
     {
       "uid": "swpn91tt2v1a",
