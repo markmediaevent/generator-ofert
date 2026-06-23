@@ -10,20 +10,9 @@
   "eventName": "Podsumowanie Sezonu",
   "location": "Starogard Gdański",
   "notes": "Grodzisko Owidz -  2 x dioda led 2x3 m , gotowość godzina 16;00",
-  "discountPercent": 0,
+  "discountPercent": 30,
   "includeSignature": false,
   "items": [
-    {
-      "uid": "1167qb892qx9",
-      "category": "led",
-      "categoryLabel": "Ekran LED",
-      "name": "Ekran LED P4.8",
-      "desc": "Wersja ekonomiczna indoor / outdoor",
-      "qty": 1,
-      "days": 1,
-      "price": 2000,
-      "source": "db"
-    },
     {
       "uid": "swpn91tt2v1a",
       "category": "audio",
@@ -56,6 +45,19 @@
       "days": 1,
       "price": 200,
       "source": "db"
+    },
+    {
+      "uid": "vmvgjz5cb04d",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "4 m × 3 m · 12 m² · Stojący",
+      "qty": 12,
+      "days": 1,
+      "price": 220,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
     }
   ]
 }
