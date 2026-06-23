@@ -1,0 +1,96 @@
+{
+  "offerNumber": "008/06/2026",
+  "offerStatus": "Szkic",
+  "offerDate": "2026-06-23",
+  "validUntil": "2026-06-24",
+  "eventDate": "2026-06-25",
+  "clientName": "Visscher-Caravelle",
+  "contactName": "Biuro",
+  "clientEmail": "biuro@Visscher-Caravelle.pl",
+  "eventName": "Konferencja",
+  "location": "Grudziądz",
+  "notes": "Montaż od godziny 12:00 \nWydarzenie od godziny 15:00",
+  "discountPercent": 5,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "p3w4btyqkoc6",
+      "category": "audio",
+      "categoryLabel": "Nagłośnienie",
+      "name": "Zestaw konferencyjny",
+      "desc": "Kolumny, mikser, podstawowe okablowanie",
+      "qty": 1,
+      "days": 1,
+      "price": 2500,
+      "source": "db"
+    },
+    {
+      "uid": "sjleaufdkuzz",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "vMix / ATEM realizacja",
+      "desc": "Stanowisko realizacji live",
+      "qty": 1,
+      "days": 1,
+      "price": 1100,
+      "source": "db"
+    },
+    {
+      "uid": "rfouo2uakw16",
+      "category": "video",
+      "categoryLabel": "Wideo / streaming",
+      "name": "Kamera 4K",
+      "desc": "Kamera operatorska z osprzętem",
+      "qty": 1,
+      "days": 1,
+      "price": 400,
+      "source": "db"
+    },
+    {
+      "uid": "y5zcp5g3l94s",
+      "category": "internet",
+      "categoryLabel": "Internet / Starlink",
+      "name": "Starlink Standard",
+      "desc": "Wydajniejszy zestaw standard",
+      "qty": 1,
+      "days": 1,
+      "price": 600,
+      "source": "db"
+    },
+    {
+      "uid": "f991axejlbwj",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "b769acewlzn3",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "5 m × 3 m · 15 m² · Wiszący",
+      "qty": 15,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "n3dtems5mwtb",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Konstrukcja do podwieszenia ekranu",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 2500,
+      "source": "manual"
+    }
+  ]
+}
