@@ -1,0 +1,74 @@
+{
+  "offerNumber": "009/06/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-06-26",
+  "validUntil": "2026-06-26",
+  "eventDate": "2026-06-27",
+  "clientName": "Tomasz Serba",
+  "contactName": "Tomasz Serba",
+  "clientEmail": "kontakt@.pl",
+  "eventName": "Dni Miasta",
+  "location": "Dopiewo",
+  "notes": "Start wydarzenia godzina 12:00\nDemontaż po koncercie",
+  "discountPercent": 0,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "nt5bjq31gxwj",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P3.9",
+      "desc": "6 m × 3 m · 18 m² · Wiszący",
+      "qty": 18,
+      "days": 1,
+      "price": 245,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "2lt3d9xhhk34",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Procesor Ekranu",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 450,
+      "source": "manual"
+    },
+    {
+      "uid": "v3wrakrchs5j",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 1,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "1y3kre7gkjiv",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Kratownica odcinek 3m",
+      "desc": "",
+      "qty": 3,
+      "days": 1,
+      "price": 75,
+      "source": "manual"
+    },
+    {
+      "uid": "qs5xuw8alw3w",
+      "category": "custom",
+      "categoryLabel": "Obsługa / inne",
+      "name": "Technik LED",
+      "desc": "",
+      "qty": 2,
+      "days": 1,
+      "price": 600,
+      "source": "manual"
+    }
+  ]
+}
