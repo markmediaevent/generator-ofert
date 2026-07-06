@@ -1,0 +1,74 @@
+{
+  "offerNumber": "001/07/2026",
+  "offerStatus": "Wysłana",
+  "offerDate": "2026-07-06",
+  "validUntil": "2026-07-09",
+  "eventDate": "2026-07-10",
+  "clientName": "MS Audio Lighting",
+  "contactName": "Maciej Szmyt",
+  "clientEmail": "msaudiolighting@icloud.com",
+  "eventName": "KWIATKOWSKI ŁEBA",
+  "location": "Łeba",
+  "notes": "",
+  "discountPercent": 10,
+  "includeSignature": true,
+  "items": [
+    {
+      "uid": "6jtxfln197hx",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Ekran LED P4",
+      "desc": "10 m × 4 m · 40 m² · Wiszący",
+      "qty": 40,
+      "days": 1,
+      "price": 250,
+      "unitLabel": "m²",
+      "pricingMode": "per_m2",
+      "source": "led-calc"
+    },
+    {
+      "uid": "kvaamv3sav8b",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Konstrukcja Ekranu",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 2500,
+      "source": "manual"
+    },
+    {
+      "uid": "is358bawb0mv",
+      "category": "transport",
+      "categoryLabel": "Transport / montaż",
+      "name": "Bus techniczny",
+      "desc": "Dojazd sprzętu i ekipy",
+      "qty": 2,
+      "days": 1,
+      "price": 900,
+      "source": "db"
+    },
+    {
+      "uid": "yx81iwpjbwhk",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Technik",
+      "desc": "",
+      "qty": 3,
+      "days": 1,
+      "price": 800,
+      "source": "manual"
+    },
+    {
+      "uid": "xasv9nfzcrbk",
+      "category": "led",
+      "categoryLabel": "Ekran LED",
+      "name": "Realizator Wizji",
+      "desc": "",
+      "qty": 1,
+      "days": 1,
+      "price": 1000,
+      "source": "manual"
+    }
+  ]
+}
