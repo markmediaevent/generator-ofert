@@ -1,0 +1,46 @@
+GENERATOR OFERT — WDROŻENIE FINALNE NA RENDER
+
+ZAWARTOŚĆ PACZKI
+- 23 zapisane oferty w katalogu drafts
+- aktualny magazyn: data/equipment-db.json (20 pozycji)
+- konto użytkownika: data/users.json
+- poprawiony formularz logowania
+- bezpieczny zapis atomowy plików JSON
+- automatyczna migracja ofert z /drafts do trwałego katalogu danych
+- awaria lub błędny token GitHub nie blokuje lokalnego zapisu oferty
+
+NAJBEZPIECZNIEJSZE WDROŻENIE
+1. Zrób kopię obecnego repozytorium GitHub.
+2. Usuń z repozytorium stare pliki i wgraj ZAWARTOŚĆ tej paczki do głównego katalogu repozytorium.
+   package.json ma znajdować się bezpośrednio w katalogu głównym.
+3. W Render ustaw:
+   Root Directory: puste
+   Build Command: npm ci --omit=dev --no-audit --no-fund
+   Start Command: npm start
+   Health Check Path: /api/health
+4. Ustaw zmienną środowiskową:
+   NODE_VERSION=20.19.4
+5. Dodaj Persistent Disk:
+   Mount Path: /var/data
+   Rozmiar: 1 GB
+6. Ustaw zmienną:
+   STORAGE_DIR=/var/data
+7. Uruchom Clear build cache & deploy.
+
+WAŻNE
+- Pierwsze uruchomienie kopiuje magazyn, użytkowników i wszystkie oferty na dysk /var/data.
+- Kopiowane są wyłącznie brakujące pliki. Istniejące dane na dysku nie są nadpisywane.
+- Bez Persistent Disk nowe zmiany zapisane po wdrożeniu mogą zniknąć przy kolejnym deployu Render.
+- Jeśli w Render są ustawione GITHUB_TOKEN/GITHUB_OWNER/GITHUB_REPO i token jest nieprawidłowy,
+  aplikacja nadal zapisze ofertę lokalnie. Można usunąć te zmienne, jeśli synchronizacja GitHub nie jest potrzebna.
+
+LOGOWANIE Z DANYCH W TEJ PACZCE
+login: admin
+hasło: markmedia123
+Po zalogowaniu zmień hasło w panelu użytkowników.
+
+KONTROLA PO WDROŻENIU
+- /api/health powinno zwrócić ok:true oraz drafts:23
+- /login powinno wyświetlić formularz
+- po zalogowaniu /admin powinien pokazać magazyn
+- /app -> lista zapisanych ofert powinna zawierać dotychczasowe szkice

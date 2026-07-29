@@ -8,20 +8,54 @@ const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Dane mogą działać z repozytorium albo z trwałego dysku Render.
-// Na Render ustaw STORAGE_DIR=/var/data i zamontuj Persistent Disk w /var/data.
 const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const BUNDLED_DRAFTS_DIR = path.join(__dirname, 'drafts');
-const STORAGE_ROOT = process.env.STORAGE_DIR
-  ? path.resolve(process.env.STORAGE_DIR)
-  : __dirname;
-const DATA_DIR = STORAGE_ROOT === __dirname
-  ? BUNDLED_DATA_DIR
-  : path.join(STORAGE_ROOT, 'data');
+const DATA_DIR = path.resolve(process.env.STORAGE_DIR || BUNDLED_DATA_DIR);
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
-const DRAFTS_DIR = STORAGE_ROOT === __dirname
-  ? BUNDLED_DRAFTS_DIR
-  : path.join(STORAGE_ROOT, 'drafts');
+const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+function atomicWriteJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(temp, JSON.stringify(value, null, 2), 'utf8');
+  fs.renameSync(temp, file);
+}
+
+function copyIfMissing(source, target) {
+  if (!fs.existsSync(target) && fs.existsSync(source)) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+    return true;
+  }
+  return false;
+}
+
+function bootstrapStorage() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
+
+  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
+  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
+
+  // Starsze wersje trzymały oferty w katalogu /drafts w repozytorium.
+  // Kopiujemy tylko brakujące pliki, więc istniejące dane nigdy nie są nadpisywane.
+  if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
+    for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
+      if (name.endsWith('.json')) copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
+    }
+  }
+
+  // Obsługa paczek, w których szkice były już umieszczone w data/drafts.
+  const bundledDataDrafts = path.join(BUNDLED_DATA_DIR, 'drafts');
+  if (bundledDataDrafts !== DRAFTS_DIR && fs.existsSync(bundledDataDrafts)) {
+    for (const name of fs.readdirSync(bundledDataDrafts)) {
+      if (name.endsWith('.json')) copyIfMissing(path.join(bundledDataDrafts, name), path.join(DRAFTS_DIR, name));
+    }
+  }
+}
+
+bootstrapStorage();
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_OWNER = process.env.GITHUB_OWNER || '';
@@ -31,42 +65,7 @@ const GITHUB_DRAFTS_PATH = process.env.GITHUB_DRAFTS_PATH || 'drafts';
 
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
-
-function atomicWriteJson(filePath, value) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const temporary = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  fs.writeFileSync(temporary, JSON.stringify(value, null, 2), 'utf8');
-  fs.renameSync(temporary, filePath);
-}
-
-function copyIfMissing(source, destination) {
-  if (!fs.existsSync(destination) && fs.existsSync(source)) {
-    fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.copyFileSync(source, destination);
-  }
-}
-
-function initializeStorage() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
-
-  // Przy pierwszym uruchomieniu trwałego dysku kopiujemy dane dołączone do paczki.
-  if (STORAGE_ROOT !== __dirname) {
-    copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
-    copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
-
-    if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
-      for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
-        if (!name.endsWith('.json')) continue;
-        copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
-      }
-    }
-  }
-}
-
-initializeStorage();
 
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -448,14 +447,7 @@ function findGroup(db, sectionKey, groupId) {
 ensureDb();
 ensureUsers();
 
-app.get('/api/health', (req, res) => res.json({
-  ok: true,
-  time: new Date().toISOString(),
-  app: 'Mark Media Oferty',
-  storage: STORAGE_ROOT,
-  drafts: listLocalDrafts().length,
-  githubBackup: githubEnabled()
-}));
+app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty', storageDir: DATA_DIR, drafts: listLocalDrafts().length }));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
 
 app.post('/api/login', (req, res) => {
@@ -639,18 +631,13 @@ app.post('/api/drafts/save', async (req, res) => {
     if (githubEnabled()) {
       try {
         await saveDraftToGithub(offerNumber, data);
-        return res.json({ ok: true, github: true, message: 'Szkic zapisany lokalnie i na GitHub' });
+        return res.json({ ok: true, github: true, local: true, message: 'Szkic zapisany lokalnie i na GitHub' });
       } catch (githubError) {
-        console.error('GitHub backup failed:', githubError.message);
-        return res.json({
-          ok: true,
-          github: false,
-          warning: `Szkic zapisany lokalnie, ale kopia GitHub nie powiodła się: ${githubError.message}`,
-          message: 'Szkic zapisany lokalnie'
-        });
+        console.error('GitHub save failed; local copy is safe:', githubError.message);
+        return res.json({ ok: true, github: false, local: true, warning: 'Nie udało się zsynchronizować z GitHub, ale szkic został bezpiecznie zapisany na serwerze.' });
       }
     }
-    return res.json({ ok: true, github: false, message: 'Szkic zapisany lokalnie na serwerze' });
+    return res.json({ ok: true, github: false, local: true, message: 'Szkic zapisany lokalnie na serwerze' });
   } catch (error) {
     return res.status(500).json({ ok: false, message: error.message || 'Nie udało się zapisać szkicu' });
   }
@@ -679,8 +666,12 @@ app.get('/api/drafts/:offerNumber', async (req, res) => {
   try {
     const { offerNumber } = req.params;
     if (githubEnabled()) {
-      const draft = await readDraftFromGithub(offerNumber);
-      if (draft) return res.json({ ok: true, github: true, data: draft });
+      try {
+        const draft = await readDraftFromGithub(offerNumber);
+        if (draft) return res.json({ ok: true, github: true, data: draft });
+      } catch (githubError) {
+        console.error('GitHub read failed; falling back to local copy:', githubError.message);
+      }
     }
     const file = localDraftFile(offerNumber);
     if (!fs.existsSync(file)) return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
@@ -699,4 +690,5 @@ app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Mark Media Oferty działa na porcie ${PORT}`);
+  console.log(`Dane: ${DATA_DIR}; szkice: ${DRAFTS_DIR}`);
 });

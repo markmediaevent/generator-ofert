@@ -1,13 +1,18 @@
 {
   "name": "generator-ofert-pro-max",
-  "version": "4.3.0-final",
-  "description": "Generator ofert eventowych PRO MAX z panelem użytkowników, magazynem i poprawką Render",
+  "version": "4.4.0",
+  "description": "Generator ofert Mark Media — stabilna wersja Render z trwałym magazynem i szkicami",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "sql.js": "^1.13.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
