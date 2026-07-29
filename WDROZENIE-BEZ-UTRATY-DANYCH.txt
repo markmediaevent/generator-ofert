@@ -1,0 +1,30 @@
+GENERATOR OFERT — WDROŻENIE BEZ UTRATY DANYCH
+
+Ta paczka zawiera 23 zapisane oferty z katalogu drafts oraz stan magazynu z data/equipment-db.json.
+Kod nie usuwa istniejących danych. Przy pierwszym uruchomieniu na trwałym dysku kopiuje dane z paczki tylko wtedy, gdy plik docelowy jeszcze nie istnieje.
+
+WAŻNE PRZED WDROŻENIEM
+1. Jeżeli na obecnym Renderze są nowsze oferty lub nowszy stan magazynu niż w tej paczce, najpierw pobierz ich kopię. Sam deploy nie ma możliwości odczytać starego, ulotnego systemu plików po jego zastąpieniu.
+2. W Render dodaj Persistent Disk:
+   - Mount path: /var/data
+   - Size: 1 GB
+3. Ustaw Environment Variable:
+   STORAGE_DIR=/var/data
+4. Ustaw własne ADMIN_USER i ADMIN_PASS. Nie używaj hasła domyślnego z publicznego repozytorium.
+5. Opcjonalnie ustaw GITHUB_TOKEN z prawem zapisu do repozytorium, aby każda oferta miała dodatkową kopię w katalogu drafts na GitHub.
+
+WDROŻENIE
+- Build Command: npm install
+- Start Command: npm start
+- Health Check Path: /api/health
+
+Po wdrożeniu otwórz:
+https://generator-ofert.onrender.com/api/health
+Powinno być ok:true, drafts:23 (lub więcej) oraz storage:/var/data.
+
+ZACHOWANIE DANYCH
+- magazyn: /var/data/data/equipment-db.json
+- użytkownicy: /var/data/data/users.json
+- oferty: /var/data/drafts/*.json
+- pliki są zapisywane atomowo, więc awaria w trakcie zapisu nie powinna zostawić częściowego JSON.
+- przy błędzie tokenu GitHub oferta nadal zapisze się lokalnie; użytkownik dostanie ostrzeżenie zamiast utraty zapisu.

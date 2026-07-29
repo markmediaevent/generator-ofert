@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: generator-ofert
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: STORAGE_DIR
+        value: /var/data
+      - key: ADMIN_USER
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_OWNER
+        value: markmediaevent
+      - key: GITHUB_REPO
+        value: generator-ofert
+      - key: GITHUB_BRANCH
+        value: main
+      - key: GITHUB_DRAFTS_PATH
+        value: drafts
+    disk:
+      name: generator-ofert-data
+      mountPath: /var/data
+      sizeGB: 1

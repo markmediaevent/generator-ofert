@@ -8,9 +8,20 @@ const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Dane mogą działać z repozytorium albo z trwałego dysku Render.
+// Na Render ustaw STORAGE_DIR=/var/data i zamontuj Persistent Disk w /var/data.
+const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
+const BUNDLED_DRAFTS_DIR = path.join(__dirname, 'drafts');
+const STORAGE_ROOT = process.env.STORAGE_DIR
+  ? path.resolve(process.env.STORAGE_DIR)
+  : __dirname;
+const DATA_DIR = STORAGE_ROOT === __dirname
+  ? BUNDLED_DATA_DIR
+  : path.join(STORAGE_ROOT, 'data');
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
-const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
+const DRAFTS_DIR = STORAGE_ROOT === __dirname
+  ? BUNDLED_DRAFTS_DIR
+  : path.join(STORAGE_ROOT, 'drafts');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_OWNER = process.env.GITHUB_OWNER || '';
@@ -23,11 +34,45 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
 
+function atomicWriteJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temporary = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  fs.writeFileSync(temporary, JSON.stringify(value, null, 2), 'utf8');
+  fs.renameSync(temporary, filePath);
+}
+
+function copyIfMissing(source, destination) {
+  if (!fs.existsSync(destination) && fs.existsSync(source)) {
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(source, destination);
+  }
+}
+
+function initializeStorage() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
+
+  // Przy pierwszym uruchomieniu trwałego dysku kopiujemy dane dołączone do paczki.
+  if (STORAGE_ROOT !== __dirname) {
+    copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
+    copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
+
+    if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
+      for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
+        if (!name.endsWith('.json')) continue;
+        copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
+      }
+    }
+  }
+}
+
+initializeStorage();
+
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(USERS_FILE)) {
     const seed = [{ id: crypto.randomBytes(8).toString('hex'), username: ADMIN_USER, password: ADMIN_PASS, role: 'admin', createdAt: new Date().toISOString() }];
-    fs.writeFileSync(USERS_FILE, JSON.stringify(seed, null, 2), 'utf8');
+    atomicWriteJson(USERS_FILE, seed);
   }
 }
 function readUsers() {
@@ -41,7 +86,7 @@ function readUsers() {
 }
 function writeUsers(users) {
   ensureUsers();
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+  atomicWriteJson(USERS_FILE, users);
 }
 function publicUser(user) {
   return { id: user.id, username: user.username, role: user.role || 'user', createdAt: user.createdAt || '' };
@@ -62,7 +107,7 @@ function ensureDb() {
         transport: { label: 'Transport / montaż', groups: [] }
       }
     };
-    fs.writeFileSync(DB_FILE, JSON.stringify(seed, null, 2), 'utf8');
+    atomicWriteJson(DB_FILE, seed);
   }
 }
 
@@ -73,7 +118,7 @@ function readDb() {
 
 function writeDb(db) {
   ensureDb();
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+  atomicWriteJson(DB_FILE, db);
 }
 
 function sanitizeOfferNumber(value) {
@@ -403,7 +448,14 @@ function findGroup(db, sectionKey, groupId) {
 ensureDb();
 ensureUsers();
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
+app.get('/api/health', (req, res) => res.json({
+  ok: true,
+  time: new Date().toISOString(),
+  app: 'Mark Media Oferty',
+  storage: STORAGE_ROOT,
+  drafts: listLocalDrafts().length,
+  githubBackup: githubEnabled()
+}));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
 
 app.post('/api/login', (req, res) => {
@@ -583,10 +635,20 @@ app.post('/api/drafts/save', async (req, res) => {
     const { offerNumber, data } = req.body || {};
     if (!offerNumber || !data) return res.status(400).json({ ok: false, message: 'Brak numeru oferty lub danych szkicu' });
     ensureDb();
-    fs.writeFileSync(localDraftFile(offerNumber), JSON.stringify(data, null, 2), 'utf8');
+    atomicWriteJson(localDraftFile(offerNumber), data);
     if (githubEnabled()) {
-      await saveDraftToGithub(offerNumber, data);
-      return res.json({ ok: true, github: true, message: 'Szkic zapisany na GitHub' });
+      try {
+        await saveDraftToGithub(offerNumber, data);
+        return res.json({ ok: true, github: true, message: 'Szkic zapisany lokalnie i na GitHub' });
+      } catch (githubError) {
+        console.error('GitHub backup failed:', githubError.message);
+        return res.json({
+          ok: true,
+          github: false,
+          warning: `Szkic zapisany lokalnie, ale kopia GitHub nie powiodła się: ${githubError.message}`,
+          message: 'Szkic zapisany lokalnie'
+        });
+      }
     }
     return res.json({ ok: true, github: false, message: 'Szkic zapisany lokalnie na serwerze' });
   } catch (error) {
