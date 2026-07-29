@@ -1,12 +1,16 @@
 {
-  "name": "generator-ofert-markmedia",
-  "version": "5.0.0",
-  "private": true,
-  "description": "Generator ofert Mark Media - wersja bez zewnętrznych zależności",
+  "name": "generator-ofert-pro-max",
+  "version": "4.3.0-final",
+  "description": "Generator ofert eventowych PRO MAX z panelem u\u017cytkownik\u00f3w, magazynem i poprawk\u0105 Render",
   "main": "server.js",
-  "engines": { "node": ">=20 <23" },
   "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js && node --check vendor/mini-express.js"
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
