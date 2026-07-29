@@ -2,7 +2,6 @@ services:
   - type: web
     name: generator-ofert
     runtime: node
-    plan: starter
     buildCommand: npm ci --omit=dev --no-audit --no-fund
     startCommand: npm start
     healthCheckPath: /api/health
@@ -11,7 +10,3 @@ services:
         value: 20
       - key: STORAGE_DIR
         value: /var/data
-    disk:
-      name: generator-ofert-data
-      mountPath: /var/data
-      sizeGB: 1

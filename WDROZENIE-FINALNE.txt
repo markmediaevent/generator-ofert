@@ -1,23 +1,12 @@
-FINALNE WDROŻENIE NA RENDER
+FINALNA POPRAWKA
 
-1. Wgraj całą zawartość tej paczki do głównego katalogu repozytorium GitHub.
-2. W Render ustaw:
-   Root Directory: puste
-   Build Command: npm ci --omit=dev --no-audit --no-fund
-   Start Command: npm start
-   Health Check Path: /api/health
-3. Zmienna środowiskowa:
-   STORAGE_DIR=/var/data
-4. Persistent Disk:
-   Mount Path: /var/data
-   Size: 1 GB
-5. Wybierz Manual Deploy -> Clear build cache & deploy.
-6. Sprawdź /api/health. Prawidłowo powinno być:
-   storageDir: /var/data
-   drafts: 23
-   equipmentItems: 20
+Najważniejszy naprawiony błąd: przy wczytywaniu oferty aplikacja próbowała najpierw połączyć się z GitHub. Gdy token GitHub był błędny lub wygasł, serwer zwracał „Bad credentials”, mimo że oferta istniała lokalnie. Teraz oferta jest zawsze wczytywana najpierw z lokalnego/trwałego dysku, a awaria GitHub nie blokuje działania.
 
-Ważne:
-- Przy pierwszym uruchomieniu aplikacja kopiuje oferty, magazyn i użytkowników z paczki na trwały dysk.
-- Istniejące pliki na /var/data nigdy nie są nadpisywane podczas inicjalizacji.
-- Kolejne zapisy ofert i magazynu trafiają na /var/data.
+Render:
+Build Command: npm ci --omit=dev --no-audit --no-fund
+Start Command: npm start
+Health Check Path: /api/health
+Environment: STORAGE_DIR=/var/data
+Persistent Disk mount path: /var/data
+
+Po wdrożeniu sprawdź /api/health. storageDir musi wynosić /var/data.

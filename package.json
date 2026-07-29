@@ -1,7 +1,7 @@
 {
   "name": "generator-ofert-pro-max",
   "version": "4.3.0-final",
-  "description": "Generator ofert eventowych PRO MAX z panelem u\u017cytkownik\u00f3w, magazynem i poprawk\u0105 Render",
+  "description": "Generator ofert eventowych PRO MAX z panelem użytkowników, magazynem i poprawką Render",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
