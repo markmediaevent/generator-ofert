@@ -11,45 +11,41 @@
 <body>
   <div class="card">
     <h1>Logowanie</h1>
-    <p>Panel magazynu jest dostępny po zalogowaniu.</p>
+    <p>Panel bazy sprzętu jest dostępny po zalogowaniu.</p>
     <form id="loginForm">
-      <div class="field"><label for="username">Login</label><input id="username" name="username" autocomplete="username" value="admin" required></div>
+      <div class="field"><label for="username">Login</label><input id="username" name="username" value="admin" autocomplete="username" required></div>
       <div class="field"><label for="password">Hasło</label><input id="password" name="password" type="password" autocomplete="current-password" required autofocus></div>
-      <button class="btn" id="submitButton" type="submit">Zaloguj</button>
+      <button class="btn" id="submitBtn" type="submit">Zaloguj</button>
       <div class="error" id="error" role="alert"></div>
     </form>
     <div class="muted"><a href="/">← Wróć do strony głównej</a></div>
   </div>
   <script>
     const form = document.getElementById('loginForm');
-    const errorBox = document.getElementById('error');
-    const submitButton = document.getElementById('submitButton');
-
+    const error = document.getElementById('error');
+    const button = document.getElementById('submitBtn');
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      errorBox.textContent = '';
-      submitButton.disabled = true;
-      submitButton.textContent = 'Logowanie…';
+      error.textContent = '';
+      button.disabled = true;
+      button.textContent = 'Logowanie…';
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: document.getElementById('username').value.trim(),
-            password: document.getElementById('password').value
-          })
+          body: JSON.stringify({ username: form.username.value.trim(), password: form.password.value })
         });
         const text = await response.text();
         let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch (_) {}
-        if (!response.ok || !data.ok) throw new Error(data.message || `Błąd logowania (${response.status})`);
+        try { data = text ? JSON.parse(text) : {}; } catch { throw new Error('Serwer zwrócił nieprawidłową odpowiedź.'); }
+        if (!response.ok || !data.ok) throw new Error(data.message || 'Nieprawidłowy login lub hasło.');
         localStorage.setItem('admin_token', data.token);
         location.replace('/admin');
-      } catch (error) {
-        errorBox.textContent = error.message || 'Nie udało się połączyć z serwerem.';
+      } catch (err) {
+        error.textContent = err.message || 'Nie udało się połączyć z serwerem.';
       } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Zaloguj';
+        button.disabled = false;
+        button.textContent = 'Zaloguj';
       }
     });
   </script>

@@ -47,14 +47,14 @@
       <div class="top-actions">
         <a class="btn" href="/app">Generator ofert</a>
         <a class="btn" href="/live">Live</a>
-        <button class="btn green" id="exportExcelBtn" type="button">Export Excel</button>
-        <button class="btn blue" id="importExcelBtn" type="button">Import Excel</button>
-        <input id="importExcelInput" type="file" accept=".xlsx,.xls" style="display:none" />
+        <button class="btn green" id="exportCsvBtn" type="button">Eksport CSV</button>
+        <button class="btn blue" id="importExcelBtn" type="button">Import CSV</button>
+        <input id="importExcelInput" type="file" accept=".csv,text/csv" style="display:none" />
         <button class="btn red" id="logoutBtn" type="button">Wyloguj</button>
       </div>
     </div>
 
-    <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz wyeksportować do Excela i później zaimportować z powrotem.</div>
+    <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz wyeksportować do CSV i później zaimportować z powrotem.</div>
 
     <div class="card" style="margin-bottom:18px">
       <div class="section-head"><h2>Loginy i hasła</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
@@ -323,7 +323,7 @@
     }
 
 
-    async function exportExcel() {
+    async function exportCsv() {
       try {
         const response = await fetch('/api/admin/equipment-db/export', {
           headers: { 'Authorization': 'Bearer ' + token }
@@ -333,25 +333,25 @@
           location.href = '/login';
           return;
         }
-        if (!response.ok) throw new Error('Nie udało się pobrać pliku Excel.');
+        if (!response.ok) throw new Error('Nie udało się pobrać pliku CSV.');
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `magazyn-markmedia-${new Date().toISOString().slice(0,10)}.xlsx`;
+        a.download = `magazyn-markmedia-${new Date().toISOString().slice(0,10)}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        document.getElementById('dbStatus').textContent = 'Export Excel';
+        document.getElementById('dbStatus').textContent = 'Eksport CSV';
       } catch (e) {
         alert(e.message || 'Nie udało się wyeksportować magazynu.');
       }
     }
 
-    async function importExcelFile(file) {
+    async function importCsvFile(file) {
       if (!file) return;
-      if (!confirm('Import z Excela zaktualizuje istniejące pozycje i doda nowe. Kontynuować?')) return;
+      if (!confirm('Import z CSV zaktualizuje istniejące pozycje i doda nowe. Kontynuować?')) return;
       const reader = new FileReader();
       reader.onload = async () => {
         try {
@@ -362,9 +362,9 @@
             body: JSON.stringify({ fileName: file.name, fileBase64: base64 })
           });
           await loadDb();
-          alert('Import z Excela zakończony.');
+          alert('Import z CSV zakończony.');
         } catch (e) {
-          alert(e.message || 'Nie udało się zaimportować Excela.');
+          alert(e.message || 'Nie udało się zaimportować CSV.');
           document.getElementById('dbStatus').textContent = 'Błąd importu';
         }
       };
@@ -373,9 +373,9 @@
 
     document.getElementById('addUserBtn').addEventListener('click', addUser);
     document.getElementById('searchInput').addEventListener('input', (e) => { filterText = e.target.value.trim(); render(); });
-    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
     document.getElementById('importExcelBtn').addEventListener('click', () => document.getElementById('importExcelInput').click());
-    document.getElementById('importExcelInput').addEventListener('change', (e) => importExcelFile(e.target.files?.[0]));
+    document.getElementById('importExcelInput').addEventListener('change', (e) => importCsvFile(e.target.files?.[0]));
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       try { await api('/api/logout', { method: 'POST' }); } catch (e) {}
       localStorage.removeItem('admin_token');

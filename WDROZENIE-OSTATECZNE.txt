@@ -1,0 +1,43 @@
+GENERATOR OFERT MARK MEDIA — WDROŻENIE OSTATECZNE
+
+Ta wersja nie pobiera żadnych bibliotek z internetu podczas npm install.
+Dzięki temu build na Render powinien zakończyć się w kilka sekund.
+
+ZAWARTE DANE
+- 23 zapisane oferty w katalogu drafts
+- aktualna baza magazynu w data/equipment-db.json
+- aktualny użytkownik w data/users.json
+
+USTAWIENIA RENDER
+Root Directory: pozostaw puste
+Build Command: npm install --ignore-scripts --no-audit --no-fund
+Start Command: npm start
+Health Check Path: /api/health
+Node: 20
+
+TRWAŁE DANE — WAŻNE
+Aby nowe oferty, zmiany magazynu i użytkownicy nie znikały po kolejnych wdrożeniach:
+1. Dodaj w Render Persistent Disk.
+2. Ustaw jego Mount Path na /var/data.
+3. Dodaj zmienną środowiskową STORAGE_DIR=/var/data.
+
+Przy pierwszym uruchomieniu aplikacja sama skopiuje do /var/data:
+- bazę magazynu,
+- użytkowników,
+- wszystkie 23 oferty.
+Jeżeli pliki już istnieją na dysku, nie zostaną nadpisane.
+
+LOGOWANIE
+Zachowane konto z paczki:
+login: admin
+hasło: markmedia123
+Po zalogowaniu zmień hasło w panelu.
+
+SPRAWDZENIE
+Po wdrożeniu otwórz:
+https://generator-ofert.onrender.com/api/health
+Odpowiedź powinna zawierać ok:true, drafts:23 i equipmentItems:20.
+
+IMPORT / EKSPORT MAGAZYNU
+Wersja finalna używa CSV zamiast XLSX, dzięki czemu nie wymaga problematycznej biblioteki xlsx.
+Pliki CSV można normalnie otwierać i zapisywać w Excelu.

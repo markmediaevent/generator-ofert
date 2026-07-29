@@ -1,8 +1,7 @@
-const express = require('express');
+const express = require('./vendor/mini-express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const XLSX = require('xlsx');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -10,52 +9,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const BUNDLED_DRAFTS_DIR = path.join(__dirname, 'drafts');
-const DATA_DIR = path.resolve(process.env.STORAGE_DIR || BUNDLED_DATA_DIR);
+const DATA_DIR = process.env.STORAGE_DIR ? path.resolve(process.env.STORAGE_DIR) : BUNDLED_DATA_DIR;
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
 const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-function atomicWriteJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(temp, JSON.stringify(value, null, 2), 'utf8');
-  fs.renameSync(temp, file);
-}
-
-function copyIfMissing(source, target) {
-  if (!fs.existsSync(target) && fs.existsSync(source)) {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(source, target);
-    return true;
-  }
-  return false;
-}
-
-function bootstrapStorage() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
-
-  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
-  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
-
-  // Starsze wersje trzymały oferty w katalogu /drafts w repozytorium.
-  // Kopiujemy tylko brakujące pliki, więc istniejące dane nigdy nie są nadpisywane.
-  if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
-    for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
-      if (name.endsWith('.json')) copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
-    }
-  }
-
-  // Obsługa paczek, w których szkice były już umieszczone w data/drafts.
-  const bundledDataDrafts = path.join(BUNDLED_DATA_DIR, 'drafts');
-  if (bundledDataDrafts !== DRAFTS_DIR && fs.existsSync(bundledDataDrafts)) {
-    for (const name of fs.readdirSync(bundledDataDrafts)) {
-      if (name.endsWith('.json')) copyIfMissing(path.join(bundledDataDrafts, name), path.join(DRAFTS_DIR, name));
-    }
-  }
-}
-
-bootstrapStorage();
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_OWNER = process.env.GITHUB_OWNER || '';
@@ -65,7 +21,35 @@ const GITHUB_DRAFTS_PATH = process.env.GITHUB_DRAFTS_PATH || 'drafts';
 
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
+
+function atomicWriteJson(filePath, value) {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), 'utf8');
+  fs.renameSync(tmp, filePath);
+}
+
+function copyIfMissing(source, destination) {
+  if (!fs.existsSync(destination) && fs.existsSync(source)) {
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(source, destination);
+  }
+}
+
+function initializeStorage() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
+  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
+  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
+  if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
+    for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
+      if (name.endsWith('.json')) copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
+    }
+  }
+}
 
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -301,92 +285,51 @@ function dbRowsForExport(db) {
   return rows;
 }
 
-function workbookForDbExport(db) {
-  const rows = dbRowsForExport(db);
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{
-    sectionKey: 'audio',
-    sectionLabel: 'Nagłośnienie',
-    groupName: 'Przykładowa grupa',
-    itemName: 'Przykładowa pozycja',
-    price: 0,
-    unit: 'szt.',
-    stock: 0,
-    desc: 'Wpisz własne dane lub usuń ten wiersz'
-  }]);
-  ws['!cols'] = [
-    { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 34 },
-    { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 40 }
-  ];
-  XLSX.utils.book_append_sheet(wb, ws, 'Magazyn');
-  const infoRows = [
-    ['Instrukcja importu'],
-    ['Kolumny wymagane:', 'sectionKey', 'sectionLabel', 'groupName', 'itemName', 'price', 'unit', 'stock', 'desc'],
-    ['Import aktualizuje istniejące pozycje i dodaje nowe.'],
-    ['Dozwolone sectionKey istniejące w systemie:', Object.keys(db.sections || {}).join(', ')]
-  ];
-  const infoWs = XLSX.utils.aoa_to_sheet(infoRows);
-  infoWs['!cols'] = [{ wch: 28 }, { wch: 120 }];
-  XLSX.utils.book_append_sheet(wb, infoWs, 'Instrukcja');
-  return wb;
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return /[;"\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-function dbFromWorkbookBuffer(buffer) {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new Error('Plik Excel nie zawiera żadnego arkusza.');
-  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
-  const existingDb = readDb();
-  const nextDb = createEmptyDbTemplate(existingDb);
-  const groupMap = new Map();
+function csvForDbExport(db) {
+  const headers = ['sectionKey','sectionLabel','groupName','itemName','price','unit','stock','desc'];
+  const lines = [headers.join(';')];
+  for (const row of dbRowsForExport(db)) {
+    lines.push(headers.map(key => csvEscape(row[key])).join(';'));
+  }
+  return '\uFEFF' + lines.join('\r\n');
+}
 
-  rows.forEach((row, index) => {
-    const sectionKey = String(row.sectionKey || '').trim();
-    const groupName = String(row.groupName || '').trim();
-    const itemName = String(row.itemName || '').trim();
-    if (!sectionKey && !groupName && !itemName) return;
-    if (!sectionKey) throw new Error(`Wiersz ${index + 2}: brak sectionKey.`);
-    if (!groupName) throw new Error(`Wiersz ${index + 2}: brak groupName.`);
-    if (!itemName) throw new Error(`Wiersz ${index + 2}: brak itemName.`);
+function parseCsvLine(line) {
+  const values = [];
+  let current = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') { current += '"'; i++; }
+      else quoted = !quoted;
+    } else if (ch === ';' && !quoted) {
+      values.push(current); current = '';
+    } else current += ch;
+  }
+  values.push(current);
+  return values;
+}
 
-    if (!nextDb.sections[sectionKey]) {
-      nextDb.sections[sectionKey] = {
-        label: String(row.sectionLabel || sectionKey).trim() || sectionKey,
-        groups: []
-      };
-    } else if (String(row.sectionLabel || '').trim()) {
-      nextDb.sections[sectionKey].label = String(row.sectionLabel).trim();
-    }
-
-    const groupKey = `${sectionKey}__${groupName.toLowerCase()}`;
-    let group = groupMap.get(groupKey);
-    if (!group) {
-      group = { id: require('crypto').randomBytes(8).toString('hex'), name: groupName, items: [] };
-      nextDb.sections[sectionKey].groups.push(group);
-      groupMap.set(groupKey, group);
-    }
-
-    group.items.push({
-      id: require('crypto').randomBytes(8).toString('hex'),
-      name: itemName,
-      price: Number(row.price || 0),
-      unit: String(row.unit || '').trim(),
-      stock: Math.max(0, Number(row.stock || 0)),
-      desc: String(row.desc || '').trim()
-    });
+function rowsFromCsvBuffer(buffer) {
+  const text = buffer.toString('utf8').replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+  if (!lines.length) throw new Error('Plik CSV jest pusty.');
+  const headers = parseCsvLine(lines[0]).map(v => v.trim());
+  return lines.slice(1).map(line => {
+    const values = parseCsvLine(line);
+    return Object.fromEntries(headers.map((header, i) => [header, values[i] ?? '']));
   });
-
-  return nextDb;
 }
 
-
-function mergeDbWithWorkbookBuffer(buffer) {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new Error('Plik Excel nie zawiera żadnego arkusza.');
-  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+function mergeDbWithCsvBuffer(buffer) {
+  const rows = rowsFromCsvBuffer(buffer);
   const db = readDb();
-
   rows.forEach((row, index) => {
     const sectionKey = String(row.sectionKey || '').trim();
     const groupName = String(row.groupName || '').trim();
@@ -395,37 +338,21 @@ function mergeDbWithWorkbookBuffer(buffer) {
     if (!sectionKey) throw new Error(`Wiersz ${index + 2}: brak sectionKey.`);
     if (!groupName) throw new Error(`Wiersz ${index + 2}: brak groupName.`);
     if (!itemName) throw new Error(`Wiersz ${index + 2}: brak itemName.`);
-
-    if (!db.sections[sectionKey]) {
-      db.sections[sectionKey] = {
-        label: String(row.sectionLabel || sectionKey).trim() || sectionKey,
-        groups: []
-      };
-    } else if (String(row.sectionLabel || '').trim()) {
-      db.sections[sectionKey].label = String(row.sectionLabel).trim();
-    }
-
+    if (!db.sections[sectionKey]) db.sections[sectionKey] = { label: String(row.sectionLabel || sectionKey).trim() || sectionKey, groups: [] };
+    else if (String(row.sectionLabel || '').trim()) db.sections[sectionKey].label = String(row.sectionLabel).trim();
     let group = (db.sections[sectionKey].groups || []).find(g => String(g.name || '').trim().toLowerCase() === groupName.toLowerCase());
-    if (!group) {
-      group = { id: crypto.randomBytes(8).toString('hex'), name: groupName, items: [] };
-      db.sections[sectionKey].groups.push(group);
-    }
-
+    if (!group) { group = { id: crypto.randomBytes(8).toString('hex'), name: groupName, items: [] }; db.sections[sectionKey].groups.push(group); }
     let item = (group.items || []).find(i => String(i.name || '').trim().toLowerCase() === itemName.toLowerCase());
-    if (!item) {
-      item = { id: crypto.randomBytes(8).toString('hex') };
-      group.items.push(item);
-    }
-
+    if (!item) { item = { id: crypto.randomBytes(8).toString('hex') }; group.items.push(item); }
     item.name = itemName;
-    item.price = Number(row.price || 0);
+    item.price = Number(String(row.price || '0').replace(',', '.')) || 0;
     item.unit = String(row.unit || '').trim();
-    item.stock = Math.max(0, Number(row.stock || 0));
+    item.stock = Math.max(0, Number(String(row.stock || '0').replace(',', '.')) || 0);
     item.desc = String(row.desc || '').trim();
   });
-
   return db;
 }
+
 function createToken() { return crypto.randomBytes(24).toString('hex'); }
 function getToken(req) {
   const auth = req.headers.authorization || '';
@@ -444,10 +371,15 @@ function findGroup(db, sectionKey, groupId) {
   return section.groups.find(g => g.id === groupId) || null;
 }
 
+initializeStorage();
 ensureDb();
 ensureUsers();
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty', storageDir: DATA_DIR, drafts: listLocalDrafts().length }));
+app.get('/api/health', (req, res) => {
+  const db = readDb();
+  const items = Object.values(db.sections || {}).reduce((sum, section) => sum + (section.groups || []).reduce((groupSum, group) => groupSum + (group.items || []).length, 0), 0);
+  res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty', storageDir: DATA_DIR, drafts: listLocalDrafts().length, equipmentItems: items });
+});
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
 
 app.post('/api/login', (req, res) => {
@@ -593,14 +525,13 @@ app.get('/api/offers/next-number', async (req, res) => {
 app.get('/api/admin/equipment-db/export', requireAuth, (req, res) => {
   try {
     const db = readDb();
-    const workbook = workbookForDbExport(db);
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const csv = csvForDbExport(db);
     const stamp = new Date().toISOString().slice(0, 10);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="magazyn-markmedia-${stamp}.xlsx"`);
-    res.send(buffer);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="magazyn-markmedia-${stamp}.csv"`);
+    res.send(csv);
   } catch (error) {
-    res.status(500).json({ ok: false, message: error.message || 'Nie udało się wyeksportować magazynu do Excel' });
+    res.status(500).json({ ok: false, message: error.message || 'Nie udało się wyeksportować magazynu do CSV' });
   }
 });
 
@@ -610,15 +541,15 @@ app.post('/api/admin/equipment-db/import', requireAuth, (req, res) => {
     if (!fileBase64) return res.status(400).json({ ok: false, message: 'Nie przesłano pliku Excel.' });
     const cleanBase64 = String(fileBase64).includes(',') ? String(fileBase64).split(',').pop() : String(fileBase64);
     const buffer = Buffer.from(cleanBase64, 'base64');
-    const importedDb = mergeDbWithWorkbookBuffer(buffer);
+    const importedDb = mergeDbWithCsvBuffer(buffer);
     writeDb(importedDb);
     res.json({
       ok: true,
-      message: `Zaimportowano magazyn z pliku ${fileName || 'Excel'}.`,
+      message: `Zaimportowano magazyn z pliku ${fileName || 'CSV'}.`,
       db: importedDb
     });
   } catch (error) {
-    res.status(400).json({ ok: false, message: error.message || 'Nie udało się zaimportować pliku Excel.' });
+    res.status(400).json({ ok: false, message: error.message || 'Nie udało się zaimportować pliku CSV.' });
   }
 });
 
@@ -631,13 +562,13 @@ app.post('/api/drafts/save', async (req, res) => {
     if (githubEnabled()) {
       try {
         await saveDraftToGithub(offerNumber, data);
-        return res.json({ ok: true, github: true, local: true, message: 'Szkic zapisany lokalnie i na GitHub' });
+        return res.json({ ok: true, github: true, message: 'Szkic zapisany lokalnie i na GitHub' });
       } catch (githubError) {
-        console.error('GitHub save failed; local copy is safe:', githubError.message);
-        return res.json({ ok: true, github: false, local: true, warning: 'Nie udało się zsynchronizować z GitHub, ale szkic został bezpiecznie zapisany na serwerze.' });
+        console.error('GitHub draft save failed:', githubError.message);
+        return res.json({ ok: true, github: false, warning: githubError.message, message: 'Szkic zapisany lokalnie; synchronizacja z GitHub nie powiodła się' });
       }
     }
-    return res.json({ ok: true, github: false, local: true, message: 'Szkic zapisany lokalnie na serwerze' });
+    return res.json({ ok: true, github: false, message: 'Szkic zapisany lokalnie na serwerze' });
   } catch (error) {
     return res.status(500).json({ ok: false, message: error.message || 'Nie udało się zapisać szkicu' });
   }
@@ -666,12 +597,8 @@ app.get('/api/drafts/:offerNumber', async (req, res) => {
   try {
     const { offerNumber } = req.params;
     if (githubEnabled()) {
-      try {
-        const draft = await readDraftFromGithub(offerNumber);
-        if (draft) return res.json({ ok: true, github: true, data: draft });
-      } catch (githubError) {
-        console.error('GitHub read failed; falling back to local copy:', githubError.message);
-      }
+      const draft = await readDraftFromGithub(offerNumber);
+      if (draft) return res.json({ ok: true, github: true, data: draft });
     }
     const file = localDraftFile(offerNumber);
     if (!fs.existsSync(file)) return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
@@ -690,5 +617,4 @@ app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Mark Media Oferty działa na porcie ${PORT}`);
-  console.log(`Dane: ${DATA_DIR}; szkice: ${DRAFTS_DIR}`);
 });
