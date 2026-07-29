@@ -454,11 +454,11 @@ app.post('/api/logout', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/admin/users', requireAuth, (req, res) => {
+app.get('/api/admin/users', requireAdmin, (req, res) => {
   res.json({ ok: true, users: readUsers().map(publicUser) });
 });
 
-app.post('/api/admin/users', requireAuth, (req, res) => {
+app.post('/api/admin/users', requireAdmin, (req, res) => {
   const { username, password, role } = req.body || {};
   const cleanUsername = String(username || '').trim();
   const cleanPassword = String(password || '').trim();
@@ -474,7 +474,7 @@ app.post('/api/admin/users', requireAuth, (req, res) => {
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
 
-app.put('/api/admin/users/:id', requireAuth, (req, res) => {
+app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const { username, password, role } = req.body || {};
   const users = readUsers();
@@ -492,7 +492,7 @@ app.put('/api/admin/users/:id', requireAuth, (req, res) => {
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
 
-app.delete('/api/admin/users/:id', requireAuth, (req, res) => {
+app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const users = readUsers();
   if (users.length <= 1) return res.status(400).json({ ok: false, message: 'Nie można usunąć ostatniego użytkownika.' });
@@ -503,9 +503,9 @@ app.delete('/api/admin/users/:id', requireAuth, (req, res) => {
 });
 
 app.get('/api/equipment-db', (req, res) => res.json(readDb()));
-app.get('/api/admin/equipment-db', requireAuth, (req, res) => res.json(readDb()));
+app.get('/api/admin/equipment-db', requireAdmin, (req, res) => res.json(readDb()));
 
-app.post('/api/admin/groups', requireAuth, (req, res) => {
+app.post('/api/admin/groups', requireAdmin, (req, res) => {
   const { sectionKey, name } = req.body || {};
   const db = readDb();
   if (!db.sections?.[sectionKey]) return res.status(400).json({ ok: false, message: 'Nieprawidłowa sekcja' });
@@ -516,7 +516,7 @@ app.post('/api/admin/groups', requireAuth, (req, res) => {
   res.json({ ok: true, group, db });
 });
 
-app.delete('/api/admin/groups/:sectionKey/:groupId', requireAuth, (req, res) => {
+app.delete('/api/admin/groups/:sectionKey/:groupId', requireAdmin, (req, res) => {
   const { sectionKey, groupId } = req.params;
   const db = readDb();
   const section = db.sections?.[sectionKey];
@@ -526,7 +526,7 @@ app.delete('/api/admin/groups/:sectionKey/:groupId', requireAuth, (req, res) => 
   res.json({ ok: true, db });
 });
 
-app.post('/api/admin/items', requireAuth, (req, res) => {
+app.post('/api/admin/items', requireAdmin, (req, res) => {
   const { sectionKey, groupId, name, price, unit, stock, desc } = req.body || {};
   const db = readDb();
   const group = findGroup(db, sectionKey, groupId);
@@ -538,7 +538,7 @@ app.post('/api/admin/items', requireAuth, (req, res) => {
   res.json({ ok: true, item, db });
 });
 
-app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAuth, (req, res) => {
+app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, res) => {
   const { sectionKey, groupId, itemId } = req.params;
   const { name, price, unit, stock, desc } = req.body || {};
   const db = readDb();
@@ -555,7 +555,7 @@ app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAuth, (req, res)
   res.json({ ok: true, item, db });
 });
 
-app.delete('/api/admin/items/:sectionKey/:groupId/:itemId', requireAuth, (req, res) => {
+app.delete('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, res) => {
   const { sectionKey, groupId, itemId } = req.params;
   const db = readDb();
   const group = findGroup(db, sectionKey, groupId);
@@ -576,7 +576,7 @@ app.get('/api/offers/next-number', async (req, res) => {
   }
 });
 
-app.get('/api/admin/equipment-db/export', requireAuth, (req, res) => {
+app.get('/api/admin/equipment-db/export', requireAdmin, (req, res) => {
   try {
     const db = readDb();
     const workbook = workbookForDbExport(db);
@@ -590,7 +590,7 @@ app.get('/api/admin/equipment-db/export', requireAuth, (req, res) => {
   }
 });
 
-app.post('/api/admin/equipment-db/import', requireAuth, (req, res) => {
+app.post('/api/admin/equipment-db/import', requireAdmin, (req, res) => {
   try {
     const { fileName, fileBase64 } = req.body || {};
     if (!fileBase64) return res.status(400).json({ ok: false, message: 'Nie przesłano pliku Excel.' });
@@ -677,10 +677,41 @@ app.get('/api/drafts/:offerNumber', async (req, res) => {
   }
 });
 
+
+
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if ((req.user.role || 'user') !== 'admin') return res.status(403).json({ ok:false, message:'Brak uprawnień administratora' });
+    next();
+  });
+}
+function adminStats() {
+  const db=readDb(); let groups=0, items=0, stock=0;
+  Object.values(db.sections||{}).forEach(sec=>(sec.groups||[]).forEach(g=>{groups++; (g.items||[]).forEach(i=>{items++; stock+=Number(i.stock||0);});}));
+  return {users:readUsers().length, offers:listLocalDrafts().length, sections:Object.keys(db.sections||{}).length, groups, items, stock};
+}
+app.get('/api/admin/dashboard', requireAdmin, (req,res)=>res.json({ok:true, stats:adminStats(), storageDir:DATA_DIR, persistentStorageConfigured:Boolean(process.env.STORAGE_DIR), time:new Date().toISOString()}));
+app.get('/api/admin/offers', requireAdmin, (req,res)=>res.json({ok:true, offers:listLocalDrafts()}));
+app.delete('/api/admin/offers/:offerNumber', requireAdmin, (req,res)=>{
+  const file=localDraftFile(req.params.offerNumber); if(!fs.existsSync(file)) return res.status(404).json({ok:false,message:'Nie znaleziono oferty'});
+  fs.unlinkSync(file); res.json({ok:true,message:'Oferta usunięta'});
+});
+app.get('/api/admin/backup', requireAdmin, (req,res)=>{
+  const drafts={}; for(const d of listLocalDrafts()){ const f=localDraftFile(d.offerNumber); if(fs.existsSync(f)) drafts[d.offerNumber]=JSON.parse(fs.readFileSync(f,'utf8')); }
+  const backup={version:1,createdAt:new Date().toISOString(),equipment:readDb(),users:readUsers(),drafts};
+  res.setHeader('Content-Type','application/json'); res.setHeader('Content-Disposition',`attachment; filename="markmedia-backup-${new Date().toISOString().slice(0,10)}.json"`); res.send(JSON.stringify(backup,null,2));
+});
+app.post('/api/admin/backup/restore', requireAdmin, (req,res)=>{
+  const b=req.body; if(!b||b.version!==1||!b.equipment||!b.users||!b.drafts) return res.status(400).json({ok:false,message:'Nieprawidłowy plik kopii'});
+  writeDb(b.equipment); writeUsers(b.users); for(const [num,data] of Object.entries(b.drafts)) writeJsonAtomic(localDraftFile(num),data);
+  res.json({ok:true,message:'Kopia przywrócona',stats:adminStats()});
+});
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin-magazyn.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-magazyn.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 
 const PORT = process.env.PORT || 3000;

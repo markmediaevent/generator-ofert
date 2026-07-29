@@ -1,0 +1,20 @@
+PANEL ADMINISTRATORA — Mark Media Oferty
+
+Adres: /admin
+
+Funkcje:
+- pulpit ze statystykami,
+- zarządzanie kontami i rolami,
+- lista oraz usuwanie zapisanych ofert,
+- pełna kopia zapasowa do jednego pliku JSON,
+- przywracanie kopii,
+- kontrola trwałego dysku /var/data,
+- osobny panel magazynu pod /admin-magazyn.html.
+
+WDROŻENIE NA RENDER:
+Build Command: npm ci --omit=dev --no-audit --no-fund
+Start Command: npm start
+STORAGE_DIR=/var/data
+Persistent Disk mount path: /var/data
+
+Po wdrożeniu zaloguj się kontem administratora i otwórz /admin.
