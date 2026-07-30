@@ -1,6 +1,6 @@
 {
   "name": "generator-ofert-pro-max",
-  "version": "5.0.0-admin",
+  "version": "4.3.2",
   "description": "Generator ofert eventowych PRO MAX z panelem użytkowników, magazynem i poprawką Render",
   "main": "server.js",
   "scripts": {
@@ -9,8 +9,5 @@
   "dependencies": {
     "express": "^4.18.2",
     "xlsx": "^0.18.5"
-  },
-  "engines": {
-    "node": "20.x"
   }
 }

@@ -988,5 +988,13 @@
     refreshDraftList();
     renderOfferTable();
   </script>
+<script>
+(async function enforceLogin(){
+  try {
+    const res = await fetch('/api/me');
+    if (!res.ok) location.replace('/login');
+  } catch (_) { location.replace('/login'); }
+})();
+</script>
 </body>
 </html>

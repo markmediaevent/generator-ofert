@@ -6,11 +6,23 @@ const XLSX = require('xlsx');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+// Generator i panel administratora nie mogą być otwierane bez aktywnej sesji.
+app.use((req, res, next) => {
+  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html']);
+  if (!protectedPages.has(req.path)) return next();
+  const token = getToken(req);
+  if (!token || !sessions.has(token)) return res.redirect('/login');
+  req.user = sessions.get(token);
+  if ((req.path === '/admin' || req.path === '/admin.html') && (req.user.role || 'user') !== 'admin') {
+    return res.redirect('/app');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
-const BUNDLED_DRAFTS_DIR = path.join(__dirname, 'drafts');
-const DATA_DIR = path.resolve(process.env.STORAGE_DIR || BUNDLED_DATA_DIR);
+const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
 const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
 
@@ -25,53 +37,46 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
 
-function copyIfMissing(source, target) {
-  if (!fs.existsSync(target) && fs.existsSync(source)) {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(source, target);
-  }
-}
-
-function initializeStorage() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.mkdirSync(DRAFTS_DIR, { recursive: true });
-  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'equipment-db.json'), DB_FILE);
-  copyIfMissing(path.join(BUNDLED_DATA_DIR, 'users.json'), USERS_FILE);
-  if (fs.existsSync(BUNDLED_DRAFTS_DIR)) {
-    for (const name of fs.readdirSync(BUNDLED_DRAFTS_DIR)) {
-      if (name.endsWith('.json')) copyIfMissing(path.join(BUNDLED_DRAFTS_DIR, name), path.join(DRAFTS_DIR, name));
-    }
-  }
-}
-
-function writeJsonAtomic(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), 'utf8');
-  fs.renameSync(tmp, file);
-}
-
-initializeStorage();
-
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(USERS_FILE)) {
     const seed = [{ id: crypto.randomBytes(8).toString('hex'), username: ADMIN_USER, password: ADMIN_PASS, role: 'admin', createdAt: new Date().toISOString() }];
-    writeJsonAtomic(USERS_FILE, seed);
+    fs.writeFileSync(USERS_FILE, JSON.stringify(seed, null, 2), 'utf8');
   }
 }
 function readUsers() {
   ensureUsers();
   try {
-    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    return Array.isArray(users) ? users : [];
+    let users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    if (!Array.isArray(users)) users = [];
+
+    // Awaryjnie odtwórz administratora, gdy lista jest pusta lub nie ma żadnego admina.
+    if (!users.some(u => (u.role || 'user') === 'admin')) {
+      users.push({
+        id: crypto.randomBytes(8).toString('hex'),
+        username: ADMIN_USER,
+        password: ADMIN_PASS,
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      });
+      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+    }
+    return users;
   } catch (e) {
-    return [];
+    const users = [{
+      id: crypto.randomBytes(8).toString('hex'),
+      username: ADMIN_USER,
+      password: ADMIN_PASS,
+      role: 'admin',
+      createdAt: new Date().toISOString()
+    }];
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+    return users;
   }
 }
 function writeUsers(users) {
   ensureUsers();
-  writeJsonAtomic(USERS_FILE, users);
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
 }
 function publicUser(user) {
   return { id: user.id, username: user.username, role: user.role || 'user', createdAt: user.createdAt || '' };
@@ -92,7 +97,7 @@ function ensureDb() {
         transport: { label: 'Transport / montaż', groups: [] }
       }
     };
-    writeJsonAtomic(DB_FILE, seed);
+    fs.writeFileSync(DB_FILE, JSON.stringify(seed, null, 2), 'utf8');
   }
 }
 
@@ -103,7 +108,7 @@ function readDb() {
 
 function writeDb(db) {
   ensureDb();
-  writeJsonAtomic(DB_FILE, db);
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
 }
 
 function sanitizeOfferNumber(value) {
@@ -416,13 +421,34 @@ function createToken() { return crypto.randomBytes(24).toString('hex'); }
 function getToken(req) {
   const auth = req.headers.authorization || '';
   if (auth.startsWith('Bearer ')) return auth.slice(7);
+  const cookies = String(req.headers.cookie || '').split(';');
+  for (const cookie of cookies) {
+    const [name, ...valueParts] = cookie.trim().split('=');
+    if (name === 'mm_session') return decodeURIComponent(valueParts.join('='));
+  }
   return null;
+}
+function setSessionCookie(res, token) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+  res.setHeader('Set-Cookie', `mm_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800${secure ? '; Secure' : ''}`);
+}
+function clearSessionCookie(res) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+  res.setHeader('Set-Cookie', `mm_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`);
 }
 function requireAuth(req, res, next) {
   const token = getToken(req);
   if (!token || !sessions.has(token)) return res.status(401).json({ ok: false, message: 'Brak autoryzacji' });
   req.user = sessions.get(token);
   next();
+}
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if ((req.user.role || 'user') !== 'admin') {
+      return res.status(403).json({ ok: false, message: 'Brak uprawnień administratora' });
+    }
+    next();
+  });
 }
 function findGroup(db, sectionKey, groupId) {
   const section = db.sections?.[sectionKey];
@@ -433,8 +459,14 @@ function findGroup(db, sectionKey, groupId) {
 ensureDb();
 ensureUsers();
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty', storageDir: DATA_DIR, persistentStorageConfigured: Boolean(process.env.STORAGE_DIR), drafts: listLocalDrafts().length, equipmentItems: Object.values(readDb().sections || {}).reduce((n, section) => n + (section.groups || []).reduce((m, group) => m + (group.items || []).length, 0), 0) }));
+app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
+
+app.use('/api', (req, res, next) => {
+  const publicApi = new Set(['/login', '/health', '/test']);
+  if (publicApi.has(req.path)) return next();
+  return requireAuth(req, res, next);
+});
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
@@ -445,12 +477,14 @@ app.post('/api/login', (req, res) => {
   }
   const token = createToken();
   sessions.set(token, { id: user.id, username: user.username, role: user.role || 'user', createdAt: Date.now() });
+  setSessionCookie(res, token);
   res.json({ ok: true, token, username: user.username, role: user.role || 'user' });
 });
 app.get('/api/me', requireAuth, (req, res) => res.json({ ok: true, username: req.user.username }));
 app.post('/api/logout', requireAuth, (req, res) => {
   const token = getToken(req);
   sessions.delete(token);
+  clearSessionCookie(res);
   res.json({ ok: true });
 });
 
@@ -485,9 +519,15 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   if (users.some(u => u.id !== id && String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
     return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
+  const nextRole = role || user.role || 'user';
+  const isLastAdmin = (user.role || 'user') === 'admin' &&
+    users.filter(u => (u.role || 'user') === 'admin').length <= 1;
+  if (isLastAdmin && nextRole !== 'admin') {
+    return res.status(400).json({ ok: false, message: 'Nie można odebrać uprawnień ostatniemu administratorowi.' });
+  }
   user.username = cleanUsername;
   if (String(password || '').trim()) user.password = String(password).trim();
-  user.role = role || user.role || 'user';
+  user.role = nextRole;
   writeUsers(users);
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
@@ -495,9 +535,16 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
 app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const users = readUsers();
-  if (users.length <= 1) return res.status(400).json({ ok: false, message: 'Nie można usunąć ostatniego użytkownika.' });
+  const target = users.find(u => u.id === id);
+  if (!target) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika.' });
+  if (target.id === req.user.id) {
+    return res.status(400).json({ ok: false, message: 'Nie możesz usunąć aktualnie zalogowanego konta.' });
+  }
+  const adminCount = users.filter(u => (u.role || 'user') === 'admin').length;
+  if ((target.role || 'user') === 'admin' && adminCount <= 1) {
+    return res.status(400).json({ ok: false, message: 'Nie można usunąć ostatniego administratora.' });
+  }
   const next = users.filter(u => u.id !== id);
-  if (next.length === users.length) return res.status(404).json({ ok: false, message: 'Nie znaleziono użytkownika.' });
   writeUsers(next);
   res.json({ ok: true, users: next.map(publicUser) });
 });
@@ -613,15 +660,10 @@ app.post('/api/drafts/save', async (req, res) => {
     const { offerNumber, data } = req.body || {};
     if (!offerNumber || !data) return res.status(400).json({ ok: false, message: 'Brak numeru oferty lub danych szkicu' });
     ensureDb();
-    writeJsonAtomic(localDraftFile(offerNumber), data);
+    fs.writeFileSync(localDraftFile(offerNumber), JSON.stringify(data, null, 2), 'utf8');
     if (githubEnabled()) {
-      try {
-        await saveDraftToGithub(offerNumber, data);
-        return res.json({ ok: true, github: true, message: 'Szkic zapisany lokalnie i na GitHub' });
-      } catch (githubError) {
-        console.warn('GitHub save failed; local copy preserved:', githubError.message);
-        return res.json({ ok: true, github: false, warning: githubError.message, message: 'Szkic zapisany lokalnie. Synchronizacja GitHub nie powiodła się.' });
-      }
+      await saveDraftToGithub(offerNumber, data);
+      return res.json({ ok: true, github: true, message: 'Szkic zapisany na GitHub' });
     }
     return res.json({ ok: true, github: false, message: 'Szkic zapisany lokalnie na serwerze' });
   } catch (error) {
@@ -651,67 +693,29 @@ app.get('/api/drafts', async (req, res) => {
 app.get('/api/drafts/:offerNumber', async (req, res) => {
   try {
     const { offerNumber } = req.params;
-    const file = localDraftFile(offerNumber);
-
-    // Local storage is the source of truth. A broken/expired GitHub token
-    // must never prevent loading an offer that already exists locally.
-    if (fs.existsSync(file)) {
-      return res.json({ ok: true, github: false, data: JSON.parse(fs.readFileSync(file, 'utf8')) });
-    }
-
     if (githubEnabled()) {
-      try {
-        const draft = await readDraftFromGithub(offerNumber);
-        if (draft) {
-          writeJsonAtomic(file, draft);
-          return res.json({ ok: true, github: true, data: draft });
-        }
-      } catch (githubError) {
-        console.warn('GitHub load failed:', githubError.message);
-      }
+      const draft = await readDraftFromGithub(offerNumber);
+      if (draft) return res.json({ ok: true, github: true, data: draft });
     }
-
-    return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
+    const file = localDraftFile(offerNumber);
+    if (!fs.existsSync(file)) return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
+    return res.json({ ok: true, github: false, data: JSON.parse(fs.readFileSync(file, 'utf8')) });
   } catch (error) {
     return res.status(500).json({ ok: false, message: error.message || 'Nie udało się wczytać szkicu' });
   }
 });
 
-
-
-function requireAdmin(req, res, next) {
-  requireAuth(req, res, () => {
-    if ((req.user.role || 'user') !== 'admin') return res.status(403).json({ ok:false, message:'Brak uprawnień administratora' });
-    next();
-  });
-}
-function adminStats() {
-  const db=readDb(); let groups=0, items=0, stock=0;
-  Object.values(db.sections||{}).forEach(sec=>(sec.groups||[]).forEach(g=>{groups++; (g.items||[]).forEach(i=>{items++; stock+=Number(i.stock||0);});}));
-  return {users:readUsers().length, offers:listLocalDrafts().length, sections:Object.keys(db.sections||{}).length, groups, items, stock};
-}
-app.get('/api/admin/dashboard', requireAdmin, (req,res)=>res.json({ok:true, stats:adminStats(), storageDir:DATA_DIR, persistentStorageConfigured:Boolean(process.env.STORAGE_DIR), time:new Date().toISOString()}));
-app.get('/api/admin/offers', requireAdmin, (req,res)=>res.json({ok:true, offers:listLocalDrafts()}));
-app.delete('/api/admin/offers/:offerNumber', requireAdmin, (req,res)=>{
-  const file=localDraftFile(req.params.offerNumber); if(!fs.existsSync(file)) return res.status(404).json({ok:false,message:'Nie znaleziono oferty'});
-  fs.unlinkSync(file); res.json({ok:true,message:'Oferta usunięta'});
-});
-app.get('/api/admin/backup', requireAdmin, (req,res)=>{
-  const drafts={}; for(const d of listLocalDrafts()){ const f=localDraftFile(d.offerNumber); if(fs.existsSync(f)) drafts[d.offerNumber]=JSON.parse(fs.readFileSync(f,'utf8')); }
-  const backup={version:1,createdAt:new Date().toISOString(),equipment:readDb(),users:readUsers(),drafts};
-  res.setHeader('Content-Type','application/json'); res.setHeader('Content-Disposition',`attachment; filename="markmedia-backup-${new Date().toISOString().slice(0,10)}.json"`); res.send(JSON.stringify(backup,null,2));
-});
-app.post('/api/admin/backup/restore', requireAdmin, (req,res)=>{
-  const b=req.body; if(!b||b.version!==1||!b.equipment||!b.users||!b.drafts) return res.status(400).json({ok:false,message:'Nieprawidłowy plik kopii'});
-  writeDb(b.equipment); writeUsers(b.users); for(const [num,data] of Object.entries(b.drafts)) writeJsonAtomic(localDraftFile(num),data);
-  res.json({ok:true,message:'Kopia przywrócona',stats:adminStats()});
-});
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/login', (req, res) => {
+  const token = getToken(req);
+  if (token && sessions.has(token)) {
+    const user = sessions.get(token);
+    return res.redirect((user.role || 'user') === 'admin' ? '/admin' : '/app');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/admin-magazyn.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-magazyn.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 
 const PORT = process.env.PORT || 3000;

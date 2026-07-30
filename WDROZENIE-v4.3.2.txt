@@ -1,0 +1,17 @@
+GENERATOR OFERT v4.3.2 — LOGOWANIE WYMAGANE
+
+Zmiany:
+- /app i /app.html są dostępne wyłącznie po zalogowaniu,
+- /admin i /admin.html wymagają zalogowanego administratora,
+- wszystkie robocze endpointy /api wymagają sesji,
+- sesja jest zapisywana w bezpiecznym ciasteczku HttpOnly,
+- bezpośrednie wejście bez sesji przekierowuje do /login,
+- konto bez roli admin nie otworzy panelu administratora.
+
+Render:
+Build Command: npm install
+Start Command: npm start
+STORAGE_DIR: /var/data
+
+Po wdrożeniu użyj: Manual Deploy -> Clear build cache & deploy.
+Dane na dysku /var/data nie są usuwane przez wdrożenie.

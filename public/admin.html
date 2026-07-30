@@ -1,24 +1,388 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Panel administratora</title><style>
-:root{--bg:#07111f;--card:#101d31;--line:#263750;--text:#eef5ff;--muted:#9eb0c9;--blue:#2878ff;--green:#18a467;--red:#d94b5c}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#06101c,#0d1d34);color:var(--text)}.wrap{max-width:1450px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}.top h1{margin:0}.actions,.tabs{display:flex;gap:9px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#14243b;color:#fff;padding:11px 15px;border-radius:12px;cursor:pointer;text-decoration:none;font-weight:700}.btn.blue{background:var(--blue)}.btn.green{background:var(--green)}.btn.red{background:var(--red)}.tabs{margin-bottom:18px}.tab.active{background:var(--blue)}.panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:rgba(16,29,49,.95);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.stat b{display:block;font-size:32px;margin-top:8px}.muted{color:var(--muted)}input,select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#081422;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr .6fr auto;gap:10px}.list{display:grid;gap:9px}.item{display:grid;grid-template-columns:1.2fr 1fr .8fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px}.danger{color:#ff8b98}.ok{color:#61dfa2}@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.row,.item{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}} </style></head><body><div class="wrap">
-<div class="top"><div><h1>Panel administratora</h1><div class="muted" id="who">Mark Media Oferty</div></div><div class="actions"><a class="btn" href="/app">Generator</a><a class="btn" href="/live">Live</a><button class="btn red" id="logout">Wyloguj</button></div></div>
-<div class="tabs"><button class="btn tab active" data-tab="dashboard">Pulpit</button><button class="btn tab" data-tab="users">Użytkownicy</button><button class="btn tab" data-tab="offers">Oferty</button><button class="btn tab" data-tab="backup">Kopie zapasowe</button><a class="btn" href="/admin-magazyn.html">Magazyn</a></div>
-<section id="dashboard" class="panel active"><div class="grid"><div class="card stat"><span class="muted">Użytkownicy</span><b id="sUsers">–</b></div><div class="card stat"><span class="muted">Oferty</span><b id="sOffers">–</b></div><div class="card stat"><span class="muted">Pozycje magazynu</span><b id="sItems">–</b></div><div class="card stat"><span class="muted">Stan łączny</span><b id="sStock">–</b></div></div><div class="card"><h2>System</h2><p>Katalog danych: <code id="storage">–</code></p><p id="disk">–</p></div></section>
-<section id="users" class="panel"><div class="card"><h2>Dodaj użytkownika</h2><div class="row"><input id="uLogin" placeholder="Login"><input id="uPass" type="password" placeholder="Hasło"><select id="uRole"><option value="user">Użytkownik</option><option value="admin">Administrator</option></select><button class="btn green" id="addUser">Dodaj</button></div></div><div class="card"><h2>Konta</h2><div id="userList" class="list"></div></div></section>
-<section id="offers" class="panel"><div class="card"><div class="top"><h2>Zapisane oferty</h2><button class="btn" onclick="loadOffers()">Odśwież</button></div><div id="offerList" class="list"></div></div></section>
-<section id="backup" class="panel"><div class="card"><h2>Kopia zapasowa</h2><p class="muted">Pobiera magazyn, użytkowników i wszystkie oferty do jednego pliku JSON.</p><button class="btn green" id="downloadBackup">Pobierz kopię</button></div><div class="card"><h2>Przywracanie</h2><p class="danger">Przywrócenie nadpisze magazyn i konta oraz doda oferty z kopii.</p><input type="file" id="restoreFile" accept="application/json"><button class="btn red" id="restore" style="margin-top:12px">Przywróć kopię</button></div></section>
-</div><script>
-const token=localStorage.getItem('admin_token'); if(!token) location='/login';
-async function api(url,opt={}){const r=await fetch(url,{...opt,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,...(opt.headers||{})}}); if(r.status===401){localStorage.removeItem('admin_token');location='/login';return} const d=await r.json(); if(!r.ok)throw Error(d.message||'Błąd'); return d}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')});
-async function loadDash(){const d=await api('/api/admin/dashboard'); sUsers.textContent=d.stats.users;sOffers.textContent=d.stats.offers;sItems.textContent=d.stats.items;sStock.textContent=d.stats.stock;storage.textContent=d.storageDir;disk.innerHTML=d.persistentStorageConfigured?'<span class="ok">Trwały magazyn danych aktywny</span>':'<span class="danger">Brak STORAGE_DIR – dane mogą zniknąć po deployu</span>'}
-async function loadUsers(){const d=await api('/api/admin/users');userList.innerHTML=d.users.map(u=>`<div class="item"><b>${esc(u.username)}</b><span>${esc(u.role)}</span><span>${u.createdAt?new Date(u.createdAt).toLocaleDateString('pl-PL'):''}</span><button class="btn red" onclick="delUser('${u.id}')">Usuń</button></div>`).join('')}
-async function delUser(id){if(!confirm('Usunąć konto?'))return;await api('/api/admin/users/'+id,{method:'DELETE'});loadUsers();loadDash()}
-addUser.onclick=async()=>{await api('/api/admin/users',{method:'POST',body:JSON.stringify({username:uLogin.value,password:uPass.value,role:uRole.value})});uLogin.value='';uPass.value='';loadUsers();loadDash()}
-async function loadOffers(){const d=await api('/api/admin/offers');offerList.innerHTML=d.offers.map(o=>`<div class="item"><div><b>${esc(o.offerNumber)}</b><div class="muted">${esc(o.clientName||'Bez klienta')} • ${esc(o.eventName||'')}</div></div><span>${esc(o.location||'')}</span><span>${o.updatedAt?new Date(o.updatedAt).toLocaleString('pl-PL'):''}</span><button class="btn red" onclick="delOffer('${encodeURIComponent(o.offerNumber)}')">Usuń</button></div>`).join('')||'<div class="muted">Brak ofert</div>'}
-async function delOffer(n){if(!confirm('Usunąć ofertę bezpowrotnie?'))return;await api('/api/admin/offers/'+n,{method:'DELETE'});loadOffers();loadDash()}
-downloadBackup.onclick=async()=>{const r=await fetch('/api/admin/backup',{headers:{Authorization:'Bearer '+token}});if(!r.ok)throw Error('Błąd pobierania');const b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='markmedia-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
-restore.onclick=async()=>{const f=restoreFile.files[0];if(!f)return alert('Wybierz plik');if(!confirm('Na pewno przywrócić kopię?'))return;await api('/api/admin/backup/restore',{method:'POST',body:await f.text()});alert('Kopia przywrócona');loadAll()}
-logout.onclick=async()=>{try{await api('/api/logout',{method:'POST'})}catch{}localStorage.removeItem('admin_token');location='/login'}
-async function loadAll(){try{const me=await api('/api/me');who.textContent='Zalogowany: '+me.username;await Promise.all([loadDash(),loadUsers(),loadOffers()])}catch(e){alert(e.message)}}loadAll();
-</script></body></html>
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel bazy sprzętu</title>
+  <style>
+    :root {
+      --bg:#06101d; --bg2:#0b1830; --panel:rgba(14,25,46,.92); --panel2:rgba(12,22,40,.95);
+      --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.16); --text:#eef4ff; --muted:#9bb0d4;
+      --blue:#4ea1ff; --green:#22c55e; --red:#ff5f6d; --shadow:0 24px 64px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at top,#143868 0%,#071222 30%,#040a13 100%)}
+    .app{max-width:1500px;margin:0 auto;padding:24px}
+    .topbar,.notice,.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);box-shadow:var(--shadow)}
+    .topbar{border-radius:30px;padding:20px 22px;display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:20px}
+    .title{display:flex;flex-direction:column;gap:6px}.title h1{margin:0;font-size:38px;letter-spacing:-.04em}.title p{margin:0;color:var(--muted);font-size:18px}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line2);background:rgba(255,255,255,.06);color:#fff;padding:12px 18px;border-radius:16px;cursor:pointer;font-size:14px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .btn.blue{background:linear-gradient(135deg,#1d4ed8,#4ea1ff);border:none}.btn.red{background:linear-gradient(135deg,#ba3248,#ff6375);border:none}.btn.green{background:linear-gradient(135deg,#178a53,#27c777);border:none}
+    .notice{border-radius:18px;padding:14px 18px;margin-bottom:18px;color:#d7e7ff}
+    .toolbar{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-bottom:18px}
+    .card{border-radius:26px;padding:20px}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{padding:16px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line)}.stat strong{display:block;font-size:26px;margin-top:8px}
+    .search input{width:100%;padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:rgba(5,13,25,.8);color:#fff}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.section-head h2{margin:0;font-size:22px}.muted{color:var(--muted)}
+    .group{margin-top:14px;padding:14px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+    .group-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.group-name{font-weight:800;font-size:17px}
+    .field{display:flex;flex-direction:column;gap:8px}.field label{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    .field input{padding:12px 13px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(5,13,25,.72);color:#fff}
+    .group-form{display:grid;grid-template-columns:1fr auto;gap:10px}
+    .item-form{display:grid;grid-template-columns:1.2fr .65fr .75fr .6fr 1.35fr auto;gap:10px;margin-top:10px}
+    .item-list{display:grid;gap:8px;margin-top:12px}
+    .item-row{display:grid;grid-template-columns:minmax(0,1.25fr) .55fr .8fr .5fr auto auto;gap:8px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+    .item-row strong{display:block}.item-row small{display:block;color:var(--muted);margin-top:4px}.pill{padding:6px 10px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.05);font-size:12px;font-weight:800}
+    @media (max-width:1100px){.toolbar,.grid{grid-template-columns:1fr}.item-form,.item-row,.group-form,.topbar{grid-template-columns:1fr;display:grid}.topbar{align-items:start}.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">
+        <h1>Panel bazy sprzętu</h1>
+        <p>Naprawiona wersja panelu magazynu z pełną listą sekcji i pozycji.</p>
+      </div>
+      <div class="top-actions">
+        <a class="btn" href="/app">Generator ofert</a>
+        <a class="btn" href="/live">Live</a>
+        <button class="btn green" id="exportExcelBtn" type="button">Export Excel</button>
+        <button class="btn blue" id="importExcelBtn" type="button">Import Excel</button>
+        <input id="importExcelInput" type="file" accept=".xlsx,.xls" style="display:none" />
+        <button class="btn red" id="logoutBtn" type="button">Wyloguj</button>
+      </div>
+    </div>
+
+    <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz wyeksportować do Excela i później zaimportować z powrotem.</div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="section-head"><h2>Loginy i hasła</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
+      <div class="item-form" style="grid-template-columns:1fr 1fr .7fr auto">
+        <input id="newUserLogin" placeholder="Nowy login" />
+        <input id="newUserPass" placeholder="Nowe hasło" type="text" />
+        <input id="newUserRole" placeholder="Rola" value="user" />
+        <button class="btn green" type="button" id="addUserBtn">Dodaj użytkownika</button>
+      </div>
+      <div class="item-list" id="usersList" style="margin-top:14px"></div>
+      <div class="muted" style="margin-top:10px">Domyślne konto po pierwszym uruchomieniu: admin / markmedia123. Po dodaniu nowego konta możesz zmienić lub usunąć stare.</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="card">
+        <div class="section-head"><h2>Wyszukiwarka</h2><span class="pill" id="dbStatus">Ładowanie…</span></div>
+        <div class="search"><input id="searchInput" placeholder="Szukaj po nazwie sekcji, grupy lub pozycji" /></div>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>Podsumowanie bazy</h2><span class="pill">Live</span></div>
+        <div class="stats">
+          <div class="stat"><div class="muted">Sekcje</div><strong id="statSections">0</strong></div>
+          <div class="stat"><div class="muted">Grupy</div><strong id="statGroups">0</strong></div>
+          <div class="stat"><div class="muted">Pozycje</div><strong id="statItems">0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" id="sectionsGrid"></div>
+  </div>
+  <script>
+    const token = localStorage.getItem('admin_token');
+    if (!token) location.href = '/login';
+    let db = null;
+    let filterText = '';
+
+    function esc(text) {
+      return String(text || '').replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+    function zl(value) {
+      return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          ...(options.headers || {})
+        }
+      });
+      if (response.status === 401) {
+        localStorage.removeItem('admin_token');
+        location.href = '/login';
+        return;
+      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Błąd API');
+      return data;
+    }
+
+    function getFilteredDb() {
+      if (!db || !filterText) return db;
+      const q = filterText.toLowerCase();
+      const copy = { sections: {} };
+      Object.entries(db.sections || {}).forEach(([sectionKey, section]) => {
+        const sectionMatch = [sectionKey, section.label].join(' ').toLowerCase().includes(q);
+        const groups = (section.groups || []).map(group => {
+          const groupMatch = [group.name].join(' ').toLowerCase().includes(q);
+          const items = (group.items || []).filter(item => [item.name, item.desc, item.unit].join(' ').toLowerCase().includes(q));
+          if (sectionMatch || groupMatch || items.length) return { ...group, items };
+          return null;
+        }).filter(Boolean);
+        if (sectionMatch || groups.length) copy.sections[sectionKey] = { ...section, groups };
+      });
+      return copy;
+    }
+
+    function updateStats() {
+      const source = getFilteredDb() || { sections: {} };
+      const sections = Object.keys(source.sections || {}).length;
+      let groups = 0, items = 0;
+      Object.values(source.sections || {}).forEach(section => {
+        groups += (section.groups || []).length;
+        (section.groups || []).forEach(group => items += (group.items || []).length);
+      });
+      document.getElementById('statSections').textContent = sections;
+      document.getElementById('statGroups').textContent = groups;
+      document.getElementById('statItems').textContent = items;
+      document.getElementById('dbStatus').textContent = filterText ? 'Filtrowanie' : 'Gotowe';
+    }
+
+    function render() {
+      const source = getFilteredDb();
+      const grid = document.getElementById('sectionsGrid');
+      const entries = Object.entries(source.sections || {});
+      if (!entries.length) {
+        grid.innerHTML = '<div class="card"><div class="muted">Brak wyników dla tego filtra.</div></div>';
+        updateStats();
+        return;
+      }
+      grid.innerHTML = entries.map(([sectionKey, section]) => `
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>${esc(section.label)}</h2>
+              <div class="muted">${esc(sectionKey)}</div>
+            </div>
+            <span class="pill">${(section.groups || []).length} grup</span>
+          </div>
+          <div class="group-form">
+            <div class="field">
+              <label>Nowa grupa</label>
+              <input id="newGroup_${sectionKey}" placeholder="np. Miksery / Mikrofony / Ruchome głowy" />
+            </div>
+            <button class="btn green" type="button" onclick="addGroup('${sectionKey}')">Dodaj grupę</button>
+          </div>
+          ${(section.groups || []).map(group => `
+            <div class="group">
+              <div class="group-top">
+                <div class="group-name">${esc(group.name)}</div>
+                <button class="btn red" type="button" onclick="deleteGroup('${sectionKey}','${group.id}')">Usuń grupę</button>
+              </div>
+              <div class="item-form">
+                <input id="name_${group.id}" placeholder="Nazwa pozycji" />
+                <input id="price_${group.id}" type="number" min="0" placeholder="Cena netto" />
+                <input id="unit_${group.id}" placeholder="np. szt. / dzień" />
+                <input id="stock_${group.id}" type="number" min="0" placeholder="Stan" />
+                <input id="desc_${group.id}" placeholder="Opis pozycji" />
+                <button class="btn blue" type="button" onclick="addItem('${sectionKey}','${group.id}')">Dodaj</button>
+              </div>
+              <div class="item-list">
+                ${(group.items || []).map(item => `
+                  <div class="item-row">
+                    <div><strong>${esc(item.name)}</strong><small>${esc(item.desc || '')}</small></div>
+                    <div>${zl(item.price)}</div>
+                    <div>${esc(item.unit || '')}</div>
+                    <div>${esc(item.stock ?? 0)}</div>
+                    <button class="btn" type="button"
+                      data-section="${esc(sectionKey)}"
+                      data-group="${esc(group.id)}"
+                      data-item="${esc(item.id)}"
+                      data-name="${esc(item.name)}"
+                      data-price="${esc(item.price)}"
+                      data-unit="${esc(item.unit || '')}"
+                      data-stock="${esc(item.stock ?? 0)}"
+                      data-desc="${esc(item.desc || '')}"
+                      onclick="openEditFromButton(this)">Edytuj</button>
+                    <button class="btn red" type="button" onclick="deleteItem('${sectionKey}','${group.id}','${item.id}')">Usuń</button>
+                  </div>
+                `).join('') || '<div class="muted">Brak pozycji w tej grupie.</div>'}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+      updateStats();
+    }
+
+
+
+    async function loadUsers() {
+      const status = document.getElementById('usersStatus');
+      const list = document.getElementById('usersList');
+      if (!status || !list) return;
+      status.textContent = 'Ładowanie…';
+      const data = await api('/api/admin/users');
+      list.innerHTML = (data.users || []).map(user => `
+        <div class="item-row" style="grid-template-columns:1fr .7fr 1fr auto auto">
+          <div><strong>${esc(user.username)}</strong><small>ID: ${esc(user.id)}</small></div>
+          <div>${esc(user.role || 'user')}</div>
+          <div>${esc(user.createdAt || '')}</div>
+          <button class="btn" type="button" onclick="editUser('${esc(user.id)}','${esc(user.username)}','${esc(user.role || 'user')}')">Edytuj</button>
+          <button class="btn red" type="button" onclick="deleteUser('${esc(user.id)}')">Usuń</button>
+        </div>
+      `).join('') || '<div class="muted">Brak użytkowników.</div>';
+      status.textContent = `${(data.users || []).length} kont`;
+    }
+
+    async function addUser() {
+      const username = document.getElementById('newUserLogin').value.trim();
+      const password = document.getElementById('newUserPass').value.trim();
+      const role = document.getElementById('newUserRole').value.trim() || 'user';
+      if (!username || !password) return alert('Podaj login i hasło.');
+      await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username, password, role }) });
+      document.getElementById('newUserLogin').value = '';
+      document.getElementById('newUserPass').value = '';
+      document.getElementById('newUserRole').value = 'user';
+      await loadUsers();
+    }
+
+    async function editUser(id, username, role) {
+      const newLogin = prompt('Login:', username); if (newLogin === null) return;
+      const newPass = prompt('Nowe hasło. Zostaw puste, żeby nie zmieniać:', ''); if (newPass === null) return;
+      const newRole = prompt('Rola:', role || 'user'); if (newRole === null) return;
+      await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ username: newLogin, password: newPass, role: newRole || 'user' }) });
+      await loadUsers();
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Usunąć tego użytkownika?')) return;
+      await api('/api/admin/users/' + id, { method: 'DELETE' });
+      await loadUsers();
+    }
+
+    async function loadDb() {
+      document.getElementById('dbStatus').textContent = 'Ładowanie…';
+      db = await api('/api/admin/equipment-db');
+      render();
+    }
+    async function addGroup(sectionKey) {
+      const input = document.getElementById('newGroup_' + sectionKey);
+      const name = input.value.trim();
+      if (!name) return alert('Podaj nazwę grupy.');
+      await api('/api/admin/groups', { method: 'POST', body: JSON.stringify({ sectionKey, name }) });
+      input.value = '';
+      await loadDb();
+    }
+    async function deleteGroup(sectionKey, groupId) {
+      if (!confirm('Usunąć całą grupę?')) return;
+      await api(`/api/admin/groups/${sectionKey}/${groupId}`, { method: 'DELETE' });
+      await loadDb();
+    }
+    async function addItem(sectionKey, groupId) {
+      const name = document.getElementById('name_' + groupId).value.trim();
+      const price = Number(document.getElementById('price_' + groupId).value || 0);
+      const unit = document.getElementById('unit_' + groupId).value.trim();
+      const stock = Number(document.getElementById('stock_' + groupId).value || 0);
+      const desc = document.getElementById('desc_' + groupId).value.trim();
+      if (!name) return alert('Podaj nazwę pozycji.');
+      await api('/api/admin/items', { method: 'POST', body: JSON.stringify({ sectionKey, groupId, name, price, unit, stock, desc }) });
+      document.getElementById('name_' + groupId).value = '';
+      document.getElementById('price_' + groupId).value = '';
+      document.getElementById('unit_' + groupId).value = '';
+      document.getElementById('stock_' + groupId).value = '';
+      document.getElementById('desc_' + groupId).value = '';
+      await loadDb();
+    }
+
+    function openEditFromButton(button) {
+      const data = button.dataset;
+      editItem(
+        data.section,
+        data.group,
+        data.item,
+        data.name || '',
+        data.price || 0,
+        data.unit || '',
+        data.stock || 0,
+        data.desc || ''
+      );
+    }
+    async function editItem(sectionKey, groupId, itemId, name, price, unit, stock, desc) {
+      const newName = prompt('Nazwa pozycji:', name); if (newName === null) return;
+      const newPrice = prompt('Cena netto:', price); if (newPrice === null) return;
+      const newUnit = prompt('Jednostka:', unit); if (newUnit === null) return;
+      const newStock = prompt('Stan magazynowy:', stock); if (newStock === null) return;
+      const newDesc = prompt('Opis:', desc || ''); if (newDesc === null) return;
+      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: Number(newPrice || 0), unit: newUnit, stock: Number(newStock || 0), desc: newDesc }) });
+      await loadDb();
+    }
+    async function deleteItem(sectionKey, groupId, itemId) {
+      if (!confirm('Usunąć pozycję?')) return;
+      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'DELETE' });
+      await loadDb();
+    }
+
+
+    async function exportExcel() {
+      try {
+        const response = await fetch('/api/admin/equipment-db/export', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.status === 401) {
+          localStorage.removeItem('admin_token');
+          location.href = '/login';
+          return;
+        }
+        if (!response.ok) throw new Error('Nie udało się pobrać pliku Excel.');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `magazyn-markmedia-${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        document.getElementById('dbStatus').textContent = 'Export Excel';
+      } catch (e) {
+        alert(e.message || 'Nie udało się wyeksportować magazynu.');
+      }
+    }
+
+    async function importExcelFile(file) {
+      if (!file) return;
+      if (!confirm('Import z Excela zaktualizuje istniejące pozycje i doda nowe. Kontynuować?')) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          document.getElementById('dbStatus').textContent = 'Import...';
+          const base64 = String(reader.result || '').split(',').pop();
+          await api('/api/admin/equipment-db/import', {
+            method: 'POST',
+            body: JSON.stringify({ fileName: file.name, fileBase64: base64 })
+          });
+          await loadDb();
+          alert('Import z Excela zakończony.');
+        } catch (e) {
+          alert(e.message || 'Nie udało się zaimportować Excela.');
+          document.getElementById('dbStatus').textContent = 'Błąd importu';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('addUserBtn').addEventListener('click', addUser);
+    document.getElementById('searchInput').addEventListener('input', (e) => { filterText = e.target.value.trim(); render(); });
+    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+    document.getElementById('importExcelBtn').addEventListener('click', () => document.getElementById('importExcelInput').click());
+    document.getElementById('importExcelInput').addEventListener('change', (e) => importExcelFile(e.target.files?.[0]));
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try { await api('/api/logout', { method: 'POST' }); } catch (e) {}
+      localStorage.removeItem('admin_token');
+      location.href = '/login';
+    });
+    loadUsers().catch(err => { const el=document.getElementById('usersStatus'); if(el) el.textContent='Błąd'; });
+    loadDb().catch(err => { document.getElementById('sectionsGrid').innerHTML = `<div class="card"><div class="muted">${esc(err.message || 'Nie udało się załadować bazy.')}</div></div>`; document.getElementById('dbStatus').textContent = 'Błąd'; });
+  </script>
+</body>
+</html>

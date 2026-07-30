@@ -1,0 +1,27 @@
+AWARYJNE ODZYSKANIE ADMINA NA RENDER
+
+W Render Shell wykonaj:
+
+cat > /opt/render/project/src/data/users.json <<'EOF'
+[
+  {
+    "id": "recovery-admin",
+    "username": "admin",
+    "password": "markmedia123",
+    "role": "admin",
+    "createdAt": "2026-07-30T20:31:00.000Z"
+  }
+]
+EOF
+
+Następnie odśwież stronę logowania i zaloguj się:
+admin
+markmedia123
+
+Po zalogowaniu natychmiast zmień hasło w panelu administratora.
+
+Wersja 4.3.1 dodatkowo:
+- nie pozwala usunąć aktualnie zalogowanego konta,
+- nie pozwala usunąć ani zdegradować ostatniego administratora,
+- automatycznie odtwarza administratora z ADMIN_USER/ADMIN_PASS, jeśli nie ma żadnego admina,
+- wymaga roli admin dla tras /api/admin.
