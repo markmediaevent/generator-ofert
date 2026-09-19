@@ -23,3 +23,11 @@ Ustaw w Render / środowisku:
 - `GITHUB_DRAFTS_PATH=drafts`
 
 Po ustawieniu tych zmiennych szkice będą zapisywane jako pliki JSON w folderze repozytorium, np. `drafts/OF-2026-031.json`.
+
+
+## Wrzutka materiałów
+- publiczna strona: `/wrzutka`
+- panel administratora: `/admin-wrzutka`
+- pliki są przechowywane poza bazą ofert i magazynu w katalogu wskazanym przez `WRZUTKA_DIR`; bez tej zmiennej używane jest `STORAGE_DIR/wrzutka-uploads`, a lokalnie `./wrzutka-uploads`
+- domyślny limit jednego pliku: 500 MB (`WRZUTKA_MAX_FILE_MB`)
+- moduł nie modyfikuje `data/equipment-db.json`, `drafts/` ani archiwum ofert

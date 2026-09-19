@@ -9,12 +9,12 @@ app.use(express.json({ limit: '2mb' }));
 
 // Generator i panel administratora nie mogą być otwierane bez aktywnej sesji.
 app.use((req, res, next) => {
-  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html']);
+  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html']);
   if (!protectedPages.has(req.path)) return next();
   const token = getToken(req);
   if (!token || !sessions.has(token)) return res.redirect('/login');
   req.user = sessions.get(token);
-  if ((req.path === '/admin' || req.path === '/admin.html') && (req.user.role || 'user') !== 'admin') {
+  if ((req.path === '/admin' || req.path === '/admin.html' || req.path === '/admin-wrzutka' || req.path === '/admin-wrzutka.html') && (req.user.role || 'user') !== 'admin') {
     return res.redirect('/app');
   }
   next();
@@ -36,6 +36,40 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
+
+// Wrzutka ma własną przestrzeń i nie korzysta z bazy magazynu ani szkiców ofert.
+const WRZUTKA_STORAGE_BASE = process.env.STORAGE_DIR && fs.existsSync(process.env.STORAGE_DIR) ? process.env.STORAGE_DIR : __dirname;
+const WRZUTKA_DIR = process.env.WRZUTKA_DIR || path.join(WRZUTKA_STORAGE_BASE, 'wrzutka-uploads');
+const WRZUTKA_MAX_FILE_BYTES = Math.max(1, Number(process.env.WRZUTKA_MAX_FILE_MB || 500)) * 1024 * 1024;
+
+function ensureWrzutkaDir() {
+  fs.mkdirSync(WRZUTKA_DIR, { recursive: true });
+}
+function sanitizeUploadPart(value, fallback = 'plik') {
+  const clean = String(value || '')
+    .normalize('NFKC')
+    .replace(/[\\/]+/g, '-')
+    .replace(/[\x00-\x1f\x7f]+/g, '')
+    .replace(/[^\p{L}\p{N}._()\- ]/gu, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+|\.+$/g, '');
+  return (clean || fallback).slice(0, 180);
+}
+function sanitizeSubmissionId(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+}
+function wrzutkaSubmissionDir(id) {
+  return path.join(WRZUTKA_DIR, sanitizeSubmissionId(id));
+}
+function wrzutkaMetaFile(id) {
+  return path.join(wrzutkaSubmissionDir(id), 'submission.json');
+}
+function readWrzutkaMeta(id) {
+  const file = wrzutkaMetaFile(id);
+  if (!fs.existsSync(file)) return null;
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+}
 
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -462,6 +496,75 @@ ensureUsers();
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
 
+
+// Publiczna wrzutka plików. Endpointy są poza /api, więc nie wymagają logowania.
+app.post('/wrzutka-api/submission', (req, res) => {
+  try {
+    ensureWrzutkaDir();
+    const id = `${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${crypto.randomBytes(5).toString('hex')}`;
+    const dir = wrzutkaSubmissionDir(id);
+    fs.mkdirSync(dir, { recursive: true });
+    const meta = {
+      id,
+      name: String(req.body?.name || '').trim().slice(0, 120),
+      contact: String(req.body?.contact || '').trim().slice(0, 160),
+      note: String(req.body?.note || '').trim().slice(0, 500),
+      createdAt: new Date().toISOString(),
+      files: []
+    };
+    fs.writeFileSync(wrzutkaMetaFile(id), JSON.stringify(meta, null, 2), 'utf8');
+    res.json({ ok: true, id });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się utworzyć wrzutki.' });
+  }
+});
+
+app.post('/wrzutka-api/upload/:submissionId', (req, res) => {
+  const id = sanitizeSubmissionId(req.params.submissionId);
+  const meta = readWrzutkaMeta(id);
+  if (!id || !meta) return res.status(404).json({ ok: false, message: 'Nie znaleziono aktywnej wrzutki.' });
+  const contentLength = Number(req.headers['content-length'] || 0);
+  if (contentLength > WRZUTKA_MAX_FILE_BYTES) return res.status(413).json({ ok: false, message: `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024)} MB.` });
+
+  const originalName = sanitizeUploadPart(req.query.filename, 'plik');
+  const ext = path.extname(originalName).slice(0, 20);
+  const base = sanitizeUploadPart(path.basename(originalName, ext), 'plik');
+  const storedName = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}-${base}${ext}`;
+  const target = path.join(wrzutkaSubmissionDir(id), storedName);
+  const out = fs.createWriteStream(target, { flags: 'wx' });
+  let received = 0;
+  let finished = false;
+
+  function fail(status, message) {
+    if (finished) return;
+    finished = true;
+    try { out.destroy(); } catch {}
+    try { if (fs.existsSync(target)) fs.unlinkSync(target); } catch {}
+    if (!res.headersSent) res.status(status).json({ ok: false, message });
+  }
+
+  req.on('data', chunk => {
+    received += chunk.length;
+    if (received > WRZUTKA_MAX_FILE_BYTES) {
+      fail(413, `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024)} MB.`);
+      req.destroy();
+    }
+  });
+  req.on('aborted', () => fail(499, 'Wysyłanie pliku zostało przerwane.'));
+  req.on('error', () => fail(500, 'Błąd podczas odbierania pliku.'));
+  out.on('error', () => fail(500, 'Nie udało się zapisać pliku.'));
+  out.on('finish', () => {
+    if (finished) return;
+    finished = true;
+    const latest = readWrzutkaMeta(id) || meta;
+    latest.files = Array.isArray(latest.files) ? latest.files : [];
+    latest.files.push({ name: storedName, originalName, size: received, uploadedAt: new Date().toISOString() });
+    fs.writeFileSync(wrzutkaMetaFile(id), JSON.stringify(latest, null, 2), 'utf8');
+    res.json({ ok: true, file: { name: storedName, originalName, size: received } });
+  });
+  req.pipe(out);
+});
+
 app.use('/api', (req, res, next) => {
   const publicApi = new Set(['/login', '/health', '/test']);
   if (publicApi.has(req.path)) return next();
@@ -614,6 +717,55 @@ app.delete('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, 
 
 
 
+
+app.get('/api/admin/wrzutka', requireAdmin, (req, res) => {
+  try {
+    ensureWrzutkaDir();
+    const submissions = fs.readdirSync(WRZUTKA_DIR, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => {
+        const meta = readWrzutkaMeta(entry.name);
+        if (!meta) return null;
+        const dir = wrzutkaSubmissionDir(entry.name);
+        const files = (meta.files || []).map(file => {
+          const target = path.join(dir, path.basename(file.name || ''));
+          if (!fs.existsSync(target)) return null;
+          const stat = fs.statSync(target);
+          return { ...file, size: stat.size, mtime: stat.mtime.toISOString() };
+        }).filter(Boolean);
+        return { ...meta, files };
+      })
+      .filter(Boolean)
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    res.json({ ok: true, submissions });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się odczytać wrzutki.' });
+  }
+});
+
+app.get('/api/admin/wrzutka/:submissionId/download/:fileName', requireAdmin, (req, res) => {
+  const id = sanitizeSubmissionId(req.params.submissionId);
+  const meta = readWrzutkaMeta(id);
+  if (!meta) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
+  const storedName = path.basename(String(req.params.fileName || ''));
+  const file = (meta.files || []).find(item => item.name === storedName);
+  const target = path.join(wrzutkaSubmissionDir(id), storedName);
+  if (!file || !fs.existsSync(target)) return res.status(404).json({ ok: false, message: 'Nie znaleziono pliku.' });
+  res.download(target, file.originalName || storedName);
+});
+
+app.delete('/api/admin/wrzutka/:submissionId', requireAdmin, (req, res) => {
+  try {
+    const id = sanitizeSubmissionId(req.params.submissionId);
+    const dir = wrzutkaSubmissionDir(id);
+    if (!id || !fs.existsSync(dir)) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
+    fs.rmSync(dir, { recursive: true, force: true });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się usunąć zgłoszenia.' });
+  }
+});
+
 app.get('/api/offers/next-number', async (req, res) => {
   try {
     const offerNumber = await getNextOfferNumber();
@@ -717,6 +869,8 @@ app.get('/login', (req, res) => {
 });
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
+app.get('/wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wrzutka.html')));
+app.get('/admin-wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-wrzutka.html')));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

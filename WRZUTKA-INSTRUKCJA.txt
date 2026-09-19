@@ -1,0 +1,29 @@
+WRZUTKA — INSTRUKCJA
+====================
+
+Adres publiczny po wdrożeniu:
+  https://TwojaDomena.pl/wrzutka
+
+Panel administratora:
+  https://TwojaDomena.pl/admin-wrzutka
+
+Co zostało dodane:
+- strona wrzutowa w stylu Mark Media,
+- drag & drop i wybór wielu plików,
+- limit 500 MB na pojedynczy plik (zmienna WRZUTKA_MAX_FILE_MB),
+- osobny panel administratora: lista zgłoszeń, pobieranie i usuwanie,
+- osobny katalog danych wrzutki — brak zapisu do bazy magazynu i szkiców ofert.
+
+Przechowywanie:
+- jeśli ustawisz WRZUTKA_DIR, pliki trafiają dokładnie do tego katalogu,
+- w przeciwnym razie, jeśli istnieje STORAGE_DIR, pliki trafiają do STORAGE_DIR/wrzutka-uploads,
+- lokalnie fallback to ./wrzutka-uploads.
+
+WAŻNE DLA RENDER:
+Jeśli wrzutki mają przetrwać restart/redeploy serwera, /var/data musi być podpięte jako Persistent Disk w Render. Sama zmienna STORAGE_DIR nie tworzy trwałego dysku.
+
+Chronione dane:
+- data/equipment-db.json — bez zmian,
+- data/users.json — bez zmian,
+- drafts/*.json — bez zmian,
+- logika istniejących ofert i magazynu nie została przebudowana.

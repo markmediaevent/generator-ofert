@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050b14" />
+  <title>Wrzutka materiałów — Mark Media Event Solution</title>
+  <style>
+    :root{--bg:#040915;--bg2:#091427;--panel:rgba(12,24,43,.88);--line:rgba(255,255,255,.11);--text:#eef4ff;--muted:#9cb1d6;--blue:#4ea1ff;--green:#35d08b;--red:#ff6577;--shadow:0 28px 80px rgba(0,0,0,.38)}
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%} body{font-family:Inter,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at 15% 10%,rgba(78,161,255,.20),transparent 24%),radial-gradient(circle at 90% 20%,rgba(76,201,240,.12),transparent 22%),linear-gradient(180deg,#030813,#07111e 48%,#040a13)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(99,179,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(99,179,255,.045) 1px,transparent 1px);background-size:54px 54px;mask-image:radial-gradient(circle at center,#000 20%,transparent 82%)}
+    .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:24px 20px 46px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 18px;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.035);backdrop-filter:blur(16px);box-shadow:var(--shadow)}
+    .brand{display:flex;align-items:center;gap:14px}.brand img{width:170px;max-height:58px;object-fit:contain}.brand-copy strong{display:block;font-size:16px}.brand-copy span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.nav{display:flex;gap:9px;flex-wrap:wrap}.nav a{color:#eaf3ff;text-decoration:none;border:1px solid var(--line);padding:10px 13px;border-radius:13px;background:rgba(255,255,255,.045);font-weight:800;font-size:13px}
+    .hero{display:grid;grid-template-columns:1fr .86fr;gap:24px;align-items:stretch;margin-top:24px}.intro,.upload-card{border:1px solid var(--line);border-radius:30px;background:linear-gradient(180deg,rgba(16,31,55,.86),rgba(7,16,30,.92));box-shadow:var(--shadow);backdrop-filter:blur(18px)}.intro{padding:38px}.eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:rgba(78,161,255,.11);border:1px solid rgba(78,161,255,.20);color:#cce5ff;font-weight:900;font-size:11px;letter-spacing:.12em;text-transform:uppercase}.intro h1{font-size:clamp(42px,7vw,76px);line-height:.96;letter-spacing:-.055em;margin:18px 0 16px}.intro h1 span{background:linear-gradient(135deg,#fff,#d9ecff 45%,#66b9ff);-webkit-background-clip:text;background-clip:text;color:transparent}.intro p{font-size:17px;line-height:1.75;color:var(--muted);max-width:650px}.steps{display:grid;gap:10px;margin-top:28px}.step{display:flex;gap:12px;align-items:center;padding:13px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035)}.num{width:29px;height:29px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(135deg,#1d4ed8,#4ea1ff);font-weight:900;font-size:13px}.step span:last-child{color:#d8e8ff;font-weight:700;font-size:14px}
+    .upload-card{padding:24px}.upload-card h2{margin:3px 0 6px;font-size:26px;letter-spacing:-.03em}.upload-card>p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.6}.field{display:grid;gap:7px;margin-top:12px}.field label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#b9cceb}.field input,.field textarea{width:100%;border:1px solid var(--line);background:rgba(2,9,18,.72);color:#fff;border-radius:14px;padding:12px 13px;outline:none}.field input:focus,.field textarea:focus{border-color:rgba(78,161,255,.65);box-shadow:0 0 0 4px rgba(78,161,255,.08)}.field textarea{min-height:76px;resize:vertical}
+    .drop{margin-top:16px;border:1.5px dashed rgba(111,188,255,.48);border-radius:20px;padding:25px 18px;text-align:center;background:rgba(78,161,255,.055);cursor:pointer;transition:.18s}.drop.drag,.drop:hover{background:rgba(78,161,255,.10);border-color:#65b9ff;transform:translateY(-1px)}.drop-icon{width:54px;height:54px;border-radius:18px;margin:0 auto 11px;display:grid;place-items:center;background:linear-gradient(135deg,#1d4ed8,#4ea1ff);font-size:25px;box-shadow:0 12px 32px rgba(29,78,216,.28)}.drop strong{display:block}.drop small{display:block;color:var(--muted);margin-top:6px;line-height:1.45}#fileInput{display:none}
+    .files{display:grid;gap:8px;margin-top:14px}.file{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.03)}.file-main{min-width:0}.file-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:800}.file-meta{font-size:11px;color:var(--muted);margin-top:4px}.remove{border:0;background:transparent;color:#ff9eaa;font-size:20px;cursor:pointer}.progress{height:5px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:7px}.bar{height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#72c6ff);transition:width .15s}
+    .send{width:100%;border:0;border-radius:16px;padding:14px 16px;margin-top:16px;background:linear-gradient(135deg,#1d4ed8,#4ea1ff);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 14px 35px rgba(29,78,216,.25);font-size:15px}.send:disabled{opacity:.5;cursor:not-allowed}.status{display:none;margin-top:14px;padding:13px 14px;border-radius:14px;font-size:13px;line-height:1.5}.status.show{display:block}.status.ok{background:rgba(53,208,139,.10);border:1px solid rgba(53,208,139,.25);color:#b8f7d6}.status.err{background:rgba(255,101,119,.10);border:1px solid rgba(255,101,119,.25);color:#ffd0d6}.legal{margin-top:13px;color:#7890b5;font-size:11px;line-height:1.55;text-align:center}
+    .footer{display:flex;justify-content:space-between;gap:12px;margin-top:18px;padding:0 6px;color:#6f86aa;font-size:11px}.hidden{display:none!important}@media(max-width:900px){.hero{grid-template-columns:1fr}.intro{padding:28px}.top{flex-direction:column;align-items:flex-start}.nav{width:100%}.nav a{flex:1;text-align:center}.brand-copy{display:none}}@media(max-width:560px){.wrap{padding:12px 12px 30px}.intro,.upload-card{border-radius:23px}.intro{padding:23px}.upload-card{padding:18px}.brand img{width:150px}.intro h1{font-size:46px}.footer{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><img src="/logo.png" alt="Mark Media Event Solution"><div class="brand-copy"><strong>Event Upload</strong><span>Bezpieczne przekazanie materiałów</span></div></div>
+      <nav class="nav"><a href="/">Strona główna</a><a href="/live">Live</a></nav>
+    </header>
+
+    <section class="hero">
+      <article class="intro">
+        <span class="eyebrow">Mark Media · Wrzutka</span>
+        <h1>Przekaż nam <span>materiały.</span></h1>
+        <p>Zdjęcia, filmy, prezentacje, logotypy i pozostałe pliki do realizacji eventu możesz wysłać bezpośrednio tutaj — bez maili, komunikatorów i kompresowania jakości.</p>
+        <div class="steps">
+          <div class="step"><span class="num">1</span><span>Dodaj swoje dane lub nazwę firmy.</span></div>
+          <div class="step"><span class="num">2</span><span>Przeciągnij pliki albo wybierz je z urządzenia.</span></div>
+          <div class="step"><span class="num">3</span><span>Kliknij „Wyślij materiały” i nie zamykaj strony do końca wysyłki.</span></div>
+        </div>
+      </article>
+
+      <article class="upload-card">
+        <h2>Wyślij pliki</h2>
+        <p>Możesz dodać wiele plików. Każdy z nich jest zapisywany w osobnej przestrzeni wrzutki, niezależnie od ofert i magazynu.</p>
+        <div class="field"><label for="senderName">Imię / firma</label><input id="senderName" maxlength="120" placeholder="np. GOK / Jan Kowalski"></div>
+        <div class="field"><label for="senderContact">Kontakt (opcjonalnie)</label><input id="senderContact" maxlength="160" placeholder="telefon lub e-mail"></div>
+        <div class="field"><label for="senderNote">Opis / nazwa wydarzenia (opcjonalnie)</label><textarea id="senderNote" maxlength="500" placeholder="np. Dożynki 2026 — materiały na ekran LED"></textarea></div>
+
+        <div class="drop" id="dropZone" tabindex="0" role="button" aria-label="Wybierz pliki">
+          <div class="drop-icon">↑</div><strong>Przeciągnij pliki tutaj</strong><small>lub kliknij, aby wybrać z telefonu / komputera<br>Maksymalnie 500 MB na jeden plik</small>
+        </div>
+        <input id="fileInput" type="file" multiple>
+        <div class="files" id="files"></div>
+        <button class="send" id="sendBtn" type="button" disabled>Wyślij materiały</button>
+        <div class="status" id="status"></div>
+        <div class="legal">Przesyłając pliki potwierdzasz, że masz prawo do ich przekazania Mark Media w celu realizacji wydarzenia.</div>
+      </article>
+    </section>
+    <footer class="footer"><span>Mark Media Event Solution</span><span id="storageState">Wrzutka gotowa</span></footer>
+  </main>
+<script>
+  const MAX_FILE = 500 * 1024 * 1024;
+  const input = document.getElementById('fileInput');
+  const drop = document.getElementById('dropZone');
+  const filesBox = document.getElementById('files');
+  const sendBtn = document.getElementById('sendBtn');
+  const statusBox = document.getElementById('status');
+  let selected = [];
+
+  const pretty = bytes => {
+    if (bytes < 1024) return bytes + ' B';
+    const units = ['KB','MB','GB']; let value = bytes / 1024; let i = 0;
+    while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
+    return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[i];
+  };
+  const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function showStatus(text, type) {
+    statusBox.className = 'status show ' + (type || '');
+    statusBox.textContent = text;
+  }
+  function addFiles(list) {
+    const incoming = [...list];
+    const tooBig = incoming.find(f => f.size > MAX_FILE);
+    if (tooBig) showStatus(`Plik „${tooBig.name}” przekracza limit 500 MB.`, 'err');
+    incoming.filter(f => f.size <= MAX_FILE).forEach(file => {
+      const key = [file.name,file.size,file.lastModified].join('|');
+      if (!selected.some(x => x.key === key)) selected.push({ key, file, progress: 0 });
+    });
+    renderFiles();
+  }
+  function renderFiles() {
+    filesBox.innerHTML = selected.map((item, i) => `<div class="file"><div class="file-main"><div class="file-name">${esc(item.file.name)}</div><div class="file-meta">${pretty(item.file.size)}</div><div class="progress"><div class="bar" id="bar-${i}" style="width:${item.progress}%"></div></div></div><button class="remove" type="button" data-i="${i}" aria-label="Usuń">×</button></div>`).join('');
+    sendBtn.disabled = selected.length === 0;
+    filesBox.querySelectorAll('.remove').forEach(btn => btn.onclick = () => { selected.splice(Number(btn.dataset.i),1); renderFiles(); });
+  }
+  drop.onclick = () => input.click();
+  drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } };
+  input.onchange = () => { addFiles(input.files); input.value = ''; };
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+  async function createSubmission() {
+    const r = await fetch('/wrzutka-api/submission', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('senderName').value.trim(),contact:document.getElementById('senderContact').value.trim(),note:document.getElementById('senderNote').value.trim()})});
+    const data = await r.json(); if (!r.ok) throw new Error(data.message || 'Nie udało się rozpocząć wysyłki.'); return data.id;
+  }
+  function uploadFile(id, item, index) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/wrzutka-api/upload/' + encodeURIComponent(id) + '?filename=' + encodeURIComponent(item.file.name));
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); const bar=document.getElementById('bar-'+index); if(bar) bar.style.width=item.progress+'%'; } };
+      xhr.onload = () => { let data={}; try{data=JSON.parse(xhr.responseText||'{}')}catch{}; if(xhr.status>=200&&xhr.status<300){item.progress=100;resolve(data)}else reject(new Error(data.message||('Błąd wysyłki: '+xhr.status))); };
+      xhr.onerror = () => reject(new Error('Przerwano połączenie podczas wysyłki.'));
+      xhr.send(item.file);
+    });
+  }
+  sendBtn.onclick = async () => {
+    if (!selected.length) return;
+    sendBtn.disabled = true; drop.classList.add('hidden');
+    showStatus('Rozpoczynam wysyłkę… nie zamykaj tej strony.', '');
+    try {
+      const id = await createSubmission();
+      for (let i=0;i<selected.length;i++) { showStatus(`Wysyłanie ${i+1} z ${selected.length}: ${selected[i].file.name}`, ''); await uploadFile(id, selected[i], i); }
+      showStatus('Gotowe. Wszystkie materiały zostały wysłane do Mark Media. Dziękujemy!', 'ok');
+      sendBtn.textContent = 'Materiały wysłane';
+    } catch (e) {
+      showStatus(e.message || 'Nie udało się wysłać materiałów.', 'err'); sendBtn.disabled = false; drop.classList.remove('hidden');
+    }
+  };
+</script>
+</body>
+</html>
