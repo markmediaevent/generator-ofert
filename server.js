@@ -37,13 +37,16 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const sessions = new Map();
 
-// Wrzutka ma własną przestrzeń i nie korzysta z bazy magazynu ani szkiców ofert.
-const WRZUTKA_STORAGE_BASE = process.env.STORAGE_DIR && fs.existsSync(process.env.STORAGE_DIR) ? process.env.STORAGE_DIR : __dirname;
-const WRZUTKA_DIR = process.env.WRZUTKA_DIR || path.join(WRZUTKA_STORAGE_BASE, 'wrzutka-uploads');
+// Wrzutka zapisuje materiały bezpośrednio na Google Drive i nie korzysta z bazy magazynu ani szkiców ofert.
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA';
+const GOOGLE_DRIVE_CLIENT_ID = process.env.GOOGLE_DRIVE_CLIENT_ID || '';
+const GOOGLE_DRIVE_CLIENT_SECRET = process.env.GOOGLE_DRIVE_CLIENT_SECRET || '';
+const GOOGLE_DRIVE_REFRESH_TOKEN = process.env.GOOGLE_DRIVE_REFRESH_TOKEN || '';
 const WRZUTKA_MAX_FILE_BYTES = Math.max(1, Number(process.env.WRZUTKA_MAX_FILE_MB || 500)) * 1024 * 1024;
+let driveTokenCache = { token: '', expiresAt: 0 };
 
-function ensureWrzutkaDir() {
-  fs.mkdirSync(WRZUTKA_DIR, { recursive: true });
+function driveConfigured() {
+  return Boolean(GOOGLE_DRIVE_FOLDER_ID && GOOGLE_DRIVE_CLIENT_ID && GOOGLE_DRIVE_CLIENT_SECRET && GOOGLE_DRIVE_REFRESH_TOKEN);
 }
 function sanitizeUploadPart(value, fallback = 'plik') {
   const clean = String(value || '')
@@ -56,19 +59,105 @@ function sanitizeUploadPart(value, fallback = 'plik') {
     .replace(/^\.+|\.+$/g, '');
   return (clean || fallback).slice(0, 180);
 }
-function sanitizeSubmissionId(value) {
-  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+function sanitizeDriveId(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 180);
 }
-function wrzutkaSubmissionDir(id) {
-  return path.join(WRZUTKA_DIR, sanitizeSubmissionId(id));
+async function getDriveAccessToken(force = false) {
+  if (!driveConfigured()) throw new Error('Google Drive nie jest jeszcze skonfigurowany na serwerze.');
+  if (!force && driveTokenCache.token && Date.now() < driveTokenCache.expiresAt - 60_000) return driveTokenCache.token;
+  const form = new URLSearchParams({
+    client_id: GOOGLE_DRIVE_CLIENT_ID,
+    client_secret: GOOGLE_DRIVE_CLIENT_SECRET,
+    refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
+    grant_type: 'refresh_token'
+  });
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString()
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.access_token) throw new Error(data.error_description || data.error || 'Nie udało się uzyskać dostępu do Google Drive.');
+  driveTokenCache = { token: data.access_token, expiresAt: Date.now() + (Number(data.expires_in || 3600) * 1000) };
+  return driveTokenCache.token;
 }
-function wrzutkaMetaFile(id) {
-  return path.join(wrzutkaSubmissionDir(id), 'submission.json');
+async function driveFetch(url, options = {}, retry = true) {
+  const token = await getDriveAccessToken(false);
+  const headers = new Headers(options.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && retry) {
+    driveTokenCache = { token: '', expiresAt: 0 };
+    return driveFetch(url, options, false);
+  }
+  return response;
 }
-function readWrzutkaMeta(id) {
-  const file = wrzutkaMetaFile(id);
-  if (!fs.existsSync(file)) return null;
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+async function driveJson(url, options = {}) {
+  const response = await driveFetch(url, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.error?.message || data?.error_description || `Google Drive API: HTTP ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+function driveFileUrl(id, fields) {
+  return `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?supportsAllDrives=true&fields=${encodeURIComponent(fields)}`;
+}
+async function getWrzutkaFolder(folderId) {
+  const id = sanitizeDriveId(folderId);
+  if (!id) return null;
+  try {
+    const folder = await driveJson(driveFileUrl(id, 'id,name,mimeType,parents,trashed,appProperties,description,createdTime,webViewLink'));
+    if (folder.trashed || folder.mimeType !== 'application/vnd.google-apps.folder') return null;
+    if (!Array.isArray(folder.parents) || !folder.parents.includes(GOOGLE_DRIVE_FOLDER_ID)) return null;
+    if (folder.appProperties?.markmediaWrzutka !== '1') return null;
+    return folder;
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}
+function parseSubmissionDescription(folder) {
+  try {
+    const meta = JSON.parse(folder.description || '{}');
+    return {
+      id: folder.id,
+      submissionId: String(meta.submissionId || ''),
+      name: String(meta.name || ''),
+      contact: String(meta.contact || ''),
+      note: String(meta.note || ''),
+      createdAt: String(meta.createdAt || folder.createdTime || '')
+    };
+  } catch {
+    return { id: folder.id, submissionId: '', name: folder.name || '', contact: '', note: '', createdAt: folder.createdTime || '' };
+  }
+}
+async function listWrzutkaSubmissions() {
+  const q = `'${GOOGLE_DRIVE_FOLDER_ID.replace(/'/g, "\\'")}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder' and appProperties has { key='markmediaWrzutka' and value='1' }`;
+  const params = new URLSearchParams({
+    q, pageSize: '1000', orderBy: 'createdTime desc', spaces: 'drive', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true',
+    fields: 'files(id,name,description,createdTime,modifiedTime,webViewLink,appProperties)'
+  });
+  const folders = (await driveJson(`https://www.googleapis.com/drive/v3/files?${params}`)).files || [];
+  return Promise.all(folders.map(async folder => {
+    const fq = `'${folder.id.replace(/'/g, "\\'")}' in parents and trashed=false`;
+    const fp = new URLSearchParams({
+      q: fq, pageSize: '1000', orderBy: 'createdTime', spaces: 'drive', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true',
+      fields: 'files(id,name,size,mimeType,createdTime,modifiedTime,webViewLink)'
+    });
+    const files = (await driveJson(`https://www.googleapis.com/drive/v3/files?${fp}`)).files || [];
+    const meta = parseSubmissionDescription(folder);
+    return {
+      ...meta,
+      driveUrl: folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`,
+      files: files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder').map(f => ({
+        name: f.id, originalName: f.name, size: Number(f.size || 0), mtime: f.modifiedTime || f.createdTime, mimeType: f.mimeType, driveUrl: f.webViewLink || ''
+      }))
+    };
+  }));
 }
 
 function ensureUsers() {
@@ -498,71 +587,76 @@ app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API dział
 
 
 // Publiczna wrzutka plików. Endpointy są poza /api, więc nie wymagają logowania.
-app.post('/wrzutka-api/submission', (req, res) => {
+app.post('/wrzutka-api/submission', async (req, res) => {
+  if (!driveConfigured()) return res.status(503).json({ ok: false, message: 'Wrzutka Google Drive nie jest jeszcze skonfigurowana.' });
   try {
-    ensureWrzutkaDir();
-    const id = `${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${crypto.randomBytes(5).toString('hex')}`;
-    const dir = wrzutkaSubmissionDir(id);
-    fs.mkdirSync(dir, { recursive: true });
-    const meta = {
-      id,
-      name: String(req.body?.name || '').trim().slice(0, 120),
-      contact: String(req.body?.contact || '').trim().slice(0, 160),
-      note: String(req.body?.note || '').trim().slice(0, 500),
-      createdAt: new Date().toISOString(),
-      files: []
-    };
-    fs.writeFileSync(wrzutkaMetaFile(id), JSON.stringify(meta, null, 2), 'utf8');
-    res.json({ ok: true, id });
+    const submissionId = `${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${crypto.randomBytes(5).toString('hex')}`;
+    const name = String(req.body?.name || '').trim().slice(0, 120);
+    const contact = String(req.body?.contact || '').trim().slice(0, 160);
+    const note = String(req.body?.note || '').trim().slice(0, 500);
+    const createdAt = new Date().toISOString();
+    const dateLabel = createdAt.slice(0, 16).replace('T', ' ').replace(':', '-');
+    const folderName = `${dateLabel} - ${sanitizeUploadPart(name || 'Wrzutka', 'Wrzutka').slice(0, 80)} - ${submissionId.slice(-6)}`;
+    const folder = await driveJson('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,webViewLink,createdTime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [GOOGLE_DRIVE_FOLDER_ID],
+        description: JSON.stringify({ submissionId, name, contact, note, createdAt }),
+        appProperties: { markmediaWrzutka: '1', submissionId }
+      })
+    });
+    res.json({ ok: true, id: folder.id });
   } catch (error) {
-    res.status(500).json({ ok: false, message: 'Nie udało się utworzyć wrzutki.' });
+    console.error('Wrzutka /submission:', error);
+    res.status(500).json({ ok: false, message: 'Nie udało się utworzyć folderu wrzutki na Google Drive.' });
   }
 });
 
-app.post('/wrzutka-api/upload/:submissionId', (req, res) => {
-  const id = sanitizeSubmissionId(req.params.submissionId);
-  const meta = readWrzutkaMeta(id);
-  if (!id || !meta) return res.status(404).json({ ok: false, message: 'Nie znaleziono aktywnej wrzutki.' });
-  const contentLength = Number(req.headers['content-length'] || 0);
+app.post('/wrzutka-api/upload/:submissionId', async (req, res) => {
+  if (!driveConfigured()) return res.status(503).json({ ok: false, message: 'Wrzutka Google Drive nie jest jeszcze skonfigurowana.' });
+  const folderId = sanitizeDriveId(req.params.submissionId);
+  const contentLength = Number(req.headers['content-length'] || req.query.size || 0);
+  if (!contentLength) return res.status(411).json({ ok: false, message: 'Nie udało się ustalić rozmiaru pliku.' });
   if (contentLength > WRZUTKA_MAX_FILE_BYTES) return res.status(413).json({ ok: false, message: `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024)} MB.` });
 
-  const originalName = sanitizeUploadPart(req.query.filename, 'plik');
-  const ext = path.extname(originalName).slice(0, 20);
-  const base = sanitizeUploadPart(path.basename(originalName, ext), 'plik');
-  const storedName = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}-${base}${ext}`;
-  const target = path.join(wrzutkaSubmissionDir(id), storedName);
-  const out = fs.createWriteStream(target, { flags: 'wx' });
-  let received = 0;
-  let finished = false;
-
-  function fail(status, message) {
-    if (finished) return;
-    finished = true;
-    try { out.destroy(); } catch {}
-    try { if (fs.existsSync(target)) fs.unlinkSync(target); } catch {}
-    if (!res.headersSent) res.status(status).json({ ok: false, message });
-  }
-
-  req.on('data', chunk => {
-    received += chunk.length;
-    if (received > WRZUTKA_MAX_FILE_BYTES) {
-      fail(413, `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024)} MB.`);
-      req.destroy();
+  try {
+    const folder = await getWrzutkaFolder(folderId);
+    if (!folder) return res.status(404).json({ ok: false, message: 'Nie znaleziono aktywnej wrzutki.' });
+    const originalName = sanitizeUploadPart(req.query.filename, 'plik');
+    const mimeType = String(req.headers['content-type'] || 'application/octet-stream').slice(0, 200);
+    const token = await getDriveAccessToken(false);
+    const init = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,size,mimeType,createdTime,modifiedTime,webViewLink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mimeType,
+        'X-Upload-Content-Length': String(contentLength)
+      },
+      body: JSON.stringify({ name: originalName, parents: [folderId], appProperties: { markmediaWrzutkaFile: '1' } })
+    });
+    if (!init.ok) {
+      const data = await init.json().catch(() => ({}));
+      throw new Error(data?.error?.message || `Google Drive API: HTTP ${init.status}`);
     }
-  });
-  req.on('aborted', () => fail(499, 'Wysyłanie pliku zostało przerwane.'));
-  req.on('error', () => fail(500, 'Błąd podczas odbierania pliku.'));
-  out.on('error', () => fail(500, 'Nie udało się zapisać pliku.'));
-  out.on('finish', () => {
-    if (finished) return;
-    finished = true;
-    const latest = readWrzutkaMeta(id) || meta;
-    latest.files = Array.isArray(latest.files) ? latest.files : [];
-    latest.files.push({ name: storedName, originalName, size: received, uploadedAt: new Date().toISOString() });
-    fs.writeFileSync(wrzutkaMetaFile(id), JSON.stringify(latest, null, 2), 'utf8');
-    res.json({ ok: true, file: { name: storedName, originalName, size: received } });
-  });
-  req.pipe(out);
+    const uploadUrl = init.headers.get('location');
+    if (!uploadUrl) throw new Error('Google Drive nie zwrócił adresu sesji wysyłania.');
+    const upload = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': mimeType, 'Content-Length': String(contentLength) },
+      body: req,
+      duplex: 'half'
+    });
+    const file = await upload.json().catch(() => ({}));
+    if (!upload.ok) throw new Error(file?.error?.message || `Google Drive upload: HTTP ${upload.status}`);
+    res.json({ ok: true, file: { name: file.id, originalName: file.name || originalName, size: Number(file.size || contentLength), driveUrl: file.webViewLink || '' } });
+  } catch (error) {
+    console.error('Wrzutka /upload:', error);
+    if (!res.headersSent) res.status(500).json({ ok: false, message: 'Nie udało się wysłać pliku na Google Drive. Spróbuj ponownie.' });
+  }
 });
 
 app.use('/api', (req, res, next) => {
@@ -718,51 +812,53 @@ app.delete('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, 
 
 
 
-app.get('/api/admin/wrzutka', requireAdmin, (req, res) => {
+app.get('/api/admin/wrzutka', requireAdmin, async (req, res) => {
+  if (!driveConfigured()) return res.status(503).json({ ok: false, message: 'Brak konfiguracji Google Drive na serwerze.' });
   try {
-    ensureWrzutkaDir();
-    const submissions = fs.readdirSync(WRZUTKA_DIR, { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .map(entry => {
-        const meta = readWrzutkaMeta(entry.name);
-        if (!meta) return null;
-        const dir = wrzutkaSubmissionDir(entry.name);
-        const files = (meta.files || []).map(file => {
-          const target = path.join(dir, path.basename(file.name || ''));
-          if (!fs.existsSync(target)) return null;
-          const stat = fs.statSync(target);
-          return { ...file, size: stat.size, mtime: stat.mtime.toISOString() };
-        }).filter(Boolean);
-        return { ...meta, files };
-      })
-      .filter(Boolean)
-      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    res.json({ ok: true, submissions });
+    const submissions = await listWrzutkaSubmissions();
+    res.json({ ok: true, submissions, destination: { folderId: GOOGLE_DRIVE_FOLDER_ID, url: `https://drive.google.com/drive/folders/${GOOGLE_DRIVE_FOLDER_ID}` } });
   } catch (error) {
-    res.status(500).json({ ok: false, message: 'Nie udało się odczytać wrzutki.' });
+    console.error('Admin wrzutka list:', error);
+    res.status(500).json({ ok: false, message: 'Nie udało się odczytać wrzutki z Google Drive.' });
   }
 });
 
-app.get('/api/admin/wrzutka/:submissionId/download/:fileName', requireAdmin, (req, res) => {
-  const id = sanitizeSubmissionId(req.params.submissionId);
-  const meta = readWrzutkaMeta(id);
-  if (!meta) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
-  const storedName = path.basename(String(req.params.fileName || ''));
-  const file = (meta.files || []).find(item => item.name === storedName);
-  const target = path.join(wrzutkaSubmissionDir(id), storedName);
-  if (!file || !fs.existsSync(target)) return res.status(404).json({ ok: false, message: 'Nie znaleziono pliku.' });
-  res.download(target, file.originalName || storedName);
+app.get('/api/admin/wrzutka/:submissionId/download/:fileName', requireAdmin, async (req, res) => {
+  try {
+    const folderId = sanitizeDriveId(req.params.submissionId);
+    const fileId = sanitizeDriveId(req.params.fileName);
+    const folder = await getWrzutkaFolder(folderId);
+    if (!folder) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
+    const file = await driveJson(driveFileUrl(fileId, 'id,name,mimeType,size,parents,trashed'));
+    if (file.trashed || !Array.isArray(file.parents) || !file.parents.includes(folderId)) return res.status(404).json({ ok: false, message: 'Nie znaleziono pliku.' });
+    const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`);
+    if (!response.ok) return res.status(response.status).json({ ok: false, message: 'Nie udało się pobrać pliku z Google Drive.' });
+    res.setHeader('Content-Type', file.mimeType || response.headers.get('content-type') || 'application/octet-stream');
+    if (file.size) res.setHeader('Content-Length', String(file.size));
+    const safeName = String(file.name || 'plik').replace(/[\r\n"]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+    for await (const chunk of response.body) res.write(Buffer.from(chunk));
+    res.end();
+  } catch (error) {
+    console.error('Admin wrzutka download:', error);
+    if (!res.headersSent) res.status(500).json({ ok: false, message: 'Nie udało się pobrać pliku z Google Drive.' });
+  }
 });
 
-app.delete('/api/admin/wrzutka/:submissionId', requireAdmin, (req, res) => {
+app.delete('/api/admin/wrzutka/:submissionId', requireAdmin, async (req, res) => {
   try {
-    const id = sanitizeSubmissionId(req.params.submissionId);
-    const dir = wrzutkaSubmissionDir(id);
-    if (!id || !fs.existsSync(dir)) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
-    fs.rmSync(dir, { recursive: true, force: true });
+    const folderId = sanitizeDriveId(req.params.submissionId);
+    const folder = await getWrzutkaFolder(folderId);
+    if (!folder) return res.status(404).json({ ok: false, message: 'Nie znaleziono zgłoszenia.' });
+    await driveJson(driveFileUrl(folderId, 'id,trashed'), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({ trashed: true })
+    });
     res.json({ ok: true });
   } catch (error) {
-    res.status(500).json({ ok: false, message: 'Nie udało się usunąć zgłoszenia.' });
+    console.error('Admin wrzutka delete:', error);
+    res.status(500).json({ ok: false, message: 'Nie udało się przenieść zgłoszenia do kosza Google Drive.' });
   }
 });
 

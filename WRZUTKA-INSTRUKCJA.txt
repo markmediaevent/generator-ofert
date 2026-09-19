@@ -1,29 +1,59 @@
-WRZUTKA — INSTRUKCJA
-====================
+WRZUTKA — GOOGLE DRIVE
+======================
 
-Adres publiczny po wdrożeniu:
-  https://TwojaDomena.pl/wrzutka
+Adres publiczny:
+  https://markmediaevent.pl/wrzutka
 
 Panel administratora:
-  https://TwojaDomena.pl/admin-wrzutka
+  https://markmediaevent.pl/admin-wrzutka
 
-Co zostało dodane:
-- strona wrzutowa w stylu Mark Media,
-- drag & drop i wybór wielu plików,
-- limit 500 MB na pojedynczy plik (zmienna WRZUTKA_MAX_FILE_MB),
-- osobny panel administratora: lista zgłoszeń, pobieranie i usuwanie,
-- osobny katalog danych wrzutki — brak zapisu do bazy magazynu i szkiców ofert.
+Folder docelowy Google Drive:
+  Mark Media - Wrzutki Eventowe
+  https://drive.google.com/drive/folders/1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA
 
-Przechowywanie:
-- jeśli ustawisz WRZUTKA_DIR, pliki trafiają dokładnie do tego katalogu,
-- w przeciwnym razie, jeśli istnieje STORAGE_DIR, pliki trafiają do STORAGE_DIR/wrzutka-uploads,
-- lokalnie fallback to ./wrzutka-uploads.
+Jak działa ta wersja:
+- każde nowe zgłoszenie tworzy osobny podfolder w powyższym folderze Google Drive,
+- pliki są przesyłane strumieniowo z przeglądarki -> serwer -> Google Drive,
+- materiały NIE są zapisywane w katalogu wrzutka-uploads na Render,
+- panel /admin-wrzutka odczytuje zgłoszenia bezpośrednio z Google Drive,
+- przycisk „Usuń zgłoszenie” przenosi cały podfolder zgłoszenia do kosza Google Drive,
+- limit pojedynczego pliku: domyślnie 500 MB (WRZUTKA_MAX_FILE_MB).
 
-WAŻNE DLA RENDER:
-Jeśli wrzutki mają przetrwać restart/redeploy serwera, /var/data musi być podpięte jako Persistent Disk w Render. Sama zmienna STORAGE_DIR nie tworzy trwałego dysku.
+WAŻNE — jednorazowa konfiguracja OAuth
+======================================
+Samo udostępnienie folderu linkiem nie daje serwerowi prawa do zapisu. Render musi posiadać
+OAuth Client ID, Client Secret i Refresh Token konta Google mającego dostęp do folderu.
 
-Chronione dane:
-- data/equipment-db.json — bez zmian,
-- data/users.json — bez zmian,
-- drafts/*.json — bez zmian,
-- logika istniejących ofert i magazynu nie została przebudowana.
+1. Wejdź do Google Cloud Console i utwórz/wybierz projekt.
+2. Włącz „Google Drive API”.
+3. Skonfiguruj ekran zgody OAuth i dodaj konto Google właściciela folderu jako użytkownika testowego,
+   jeśli aplikacja jest w trybie testowym.
+4. Utwórz OAuth Client ID typu „Web application”.
+5. Jako Authorized redirect URI dodaj:
+     https://developers.google.com/oauthplayground
+6. Otwórz OAuth 2.0 Playground:
+     https://developers.google.com/oauthplayground
+7. W ustawieniach Playground zaznacz „Use your own OAuth credentials” i wpisz Client ID + Client Secret.
+8. Wybierz zakres:
+     https://www.googleapis.com/auth/drive
+9. Kliknij Authorize APIs, zaloguj się na konto mające dostęp do folderu, a następnie Exchange authorization code for tokens.
+10. Skopiuj Refresh token.
+
+W Render -> Environment dodaj:
+  GOOGLE_DRIVE_FOLDER_ID=1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA
+  GOOGLE_DRIVE_CLIENT_ID=<Twój Client ID>
+  GOOGLE_DRIVE_CLIENT_SECRET=<Twój Client Secret>
+  GOOGLE_DRIVE_REFRESH_TOKEN=<Twój Refresh Token>
+  WRZUTKA_MAX_FILE_MB=500
+
+NIE zapisuj Client Secret ani Refresh Token w GitHubie.
+Po ustawieniu zmiennych wykonaj redeploy usługi.
+
+Chronione dane
+==============
+Zmiana nie przebudowuje i nie modyfikuje:
+- data/equipment-db.json,
+- data/users.json,
+- drafts/*.json,
+- archiwum / logiki ofert,
+- bazy magazynu.

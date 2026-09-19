@@ -10,3 +10,14 @@ services:
         value: 20
       - key: STORAGE_DIR
         value: /var/data
+
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        value: 1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA
+      - key: GOOGLE_DRIVE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_DRIVE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_DRIVE_REFRESH_TOKEN
+        sync: false
+      - key: WRZUTKA_MAX_FILE_MB
+        value: 500

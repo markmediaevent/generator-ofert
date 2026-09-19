@@ -107,8 +107,8 @@
   function uploadFile(id, item, index) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/wrzutka-api/upload/' + encodeURIComponent(id) + '?filename=' + encodeURIComponent(item.file.name));
-      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.open('POST', '/wrzutka-api/upload/' + encodeURIComponent(id) + '?filename=' + encodeURIComponent(item.file.name) + '&size=' + encodeURIComponent(item.file.size));
+      xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
       xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); const bar=document.getElementById('bar-'+index); if(bar) bar.style.width=item.progress+'%'; } };
       xhr.onload = () => { let data={}; try{data=JSON.parse(xhr.responseText||'{}')}catch{}; if(xhr.status>=200&&xhr.status<300){item.progress=100;resolve(data)}else reject(new Error(data.message||('Błąd wysyłki: '+xhr.status))); };
       xhr.onerror = () => reject(new Error('Przerwano połączenie podczas wysyłki.'));

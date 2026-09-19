@@ -1,0 +1,32 @@
+ZMIANY — WRZUTKA -> GOOGLE DRIVE
+================================
+
+Folder docelowy:
+https://drive.google.com/drive/folders/1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA
+
+Wprowadzone zmiany:
+- publiczna /wrzutka nadal działa pod tym samym adresem,
+- każde zgłoszenie tworzy osobny podfolder na Google Drive,
+- pliki są wysyłane bezpośrednio do podfolderu zgłoszenia,
+- panel /admin-wrzutka pobiera listę zgłoszeń z Google Drive,
+- panel ma przycisk otwierający folder Google Drive,
+- pobieranie w panelu czyta plik bezpośrednio z Drive,
+- „Usuń zgłoszenie” przenosi folder zgłoszenia do kosza Drive,
+- brak lokalnego katalogu wrzutka-uploads jako miejsca docelowego,
+- dodana konfiguracja OAuth przez zmienne środowiskowe Render.
+
+Bez zmian:
+- baza magazynu,
+- data/equipment-db.json,
+- data/users.json,
+- wszystkie istniejące drafts/*.json,
+- archiwum i logika ofert.
+
+Weryfikacja:
+- node --check server.js: OK
+- JavaScript public/wrzutka.html: OK
+- JavaScript public/admin-wrzutka.html: OK
+- sumy SHA-256 chronionych plików względem pierwotnego ZIP: zgodne.
+
+Do uruchomienia zapisu na Drive wymagane jest jednorazowe ustawienie 3 sekretów OAuth w Render.
+Szczegóły: WRZUTKA-INSTRUKCJA.txt
