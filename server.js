@@ -967,7 +967,13 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 app.get('/wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wrzutka.html')));
 app.get('/admin-wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-wrzutka.html')));
+app.get('/polityka-prywatnosci', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'polityka-prywatnosci.html'))
+);
 
+app.get('/regulamin', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'regulamin.html'))
+);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Mark Media Oferty działa na porcie ${PORT}`);
