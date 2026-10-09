@@ -46,7 +46,7 @@
         <div class="field"><label for="senderNote">Opis / nazwa wydarzenia (opcjonalnie)</label><textarea id="senderNote" maxlength="500" placeholder="np. Dożynki 2026 — materiały na ekran LED"></textarea></div>
 
         <div class="drop" id="dropZone" tabindex="0" role="button" aria-label="Wybierz pliki">
-          <div class="drop-icon">↑</div><strong>Przeciągnij pliki tutaj</strong><small>lub kliknij, aby wybrać z telefonu / komputera<br>Maksymalnie 500 MB na jeden plik</small>
+          <div class="drop-icon">↑</div><strong>Przeciągnij pliki tutaj</strong><small>lub kliknij, aby wybrać z telefonu / komputera<br>Maksymalnie 5 GB na jeden plik</small>
         </div>
         <input id="fileInput" type="file" multiple>
         <div class="files" id="files"></div>
@@ -58,7 +58,7 @@
     <footer class="footer"><span>Mark Media Event Solution</span><span id="storageState">Wrzutka gotowa</span></footer>
   </main>
 <script>
-  const MAX_FILE = 500 * 1024 * 1024;
+  const MAX_FILE = 5 * 1024 * 1024 * 1024;
   const input = document.getElementById('fileInput');
   const drop = document.getElementById('dropZone');
   const filesBox = document.getElementById('files');
@@ -81,7 +81,7 @@
   function addFiles(list) {
     const incoming = [...list];
     const tooBig = incoming.find(f => f.size > MAX_FILE);
-    if (tooBig) showStatus(`Plik „${tooBig.name}” przekracza limit 500 MB.`, 'err');
+    if (tooBig) showStatus(`Plik „${tooBig.name}” przekracza limit 5 GB.`, 'err');
     incoming.filter(f => f.size <= MAX_FILE).forEach(file => {
       const key = [file.name,file.size,file.lastModified].join('|');
       if (!selected.some(x => x.key === key)) selected.push({ key, file, progress: 0 });
