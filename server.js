@@ -42,7 +42,7 @@ const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1R1v8RQVpY
 const GOOGLE_DRIVE_CLIENT_ID = process.env.GOOGLE_DRIVE_CLIENT_ID || '';
 const GOOGLE_DRIVE_CLIENT_SECRET = process.env.GOOGLE_DRIVE_CLIENT_SECRET || '';
 const GOOGLE_DRIVE_REFRESH_TOKEN = process.env.GOOGLE_DRIVE_REFRESH_TOKEN || '';
-const WRZUTKA_MAX_FILE_BYTES = Math.max(1, Number(process.env.WRZUTKA_MAX_FILE_MB || 500)) * 1024 * 1024;
+const WRZUTKA_MAX_FILE_BYTES = Math.max(1, Number(process.env.WRZUTKA_MAX_FILE_MB || 5120)) * 1024 * 1024;
 let driveTokenCache = { token: '', expiresAt: 0 };
 
 function driveConfigured() {
@@ -620,7 +620,7 @@ app.post('/wrzutka-api/upload/:submissionId', async (req, res) => {
   const folderId = sanitizeDriveId(req.params.submissionId);
   const contentLength = Number(req.headers['content-length'] || req.query.size || 0);
   if (!contentLength) return res.status(411).json({ ok: false, message: 'Nie udało się ustalić rozmiaru pliku.' });
-  if (contentLength > WRZUTKA_MAX_FILE_BYTES) return res.status(413).json({ ok: false, message: `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024)} MB.` });
+  if (contentLength > WRZUTKA_MAX_FILE_BYTES) return res.status(413).json({ ok: false, message: `Plik przekracza limit ${Math.round(WRZUTKA_MAX_FILE_BYTES / 1024 / 1024 / 1024 * 100) / 100} GB.` });
 
   try {
     const folder = await getWrzutkaFolder(folderId);
