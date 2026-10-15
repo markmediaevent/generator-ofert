@@ -22,7 +22,10 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Render's persistent disk already stores equipment-db.json, users.json and drafts here.
+const DATA_DIR = process.env.STORAGE_DIR
+  ? path.resolve(process.env.STORAGE_DIR)
+  : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
 const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
 
@@ -910,8 +913,17 @@ app.post('/api/drafts/save', async (req, res) => {
     ensureDb();
     fs.writeFileSync(localDraftFile(offerNumber), JSON.stringify(data, null, 2), 'utf8');
     if (githubEnabled()) {
-      await saveDraftToGithub(offerNumber, data);
-      return res.json({ ok: true, github: true, message: 'Szkic zapisany na GitHub' });
+      try {
+        await saveDraftToGithub(offerNumber, data);
+        return res.json({ ok: true, github: true, message: 'Szkic zapisany na GitHub' });
+      } catch (error) {
+        console.error('GitHub draft backup failed:', error.message);
+        return res.json({
+          ok: true, github: false,
+          warning: 'github_backup_failed',
+          message: 'Szkic zapisany na serwerze. Kopia na GitHub nie została zapisana — sprawdź konfigurację dostępu do GitHuba.'
+        });
+      }
     }
     return res.json({ ok: true, github: false, message: 'Szkic zapisany lokalnie na serwerze' });
   } catch (error) {
@@ -941,13 +953,16 @@ app.get('/api/drafts', async (req, res) => {
 app.get('/api/drafts/:offerNumber', async (req, res) => {
   try {
     const { offerNumber } = req.params;
+    const file = localDraftFile(offerNumber);
+    // Local writes can be newer than GitHub when backup fails.
+    if (fs.existsSync(file)) {
+      return res.json({ ok: true, github: false, data: JSON.parse(fs.readFileSync(file, 'utf8')) });
+    }
     if (githubEnabled()) {
       const draft = await readDraftFromGithub(offerNumber);
       if (draft) return res.json({ ok: true, github: true, data: draft });
     }
-    const file = localDraftFile(offerNumber);
-    if (!fs.existsSync(file)) return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
-    return res.json({ ok: true, github: false, data: JSON.parse(fs.readFileSync(file, 'utf8')) });
+    return res.status(404).json({ ok: false, message: 'Nie znaleziono szkicu oferty' });
   } catch (error) {
     return res.status(500).json({ ok: false, message: error.message || 'Nie udało się wczytać szkicu' });
   }
