@@ -22,7 +22,10 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Render's persistent disk already stores equipment-db.json, users.json and drafts here.
+const DATA_DIR = process.env.STORAGE_DIR
+  ? path.resolve(process.env.STORAGE_DIR)
+  : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
 const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
 
