@@ -1,33 +1,16 @@
-# Generator ofert PRO MAX WOW
+# grandMA2 Plugins & Effects Pack — Mark Media
 
-## Start
-```bash
-npm install
-npm start
-```
+Zbiorcze archiwum 47 plików, w tym wybranych pluginów Lua/XML i instrukcji z 3 repozytoriów.
 
-## Nowości w tej wersji
-- usunięte pole i blok PDF `Typ oferty`
-- termin w ofercie jako `data od - data do`
-- każda sekcja ma własną `ilość dni`
-- pozycje dodatkowe mają własną `ilość dni` i cenę liczoną per dzień
-- w sekcji Starlink jest osobne pole `Cena Starlink / dzień`
-- zapis szkiców na serwerze oraz opcjonalnie do folderu GitHub
+**[Pobierz plik ZIP](./grandMA2_Plugins_Effects_Pack_MARK_MEDIA.zip)**
 
-## GitHub drafts
-Ustaw w Render / środowisku:
-- `GITHUB_TOKEN`
-- `GITHUB_OWNER`
-- `GITHUB_REPO`
-- `GITHUB_BRANCH=main`
-- `GITHUB_DRAFTS_PATH=drafts`
+Zawiera:
+- smartoo-dev/grandma2-preset-banks — efekty i presety, licencja MIT
+- yoep/gma2-plugins — pluginy i efekt XML (repozytorium bez osobnego pliku LICENSE)
+- chienchuanw/gma2-plugins — 8 pluginów, licencja MIT
 
-Po ustawieniu tych zmiennych szkice będą zapisywane jako pliki JSON w folderze repozytorium, np. `drafts/OF-2026-031.json`.
+W pliku ZIP znajdziesz `START_TUTAJ.txt` z instrukcją instalacji i `ZRODLA_I_LICENCJE.txt`.
 
+To archiwum nie było testowane na Twoim grandMA2 onPC. Importuj na kopii showfile.
 
-## Wrzutka materiałów
-- publiczna strona: `/wrzutka`
-- panel administratora: `/admin-wrzutka`
-- pliki są przechowywane poza bazą ofert i magazynu w katalogu wskazanym przez `WRZUTKA_DIR`; bez tej zmiennej używane jest `STORAGE_DIR/wrzutka-uploads`, a lokalnie `./wrzutka-uploads`
-- domyślny limit jednego pliku: 500 MB (`WRZUTKA_MAX_FILE_MB`)
-- moduł nie modyfikuje `data/equipment-db.json`, `drafts/` ani archiwum ofert
+**Ta gałąź jest niezależna od gałęzi `main` generatora ofert.**
