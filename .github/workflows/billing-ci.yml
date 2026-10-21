@@ -1,0 +1,26 @@
+name: Faktury — testy
+on:
+  pull_request:
+    paths:
+      - "billing/**"
+      - "tests/billing.test.js"
+      - "server.js"
+      - "public/faktury.html"
+      - "public/app.html"
+      - "package.json"
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax
+        run: |
+          node --check server.js
+          node --check billing/core.js
+          node --check billing/ksef.js
+          node --check billing/routes.js
+      - name: Faktury tests (no external services)
+        run: node --test tests/billing.test.js
