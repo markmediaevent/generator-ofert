@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MarkNet Faktury • Mark Media</title>
+<style>
+:root{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:#132543;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#0e2443;color:#fff;padding:17px max(22px,calc((100vw - 1260px)/2))}
+.bar{max-width:1250px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+nav{display:flex;gap:10px}nav a{color:#dce7f4;text-decoration:none;padding:9px 12px;border-radius:9px}nav .active{color:#fff;background:#294b75}
+main{max-width:1250px;margin:26px auto;padding:0 16px;display:grid;grid-template-columns:360px 1fr;gap:20px}
+h1{font-size:25px;margin:0 0 8px}h2{font-size:16px;margin:0 0 12px;color:#162d4d}p{line-height:1.5}
+.card{border:1px solid #e1e8f0;border-radius:18px;background:#fff;padding:22px;box-shadow:0 5px 24px rgba(10,30,60,.035);margin-bottom:16px}
+.muted{color:#667a94}.small{font-size:12px}.tag{font-size:11px;padding:5px 8px;border-radius:8px;background:#edf3fa;color:#174b8a;display:inline-block}
+.row{display:flex;gap:9px;align-items:center;justify-content:space-between}.row.wrap{flex-wrap:wrap}
+button,.btn{border:0;border-radius:10px;padding:10px 14px;background:#173a67;color:#fff;font-weight:650;cursor:pointer;text-decoration:none;display:inline-block}
+button:disabled{background:#aab4c1;cursor:default}button.alt,.btn.alt{background:#e9f0f9;color:#143457}button.green{background:#15785d}button.orange{background:#bd6b0e}
+.item{border-top:1px solid #edf1f7;padding:13px 0}.item:first-child{border-top:0}.item strong{font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+input,textarea{width:100%;padding:11px 12px;border:1px solid #d2ddeb;border-radius:10px;font:inherit;color:#132543}textarea{resize:vertical;min-height:72px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.total{font-size:29px;font-weight:850;color:#173a67}
+table{border-collapse:collapse;width:100%}td,th{padding:9px;border-bottom:1px solid #e8edf4;text-align:left;font-size:13px;vertical-align:top}th{font-size:11px;color:#69819a}
+.notice{background:#fff7e7;border:1px solid #eedda9;border-radius:12px;padding:13px;font-size:12px;line-height:1.5;color:#694c17}
+#message{margin:13px 0;white-space:pre-wrap}#message.error{color:#a02d2d}#message.success{color:#14775b}
+@media(max-width:880px){main{display:block}.bar{flex-wrap:wrap}.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><div class="bar"><div><strong style="font-size:20px">MARKNET</strong><span style="opacity:.7"> / Faktury</span></div>
+<nav><a href="/app">Generator ofert</a><a class="active" href="/faktury">Faktury</a><a href="/admin">Panel admina</a></nav></div></header>
+<main>
+<div>
+  <div class="card"><h2>Zaakceptowane oferty</h2><p class="muted small">Przekształć zapisaną, zaakceptowaną ofertę w szkic faktury jednym kliknięciem.</p><div id="offers">Ładowanie...</div></div>
+  <div class="card"><div class="row"><h2>Historia faktur</h2><button class="alt" onclick="loadAll()">Odśwież</button></div><div id="invoices">Ładowanie...</div></div>
+</div>
+<div>
+  <div class="card"><div class="row"><div><h1>Faktura VAT</h1><p class="muted" style="margin:0">Oferta → szkic → wystawienie → KSeF → PDF/e-mail</p></div><span class="tag" id="state">Wybierz dokument</span></div>
+   <div id="message"></div>
+   <div id="empty" class="muted">Wybierz fakturę z historii albo kliknij „Fakturuj” przy zaakceptowanej ofercie.</div>
+   <div id="editor" hidden>
+    <div class="row wrap" style="margin:20px 0"><div><div class="muted small">Numer faktury</div><strong id="number">Szkic</strong><div class="muted small">Powiązana oferta: <span id="origin"></span></div></div><div class="total" id="amount"></div></div>
+    <div class="grid">
+      <div><label>Nabywca</label><input id="buyerName"></div>
+      <div><label>NIP nabywcy</label><input id="buyerNip" inputmode="numeric"></div>
+      <div><label>Adres nabywcy</label><textarea id="buyerAddress"></textarea></div>
+      <div><label>E-mail odbiorcy</label><input id="buyerEmail" type="email"></div>
+      <div><label>Data wystawienia</label><input id="issueDate" type="date"></div>
+      <div><label>Data wykonania usługi / sprzedaży</label><input id="saleDate" type="date"></div>
+      <div><label>Termin płatności</label><input id="dueDate" type="date"></div>
+      <div><label>Opis usługi</label><input id="title"></div>
+    </div>
+    <div class="actions" id="draftActions"><button onclick="save()">Zapisz szkic</button><button class="green" onclick="issue()">Wystaw fakturę</button></div>
+    <h2>Pozycje (netto)</h2><div style="overflow-x:auto"><table><thead><tr><th>Opis</th><th>Netto</th><th>VAT</th></tr></thead><tbody id="lines"></tbody></table></div>
+    <div class="actions" id="issuedActions">
+      <button class="alt" onclick="download('pdf')">PDF</button>
+      <button class="alt" onclick="download('xml')">XML FA(3)</button>
+      <button class="orange" onclick="sendKsef()">Wyślij do KSeF</button>
+      <button class="alt" onclick="checkKsef()">Sprawdź status KSeF</button>
+      <button class="alt" onclick="download('ksef/upo')">UPO</button>
+      <button class="green" onclick="sendEmail()">Wyślij PDF e-mailem</button>
+    </div>
+    <div class="notice">KSeF PROD wymaga skonfigurowanego tokenu i osobnego aktywowania po testach. Wysyłka wymaga potwierdzenia. E-mail jest dostępny po potwierdzeniu przyjęcia w KSeF. Ten moduł nie wystawia faktur korygujących ani zaliczkowych.</div>
+    <p class="muted small" id="ksefInfo"></p>
+   </div>
+  </div>
+</div></main>
+<script>
+let selected=null;
+const byId=id=>document.getElementById(id);
+const ehtml=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pln=c=>new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(Number(c||0)/100);
+function note(s,error=false){const m=byId('message');m.textContent=s;m.className=error?'error':'success';}
+async function api(url,method,body){
+  const r=await fetch(url,{method:method||'GET',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+  const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Błąd żądania');return j;
+}
+function inputs(){const obj={};['buyerName','buyerNip','buyerAddress','buyerEmail','issueDate','saleDate','dueDate','title'].forEach(k=>obj[k]=byId(k).value);return obj}
+function render(inv){
+  selected=inv;byId('empty').hidden=true;byId('editor').hidden=false;
+  byId('number').textContent=inv.number||'SZKIC';byId('origin').textContent=inv.offerNumber;
+  byId('amount').textContent=pln(inv.totals.gross);byId('state').textContent=inv.status==='draft'?'Szkic':('Wystawiona • KSeF: '+(inv.ksef?.state||'brak'));
+  ['buyerName','buyerNip','buyerAddress','buyerEmail','issueDate','saleDate','dueDate','title'].forEach(k=>{byId(k).value=inv[k]||'';byId(k).disabled=inv.status!=='draft'});
+  byId('draftActions').hidden=inv.status!=='draft';
+  byId('issuedActions').hidden=inv.status==='draft';
+  byId('lines').innerHTML=(inv.lines||[]).map(r=>'<tr><td>'+ehtml(r.description)+' <span class="muted">('+ehtml(r.detail)+')</span></td><td>'+pln(r.net)+'</td><td>'+pln(r.vat)+'</td></tr>').join('');
+  byId('ksefInfo').textContent=inv.ksef?.ksefNumber?'Numer KSeF: '+inv.ksef.ksefNumber:'Stan KSeF: '+(inv.ksef?.state||'nie wysłano')+(inv.ksef?.error?' | '+inv.ksef.error:'');
+}
+async function openInvoice(id){try{const x=await api('/api/billing/'+encodeURIComponent(id));render(x.invoice);history.replaceState({},'', '/faktury?id='+encodeURIComponent(id));note('')}catch(e){note(e.message,true)}}
+async function convert(number){try{const x=await api('/api/billing/from-offer/'+encodeURIComponent(number),'POST',{});render(x.invoice);history.replaceState({},'', '/faktury?id='+encodeURIComponent(x.invoice.id));note('Przeniesiono zaakceptowaną ofertę do faktury. Zweryfikuj dane przed wystawieniem.');await loadAll()}catch(e){note(e.message,true)}}
+async function loadAll(){
+  try{
+    const [offers,bills]=await Promise.all([api('/api/drafts'),api('/api/billing/list')]);
+    const accepted=(offers.drafts||[]).filter(o=>o.offerStatus==='Zaakceptowana');
+    byId('offers').innerHTML=accepted.length?accepted.map(o=>'<div class="item"><strong>'+ehtml(o.offerNumber)+'</strong><div class="muted small">'+ehtml(o.clientName||'')+'</div><button class="green" data-convert="'+ehtml(o.offerNumber)+'">Fakturuj</button></div>').join(''):'<p class="muted small">Brak ofert ze statusem Zaakceptowana.</p>';
+    byId('invoices').innerHTML=(bills.invoices||[]).length?bills.invoices.map(i=>'<div class="item"><strong>'+ehtml(i.number||'Szkic')+'</strong><div class="muted small">'+ehtml(i.buyerName)+' • '+pln(i.gross)+'</div><div class="row"><span class="tag">'+ehtml(i.ksefState||i.status)+'</span><button class="alt" data-open="'+ehtml(i.id)+'">Otwórz</button></div></div>').join(''):'<p class="muted small">Brak faktur.</p>';
+  }catch(e){note(e.message,true)}
+}
+document.addEventListener('click',e=>{const c=e.target.closest('[data-convert]');if(c)convert(c.dataset.convert);const b=e.target.closest('[data-open]');if(b)openInvoice(b.dataset.open)});
+async function save(){if(!selected)return;try{render((await api('/api/billing/'+selected.id,'PATCH',inputs())).invoice);note('Zapisano dane szkicu.')}catch(e){note(e.message,true)}}
+async function issue(){
+  if(!selected||!confirm('Wystawić fakturę? Po wystawieniu nie będzie możliwa zwykła edycja.'))return;
+  try{await save();const x=await api('/api/billing/'+selected.id+'/issue','POST',{});render(x.invoice);note('Faktura została wystawiona.');loadAll()}catch(e){note(e.message,true)}
+}
+function download(kind){if(!selected)return;window.open('/api/billing/'+encodeURIComponent(selected.id)+'/'+kind,'_blank','noopener')}
+async function sendKsef(){
+  if(!selected||!confirm('Przekazać tę fakturę do produkcyjnego KSeF? Operacja może mieć skutki prawne.'))return;
+  try{const x=await api('/api/billing/'+selected.id+'/ksef/send','POST',{confirm:true});render(x.invoice);note('KSeF przyjął zgłoszenie do przetwarzania. Sprawdź status.')}catch(e){note(e.message,true)}
+}
+async function checkKsef(){if(!selected)return;try{const x=await api('/api/billing/'+selected.id+'/ksef/status','POST',{});render(x.invoice);note('Zaktualizowano status KSeF.')}catch(e){note(e.message,true)}}
+async function sendEmail(){if(!selected||!confirm('Wysłać PDF na '+selected.buyerEmail+'?'))return;try{const j=await api('/api/billing/'+selected.id+'/email','POST',{});note(j.message)}catch(e){note(e.message,true)}}
+loadAll().then(()=>{const id=new URLSearchParams(location.search).get('id');if(id)openInvoice(id)});
+</script></body></html>
