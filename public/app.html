@@ -242,6 +242,7 @@
       <nav class="navtabs">
         <a class="navtab active" href="/app">Kreator ofert</a>
         <a class="navtab" href="#draftsBlock">Przeglądarka ofert</a>
+        <a class="navtab" href="/faktury">Faktury VAT</a>
         <a class="navtab" href="/admin">Magazyn</a>
         <a class="navtab" href="/admin-wrzutka">Wrzutka</a>
         <a class="navtab" href="/">Strona główna</a>
@@ -287,6 +288,8 @@
               <div class="field span-2"><label>Klient</label><input id="clientName" placeholder="Np. XYZ Sp. z o.o." /></div>
               <div class="field"><label>Osoba kontaktowa</label><input id="contactName" placeholder="Np. Jan Kowalski" /></div>
               <div class="field"><label>E-mail klienta</label><input id="clientEmail" placeholder="kontakt@firma.pl" /></div>
+              <div class="field"><label>NIP klienta (do faktury)</label><input id="clientNip" placeholder="10 cyfr" /></div>
+              <div class="field span-2"><label>Adres klienta (do faktury)</label><input id="clientAddress" placeholder="Ulica i numer, kod, miejscowość" /></div>
               <div class="field span-2"><label>Tytuł oferty / wydarzenie</label><input id="eventName" placeholder="Np. Gala, konferencja, koncert" /></div>
               <div class="field"><label>Miejscowość</label><input id="location" placeholder="Warszawa" /></div>
               <div class="field"><label>Data wydarzenia</label><input id="eventDate" type="date" /></div>
@@ -393,6 +396,7 @@
             </div>
             <div class="summary-actions">
               <button class="btn dark" type="button" onclick="saveDraft()">Zapisz szkic</button>
+              <button class="btn green" type="button" onclick="convertCurrentOffer()">Przekształć w fakturę</button>
               <label class="check-row"><input id="includeSignature" type="checkbox" /> Dodaj podpis do PDF</label>
               <button class="btn primary" type="button" onclick="preparePdfAndPrint()">Generuj PDF</button>
               <button class="btn green" type="button" onclick="copyOfferText()">Kopiuj tekst</button>
@@ -724,6 +728,8 @@
         clientName: byId('clientName').value.trim(),
         contactName: byId('contactName').value.trim(),
         clientEmail: byId('clientEmail').value.trim(),
+        clientNip: byId('clientNip').value.trim(),
+        clientAddress: byId('clientAddress').value.trim(),
         eventName: byId('eventName').value.trim(),
         location: byId('location').value.trim(),
         notes: byId('notes').value.trim(),
@@ -742,6 +748,8 @@
       byId('clientName').value = data.clientName || '';
       byId('contactName').value = data.contactName || '';
       byId('clientEmail').value = data.clientEmail || '';
+      byId('clientNip').value = data.clientNip || '';
+      byId('clientAddress').value = data.clientAddress || '';
       byId('eventName').value = data.eventName || '';
       byId('location').value = data.location || '';
       byId('notes').value = data.notes || '';
@@ -767,6 +775,29 @@
         byId('saveStatus').textContent = e.message || 'Nie udało się zapisać szkicu.';
         alert(e.message || 'Nie udało się zapisać szkicu.');
       }
+    }
+
+    async function convertCurrentOffer(){
+      const data = collectData();
+      if(data.offerStatus !== 'Zaakceptowana'){
+        alert('Ustaw status Zaakceptowana i zapisz ofertę.');
+        return;
+      }
+      if(!data.offerNumber){ alert('Podaj numer oferty.'); return; }
+      try{
+        const saved = await fetch('/api/drafts/save', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({offerNumber:data.offerNumber,data})
+        });
+        const saveResult = await saved.json();
+        if(!saved.ok || !saveResult.ok) throw new Error(saveResult.message || 'Nie udało się zapisać oferty.');
+        const response = await fetch('/api/billing/from-offer/' + encodeURIComponent(data.offerNumber), {
+          method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
+        });
+        const result = await response.json();
+        if(!response.ok || !result.ok) throw new Error(result.message || 'Nie udało się utworzyć faktury.');
+        window.location.href = '/faktury?id=' + encodeURIComponent(result.invoice.id);
+      }catch(error){ alert(error.message || 'Błąd wystawiania faktury.'); }
     }
 
     async function refreshDraftList(){
@@ -837,7 +868,7 @@
 
     function resetForm(){
       if(!confirm('Wyczyścić całą ofertę?')) return;
-      ['clientName','contactName','clientEmail','eventName','location','notes'].forEach(id => byId(id).value = '');
+      ['clientName','contactName','clientEmail','clientNip','clientAddress','eventName','location','notes'].forEach(id => byId(id).value = '');
       byId('offerStatus').value = 'Szkic';
       byId('discountPercent').value = 0;
       byId('offerDate').value = todayISO();
