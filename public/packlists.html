@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mark Media — Realizacje i pack listy</title>
+<style>
+:root{--bg:#091322;--card:#121f34;--line:rgba(255,255,255,.12);--blue:#397ff2;--text:#f1f6ff;--muted:#a9bed9;--ok:#18a777}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#183e70 0,#091322 52%);font-family:Inter,Arial,sans-serif;color:var(--text);min-height:100vh}
+main{max-width:1140px;margin:0 auto;padding:25px 18px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;padding:22px 25px;border:1px solid var(--line);border-radius:20px;background:var(--card)}
+h1{font-size:30px;margin:5px 0 6px;letter-spacing:-.04em}.top p{margin:0;color:var(--muted);line-height:1.4}
+nav{display:flex;gap:9px;flex-wrap:wrap}a.button,button{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:1px solid var(--line);background:#253651;color:var(--text);border-radius:11px;padding:12px 15px;text-decoration:none;font-weight:800;font-size:14px}a.button.primary{background:var(--blue);border:0}
+.search{display:flex;gap:12px;margin:22px 0}input{min-width:0;flex:1;background:#121f34;color:#fff;border:1px solid var(--line);padding:15px 16px;border-radius:13px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.job{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:21px;display:grid;gap:14px;min-width:0}.job h2{margin:3px 0 0;font-size:18px;overflow-wrap:anywhere}.job small{color:var(--muted)}.job .topline{display:flex;justify-content:space-between;align-items:center;gap:8px}.job .number{font-weight:900;color:#aad0ff}.job .meta{display:grid;gap:7px;color:#d3e0f2;font-size:13px}.job .button{justify-self:start}.empty{padding:22px;border:1px dashed var(--line);border-radius:14px;background:rgba(255,255,255,.035);color:var(--muted)}
+.status{margin:16px 0;color:var(--muted);font-size:14px;line-height:1.5}
+@media(max-width:690px){main{padding:14px}.top{padding:18px}h1{font-size:26px}.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<header class="top"><div><small>MARK MEDIA EVENT SOLUTION · PANEL REALIZACJI</small><h1>Pack listy wydarzeń</h1><p>Przygotowanie sprzętu i zadania ekipy. Każdy członek zespołu odznacza swoją checklistę.</p></div>
+<nav><a href="/app" id="offerNav" class="button" hidden>Generator ofert</a><a href="/admin" id="adminNav" class="button" hidden>Administracja</a><button id="logout">Wyloguj</button></nav></header>
+<div class="search"><input id="query" type="search" placeholder="Szukaj numeru oferty, wydarzenia, miejscowości lub klienta…" aria-label="Szukaj realizacji"><button id="refresh">Odśwież</button></div>
+<div class="status" id="status">Wczytywanie wydarzeń…</div><section id="jobs" class="grid" aria-live="polite"></section>
+</main><script>
+const el=id=>document.getElementById(id), escapeHtml=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
+let all=[];
+function draw(){
+ const q=el('query').value.trim().toLocaleLowerCase('pl');
+ const list=all.filter(d=>[d.offerNumber,d.eventName,d.clientName,d.location].join(' ').toLocaleLowerCase('pl').includes(q));
+ el('jobs').innerHTML=list.length?list.map(d=>`
+  <article class="job">
+    <div class="topline"><span class="number">${escapeHtml(d.offerNumber)}</span><small>${escapeHtml(d.updatedAt?.slice(0,10)||'')}</small></div>
+    <h2>${escapeHtml(d.eventName||'Realizacja bez tytułu')}</h2>
+    <div class="meta"><span>📍 ${escapeHtml(d.location||'Miejsce nieustalone')}</span><span>Klient: ${escapeHtml(d.clientName||'—')}</span></div>
+    <a class="button primary" href="/packlist?offer=${encodeURIComponent(d.offerNumber)}">Otwórz pack listę →</a>
+  </article>`).join(''):'<div class="empty">Nie znaleziono wydarzeń. Pack lista pojawia się po zapisaniu oferty przez realizatora.</div>';
+ el('status').textContent=list.length+' wydarzeń · kliknij realizację, aby przygotować sprzęt i zadania';
+}
+async function load(){
+ el('status').textContent='Wczytywanie realizacji…';
+ try{
+  const [mine,response]=await Promise.all([fetch('/api/me'),fetch('/api/packlist-offers')]);
+  if(mine.status===401||response.status===401){location.href='/login';return;}
+  if(!response.ok)throw new Error('Serwer nie udostępnił listy realizacji.');
+  const user=await mine.json();
+  el('offerNav').hidden=user.role==='pracownik';
+  el('adminNav').hidden=user.role!=='admin';
+  all=(await response.json()).offers||[];
+  draw();
+ }catch(e){el('status').textContent='Błąd: '+e.message;}
+}
+el('query').addEventListener('input',draw);
+el('refresh').addEventListener('click',load);
+el('logout').addEventListener('click',async()=>{await fetch('/api/logout',{method:'POST'}).catch(()=>{});localStorage.removeItem('admin_token');location.href='/login';});
+load();
+</script></body></html>
