@@ -54,122 +54,71 @@ body{background:#fff;color:#111;font-size:11px;-webkit-print-color-adjust:exact;
 .note:empty:before{content:""}
 .summary{border:0;padding:6px 0}
 }
+
+.status.error{background:#ffebed;color:#a11a30;border:1px solid #f3bfc9}
+.help{margin:9px 16px 14px;color:#546782;font-size:13px;line-height:1.55}
+.add-panel,.led-section{border:1px solid var(--line);background:#fff;border-radius:15px;margin:17px 0;overflow:hidden}
+.manual-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;padding:0 17px 17px}
+.manual-form label,.led-config label{display:flex;flex-direction:column;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#50627e;font-weight:800;min-width:0}
+.manual-form input,.manual-form select,.led-config input,.led-config select{width:100%;padding:11px 12px;font-size:14px;font-weight:600;color:#152239;border:1px solid #cbd8e8;border-radius:10px;background:#fff;min-width:0}
+.manual-form label.wide{grid-column:span 2}
+.manual-form .form-actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.led-config{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:15px 17px;border-top:1px solid var(--line);align-items:end}
+.led-config .led-label,.led-config .led-result{grid-column:1/-1}
+.led-config .led-result{font-size:13px;font-weight:800;color:#125e4a;background:#e6f8ee;padding:12px;border-radius:10px;line-height:1.45}
+.led-config .led-result.warn{color:#884b06;background:#fff0d9}
+.led-config .btn{grid-column:1/-1;justify-self:start}
+.note:focus{background:#f8fbff;outline:2px solid #8eb8f8}
+.extra-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.small-btn{padding:6px 9px;border:1px solid #b5c5d8;border-radius:8px;background:#fff;font-size:11px;font-weight:750;cursor:pointer;color:#24466a}
+.small-btn.remove{color:#b3233d;border-color:#f0c3ce}
+.pack-row>.qty{overflow-wrap:anywhere}
+.group-head h2{overflow-wrap:anywhere}
+@media(max-width:850px){.manual-form,.led-config{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){.manual-form,.led-config{grid-template-columns:minmax(0,1fr)}.manual-form label.wide{grid-column:1/-1}}
+@media print{.no-print,#ledPanel,.add-panel{display:none!important}.pack-row{overflow-wrap:anywhere}
+ .pack-row .qty{font-size:10px}.pack-row>.source{overflow-wrap:anywhere}
+}
 </style>
 </head>
 <body>
 <div class="wrapper">
 <header class="header"><div><small>MARK MEDIA EVENT SOLUTION · LOGISTYKA</small><h1>PACK LISTA / LISTA ZAŁADUNKOWA</h1><p>Sprzęt, transport i personel na wydarzenie — bez cen dla klienta</p></div><a href="/app">← Wróć do ofert</a></header>
 <div class="actions">
-<button class="btn primary" onclick="window.print()">Drukuj / zapisz jako PDF</button>
-<button class="btn" onclick="location.reload()">Odśwież</button>
+<button class="btn primary" onclick="printPacklist()">Drukuj / zapisz jako PDF</button>
+<button class="btn" onclick="reload()">Synchronizuj z pracownikami</button>
 <button class="btn danger" onclick="clearChecks()">Odznacz wszystkie</button>
 </div>
 <div class="status" id="status">Wczytywanie oferty i statusu pakowania…</div>
 <div class="meta" id="meta"></div>
 <div class="summary" id="summary" style="display:none"></div>
+<div id="ledPanel"></div>
+<section class="add-panel no-print">
+  <div class="group-head"><h2>Dodaj własny sprzęt lub zadanie do checklisty</h2></div>
+  <p class="help">Możesz dodać kable, konwertery, adaptery, zapasowe kabinety lub czynności kontrolne. Pozycje są zapisywane dla tego wydarzenia i widoczne dla pracowników. Nie zmieniają wyceny oferty.</p>
+  <form class="manual-form" id="extraForm">
+    <input type="hidden" id="extraId">
+    <label>Rodzaj<select name="kind"><option value="equipment">Sprzęt / akcesoria</option><option value="task">Czynność do wykonania</option><option value="crew">Personel / zadanie ekipy</option></select></label>
+    <label>Grupa / kategoria<input name="groupName" list="packGroups" value="Dodatkowe / ręczne" maxlength="100" required>
+      <datalist id="packGroups">
+        <option value="LED — akcesoria"><option value="Okablowanie sygnałowe">
+        <option value="Okablowanie zasilające"><option value="Procesory / sterowanie">
+        <option value="Sieć / streaming"><option value="Audio"><option value="Oświetlenie">
+        <option value="Rigging / konstrukcja"><option value="Transport / załadunek">
+        <option value="Kontrola przed wyjazdem"><option value="Kontrola na miejscu">
+      </datalist></label>
+    <label>Nazwa pozycji<input name="name" placeholder="Np. przewód powerCON 1,5 m / test sygnału LED" maxlength="180" required></label>
+    <label>Ilość<input name="qty" type="number" min="0.01" max="100000" step="0.01" value="1" required></label>
+    <label>Jednostka<input name="unit" placeholder="szt. / kpl. / zad." maxlength="35" value="szt."></label>
+    <label>Źródło / przydział<input name="source" placeholder="Np. magazyn Mark Media / wypożyczalnia" maxlength="120"></label>
+    <label class="wide">Szczegóły (opcjonalnie)<input name="details" placeholder="Np. skrzynia nr 3, końcówki, długość przewodu" maxlength="400"></label>
+    <div class="form-actions"><button class="btn primary" type="submit" id="extraSave">Dodaj do listy</button>
+      <button class="btn" type="button" id="extraCancel" hidden>Anuluj edycję</button></div>
+  </form>
+</section>
 <div id="list"></div>
 </div>
-<script>
-const query=new URLSearchParams(location.search);
-const offer=query.get('offer')||'';
-const apiPath='/api/packlists/'+encodeURIComponent(offer);
-let data=null, state={checked:{},notes:{}}, items=[];
-const $=id=>document.getElementById(id);
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function setStatus(v){$('status').textContent=v;}
-function keyFor(item,index){return /^[a-zA-Z0-9._:-]{1,125}$/.test(String(item.uid||''))?item.uid:'legacy-'+index;}
-function isCrew(item){return item.category==='crew'||item.source==='personnel';}
-function quantity(item){const q=Number(item.qty||0);const formatted=Number.isInteger(q)?String(q):String(q).replace('.',',');return formatted+(item.pricingMode==='per_m2'?' m²':item.unitLabel?' '+item.unitLabel:' szt.');}
-function getGroups(){
- const groups=new Map();
- for(const item of items.filter(x=>!isCrew(x.data))){
-  const label=item.data.categoryLabel||item.data.category||'Pozostałe';
-  const group=item.data.groupName||'Pozycje';
-  const k=label+' / '+group;
-  if(!groups.has(k))groups.set(k,[]);
-  groups.get(k).push(item);
- }
- return groups;
-}
-function progress(){
- const count=items.filter(i=>state.checked[i.key]===true).length;
- $('summary').style.display='flex';
- $('summary').textContent='Spakowano / potwierdzono: '+count+' z '+items.length+' pozycji';
-}
-function render(){
- const d=data;
- $('meta').innerHTML=[
-  ['Numer oferty',d.offerNumber||offer],['Wydarzenie',d.eventName||'—'],['Klient',d.clientName||'—'],
-  ['Data wydarzenia',d.eventDate||'—'],['Lokalizacja',d.location||'—'],['Status oferty',d.offerStatus||'Szkic']
- ].map(([label,value])=>'<div><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('');
- const groupBlock=(title,rows,crew=false)=>{
-  const head=crew?'<div class="grid-head crew-row"><span>OK</span><span>Stanowisko</span><span>Osób</span><span>Przydział</span><span>Uwagi wewnętrzne</span></div>':'<div class="grid-head"><span>OK</span><span>Sprzęt / pozycja</span><span>Ilość</span><span>Źródło / stan</span><span>Uwagi logistyczne</span></div>';
-  const body=rows.map(({data:item,key})=>{
-    const checked=state.checked[key]===true;
-    const owner=item.ownership==='cross-rental'?'Cross-rental':item.ownership==='own'?'Własny':(item.ownership==='owned'?'Własny':'Do ustalenia');
-    const stored=item.stockAtQuote==null?'':String(item.stockAtQuote);
-    const warning=item.ownership!=='cross-rental'&&stored!==''&&Number(item.qty||0)>Number(stored)&&item.pricingMode!=='per_m2'?' · sprawdź dostępność':'';
-    const meta=crew
-      ? '<small>'+esc(item.assignedNames||'Nieprzypisany personel')+'</small>'
-      : '<small>'+esc(item.groupName||'')+(item.pricingMode==='per_m2'?' · określ liczbę kabinetów':'')+'</small>';
-    return '<div class="pack-row'+(crew?' crew-row':'')+'" data-checked="'+checked+'">'+
-      '<button class="check" aria-label="'+(checked?'Odznacz':'Oznacz')+'" onclick="toggleChecked(\''+esc(key)+'\')">'+(checked?'☑':'☐')+'</button>'+
-      '<div><strong>'+esc(item.name||'Pozycja')+'</strong>'+meta+'</div>'+
-      '<div class="qty">'+(crew?esc(String(item.qty||1))+' × '+esc(String(item.days||1))+' d':esc(quantity(item)))+'</div>'+
-      '<div class="source">'+(crew?esc(item.assignedNames||'Do obsadzenia'):esc(owner+(stored!==''?' · stan: '+stored:'')+warning))+'</div>'+
-      '<div class="note" contenteditable="true" role="textbox" aria-label="Uwagi logistyczne" data-note="'+esc(key)+'">'+esc(Object.prototype.hasOwnProperty.call(state.notes,key)?state.notes[key]:(item.internalNotes||''))+'</div>'+
-      '</div>';
-  }).join('');
-  return '<section class="group"><div class="group-head"><h2>'+esc(title)+'</h2><small>'+rows.length+' pozycji</small></div>'+head+body+'</section>';
- };
- let html='';
- for(const [name,rows] of getGroups())html+=groupBlock(name,rows);
- const crew=items.filter(i=>isCrew(i.data));
- if(crew.length)html+=groupBlock('PERSONEL / OBSŁUGA TECHNICZNA',crew,true);
- $('list').innerHTML=html||'<p>Brak pozycji do spakowania.</p>';
- progress();
-}
-let lastSavedAt=0,saveTimer=null,writeQueue=Promise.resolve();
-function saveState(){
- const payload=JSON.stringify(state);
- writeQueue=writeQueue.catch(()=>{}).then(async()=>{
- try{
-  const res=await fetch(apiPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:payload});
-  if(!res.ok)throw Error('Zapis odrzucony: '+res.status);
-  await res.json();
-  lastSavedAt=Date.now();
-  setStatus('Status pakowania zapisany na serwerze · '+new Date().toLocaleTimeString('pl-PL'));
- }catch(e){setStatus('Nie zapisano zmian! '+e.message+' — sprawdź połączenie.');}
- });
- return writeQueue;
-}
-function scheduleSave(){setStatus('Zapisywanie zmian…');clearTimeout(saveTimer);saveTimer=setTimeout(saveState,500);}
-function toggleChecked(key){if(state.checked[key])delete state.checked[key];else state.checked[key]=true;render();scheduleSave();}
-async function clearChecks(){if(!confirm('Odznaczyć wszystkie pozycje tej pack listy?'))return;state.checked={};render();scheduleSave();}
-$('list').addEventListener('input',event=>{
- const el=event.target.closest('[data-note]');
- if(!el)return;
- const key=el.dataset.note;
- const note=el.innerText.slice(0,500);
- state.notes[key]=note;
- scheduleSave();
-});
-async function init(){
- if(!offer){setStatus('Nie podano numeru oferty. Otwórz pack listę z generatora ofert.');return;}
- try{
-  const [d,s]=await Promise.all([fetch('/api/drafts/'+encodeURIComponent(offer)),fetch(apiPath)]);
-  if(!d.ok)throw Error('Nie znaleziono zapisanej oferty ('+d.status+').');
-  if(!s.ok)throw Error(s.status===401?'Zaloguj się ponownie.':'Nie udało się pobrać statusu pakowania.');
-  const dJson=await d.json(), sJson=await s.json();
-  data=dJson.data||{};
-  const saved=sJson.data||{};
-  state={checked:saved.checked||{},notes:saved.notes||{}};
-  items=(Array.isArray(data.items)?data.items:[]).map((entry,index)=>({data:entry,key:keyFor(entry,index)}));
-  render();
-  setStatus('Gotowe · zaznaczaj przygotowane pozycje; stan zapisywany jest na serwerze.');
- }catch(e){setStatus(e.message);}
-}
-init();
-</script>
+<script src="/led-utils.js"></script>
+<script src="/packlist-app.js"></script>
 </body>
 </html>
