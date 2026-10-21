@@ -312,8 +312,16 @@ async function reload(){
    render();setStatus('Synchronizacja zakończona · '+new Date().toLocaleTimeString('pl-PL'));
  }catch(error){setStatus(error.message,true);}
 }
+$('logoutPack').addEventListener('click',async()=>{
+ await fetch('/api/logout',{method:'POST'}).catch(()=>{});
+ localStorage.removeItem('admin_token');
+ location.href='/login';
+});
 async function init(){
  if(!offer){setStatus('Brak numeru oferty. Wygeneruj pack listę z generatora ofert.',true);return;}
+ const mine=await fetch('/api/me').catch(()=>null);
+ if(!mine||mine.status===401){location.href='/login';return;}
+ if(mine.ok){const me=await mine.json();$('offerBack').hidden=me.role==='pracownik';}
  try{
    const [saved,pack]=await Promise.all([fetch(apiPath+'/brief'),fetch(apiPath)]);
    if(!saved.ok)throw new Error('Nie znaleziono zapisanej oferty. Zapisz ją najpierw w generatorze.');
