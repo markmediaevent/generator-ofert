@@ -27,8 +27,9 @@ table{border-collapse:collapse;width:100%}td,th{padding:9px;border-bottom:1px so
 <nav><a href="/app">Generator ofert</a><a class="active" href="/faktury">Faktury</a><a href="/admin">Panel admina</a></nav></div></header>
 <main>
 <div>
+  <div class="card"><div class="row wrap"><h2>Nowa faktura</h2><button class="green" onclick="manual()">+ Faktura ręczna</button></div><p class="muted small">Faktury możesz również wystawić bez powiązania z ofertą.</p></div>
   <div class="card"><h2>Zaakceptowane oferty</h2><p class="muted small">Przekształć zapisaną, zaakceptowaną ofertę w szkic faktury jednym kliknięciem.</p><div id="offers">Ładowanie...</div></div>
-  <div class="card"><div class="row"><h2>Historia faktur</h2><button class="alt" onclick="loadAll()">Odśwież</button></div><div id="invoices">Ładowanie...</div></div>
+  <div class="card"><div class="row wrap"><h2>Historia faktur</h2><button class="alt" onclick="loadAll()">Odśwież</button><a href="/api/billing/backup" class="btn alt" download>Eksport kopii</a></div><div id="invoices">Ładowanie...</div></div>
 </div>
 <div>
   <div class="card"><div class="row"><div><h1>Faktura VAT</h1><p class="muted" style="margin:0">Oferta → szkic → wystawienie → KSeF → PDF/e-mail</p></div><span class="tag" id="state">Wybierz dokument</span></div>
@@ -53,7 +54,7 @@ table{border-collapse:collapse;width:100%}td,th{padding:9px;border-bottom:1px so
       <button class="alt" onclick="download('xml')">XML FA(3)</button>
       <button class="orange" onclick="sendKsef()">Wyślij do KSeF</button>
       <button class="alt" onclick="checkKsef()">Sprawdź status KSeF</button>
-      <button class="alt" onclick="download('ksef/upo')">UPO</button>
+      <button class="alt" onclick="download('ksef/upo')">UPO</button><button class="alt" onclick="setPaid()" id="paymentButton">Oznacz jako zapłaconą</button>
       <button class="green" onclick="sendEmail()">Wyślij PDF e-mailem</button>
     </div>
     <div class="notice">KSeF PROD wymaga skonfigurowanego tokenu i osobnego aktywowania po testach. Wysyłka wymaga potwierdzenia. E-mail jest dostępny po potwierdzeniu przyjęcia w KSeF. Ten moduł nie wystawia faktur korygujących ani zaliczkowych.</div>
@@ -80,7 +81,32 @@ function render(inv){
   byId('draftActions').hidden=inv.status!=='draft';
   byId('issuedActions').hidden=inv.status==='draft';
   byId('lines').innerHTML=(inv.lines||[]).map(r=>'<tr><td>'+ehtml(r.description)+' <span class="muted">('+ehtml(r.detail)+')</span></td><td>'+pln(r.net)+'</td><td>'+pln(r.vat)+'</td></tr>').join('');
+  byId('paymentButton').textContent=inv.paymentStatus==='paid'?'Oznacz jako nieopłaconą':'Oznacz jako zapłaconą';
   byId('ksefInfo').textContent=inv.ksef?.ksefNumber?'Numer KSeF: '+inv.ksef.ksefNumber:'Stan KSeF: '+(inv.ksef?.state||'nie wysłano')+(inv.ksef?.error?' | '+inv.ksef.error:'');
+}
+async function manual(){
+  const description=prompt('Opis usługi:');
+  if(!description)return;
+  const amount=prompt('Wartość netto usługi w PLN (np. 3600):');
+  if(!amount)return;
+  try{
+    const net=Number(amount.trim().replace(',','.'));
+    const j=await api('/api/billing/manual','POST',{description,net});
+    render(j.invoice);
+    history.replaceState({},'', '/faktury?id='+encodeURIComponent(j.invoice.id));
+    note('Utworzono szkic ręcznej faktury. Wypełnij dane nabywcy i zapisz.');
+    loadAll();
+  }catch(e){note(e.message,true)}
+}
+async function setPaid(){
+  if(!selected)return;
+  const paid=selected.paymentStatus!=='paid';
+  if(!confirm(paid?'Potwierdź otrzymanie płatności.':'Oznaczyć ponownie jako nieopłaconą?'))return;
+  try{
+    const j=await api('/api/billing/'+selected.id+'/payment','POST',{paid});
+    render(j.invoice);note(paid?'Oznaczono jako opłaconą.':'Oznaczono jako nieopłaconą.');
+    loadAll();
+  }catch(e){note(e.message,true)}
 }
 async function openInvoice(id){try{const x=await api('/api/billing/'+encodeURIComponent(id));render(x.invoice);history.replaceState({},'', '/faktury?id='+encodeURIComponent(id));note('')}catch(e){note(e.message,true)}}
 async function convert(number){try{const x=await api('/api/billing/from-offer/'+encodeURIComponent(number),'POST',{});render(x.invoice);history.replaceState({},'', '/faktury?id='+encodeURIComponent(x.invoice.id));note('Przeniesiono zaakceptowaną ofertę do faktury. Zweryfikuj dane przed wystawieniem.');await loadAll()}catch(e){note(e.message,true)}}
@@ -95,8 +121,13 @@ async function loadAll(){
 document.addEventListener('click',e=>{const c=e.target.closest('[data-convert]');if(c)convert(c.dataset.convert);const b=e.target.closest('[data-open]');if(b)openInvoice(b.dataset.open)});
 async function save(){if(!selected)return;try{render((await api('/api/billing/'+selected.id,'PATCH',inputs())).invoice);note('Zapisano dane szkicu.')}catch(e){note(e.message,true)}}
 async function issue(){
-  if(!selected||!confirm('Wystawić fakturę? Po wystawieniu nie będzie możliwa zwykła edycja.'))return;
-  try{await save();const x=await api('/api/billing/'+selected.id+'/issue','POST',{});render(x.invoice);note('Faktura została wystawiona.');loadAll()}catch(e){note(e.message,true)}
+  if(!selected||!confirm('Zatwierdzić numer faktury? Po zatwierdzeniu zwykła edycja będzie zablokowana.'))return;
+  try{
+    const saved=await api('/api/billing/'+selected.id,'PATCH',inputs());
+    render(saved.invoice);
+    const x=await api('/api/billing/'+selected.id+'/issue','POST',{});
+    render(x.invoice);note('Zatwierdzono numer faktury. Wyślij ją do KSeF i sprawdź potwierdzenie.');loadAll();
+  }catch(e){note(e.message,true)}
 }
 function download(kind){if(!selected)return;window.open('/api/billing/'+encodeURIComponent(selected.id)+'/'+kind,'_blank','noopener')}
 async function sendKsef(){
