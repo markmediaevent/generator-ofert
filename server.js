@@ -1084,6 +1084,7 @@ function readPacklistState(offerNumber){
     notes:raw.notes && typeof raw.notes==='object' && !Array.isArray(raw.notes)?raw.notes:{},
     extraItems:Array.isArray(raw.extraItems)?raw.extraItems:[],
     ledConfigs:raw.ledConfigs && typeof raw.ledConfigs==='object' && !Array.isArray(raw.ledConfigs)?raw.ledConfigs:{},
+    ledLogistics:raw.ledLogistics && typeof raw.ledLogistics==='object' && !Array.isArray(raw.ledLogistics)?raw.ledLogistics:{},
     revision:Number(raw.revision)||0,
     updatedAt:raw.updatedAt||''
   };
@@ -1120,6 +1121,80 @@ function normalizePackLedConfig(payload){
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<0||height<0||width>500||height>500)throw new Error('Niepoprawny wymiar ekranu.');
   return {model,width,height,orientation:payload.orientation==='horizontal'?'horizontal':'vertical'};
 }
+function normalizeLedLogistics(input){
+  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Niepoprawny plan pakowania LED.');
+  const clean={};
+  for(const [k,min,max] of [['caseSize',1,50],['dataChainSize',1,100],['powerChainSize',1,100],['spares',0,1000]]){
+    const v=Number(input[k]);
+    if(!Number.isInteger(v)||v<min||v>max)throw new Error('Niepoprawna liczba: '+k);
+    clean[k]=v;
+  }
+  return clean;
+}
+function clearGeneratedChecks(state,id){
+  for(const key of Object.keys(state.checked)){
+    if(key.startsWith('autogen:'+id+':')){delete state.checked[key];delete state.checkedBy[key];}
+  }
+}
+function safePackOffer(raw,number){
+  // BIAŁA LISTA: workerzy nigdy nie dostają stawek, kosztów, rabatów i danych kontaktowych z oferty.
+  const safe={
+    offerNumber:String(raw.offerNumber||number||'').slice(0,90),
+    eventName:String(raw.eventName||'').slice(0,200),
+    clientName:String(raw.clientName||'').slice(0,200),
+    location:String(raw.location||'').slice(0,160),
+    eventDate:String(raw.eventDate||'').slice(0,30),
+    offerStatus:String(raw.offerStatus||'').slice(0,45)
+  };
+  safe.items=(Array.isArray(raw.items)?raw.items:[]).slice(0,2500).map((i,index)=>({
+    uid:/^[a-zA-Z0-9._:-]{1,120}$/.test(String(i.uid||''))?i.uid:'legacy-'+index,
+    category:String(i.category||'').slice(0,70),
+    categoryLabel:String(i.categoryLabel||'').slice(0,100),
+    groupName:String(i.groupName||'').slice(0,100),
+    name:String(i.name||'').slice(0,200),
+    qty:Number(i.qty)||0,days:Number(i.days)||1,unitLabel:String(i.unitLabel||'').slice(0,35),
+    source:String(i.source||'').slice(0,60),pricingMode:i.pricingMode==='per_m2'?'per_m2':'',
+    ownership:String(i.ownership||'').slice(0,30),
+    stockAtQuote:i.stockAtQuote==null?null:Number(i.stockAtQuote),
+    assignedNames:String(i.assignedNames||'').slice(0,500),
+    internalNotes:String(i.internalNotes||'').slice(0,500),
+    ledModel:String(i.ledModel||'').slice(0,35),
+    ledScreenWidth:Number(i.ledScreenWidth)||0,ledScreenHeight:Number(i.ledScreenHeight)||0,
+    ledOrientation:i.ledOrientation==='horizontal'?'horizontal':'vertical',
+    desc:String(i.desc||'').slice(0,320)
+  }));
+  return safe;
+}
+async function getDraftRecord(number){
+  const file=localDraftFile(number);
+  if(fs.existsSync(file))return JSON.parse(fs.readFileSync(file,'utf8'));
+  return githubEnabled()?await readDraftFromGithub(number):null;
+}
+app.get('/api/packlist-offers', requireAuth, async(req,res)=>{
+  try{
+    const local=listLocalDrafts(),external=githubEnabled()?await listGithubDrafts():[];
+    const merged=new Map();
+    for(const item of [...external,...local]){
+      const key=sanitizeOfferNumber(item.offerNumber);
+      if(item.source==='local'||!merged.has(key))merged.set(key,item);
+    }
+    const offers=Array.from(merged.values()).map(item=>({
+      offerNumber:String(item.offerNumber||'').slice(0,90),
+      eventName:String(item.eventName||'').slice(0,200),
+      location:String(item.location||'').slice(0,160),
+      clientName:String(item.clientName||'').slice(0,200),
+      updatedAt:String(item.updatedAt||'').slice(0,36)
+    })).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+    res.json({ok:true,offers});
+  }catch(error){res.status(500).json({ok:false,message:'Nie udało się pobrać listy realizacji.'});}
+});
+app.get('/api/packlists/:offerNumber/brief', requireAuth, async(req,res)=>{
+  try{
+    const data=await getDraftRecord(req.params.offerNumber);
+    if(!data)return res.status(404).json({ok:false,message:'Brak zapisanej oferty dla tego wydarzenia.'});
+    res.json({ok:true,data:safePackOffer(data,req.params.offerNumber)});
+  }catch(error){res.status(500).json({ok:false,message:'Nie udało się pobrać zestawienia realizacji.'});}
+});
 app.get('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
   try{res.json({ok:true,data:readPacklistState(req.params.offerNumber)});}
   catch(error){res.status(500).json({ok:false,message:'Nie udało się wczytać pack listy.'});}
@@ -1165,7 +1240,15 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
       }
       case 'setLedConfig': {
         const id=safePackKey(payload.id);
-        state.ledConfigs[id]=normalizePackLedConfig(payload.config);break;
+        state.ledConfigs[id]=normalizePackLedConfig(payload.config);
+        clearGeneratedChecks(state,id);
+        break;
+      }
+      case 'setLedLogistics': {
+        const id=safePackKey(payload.id);
+        state.ledLogistics[id]=normalizeLedLogistics(payload.config);
+        clearGeneratedChecks(state,id);
+        break;
       }
       case 'resetChecks':
         state.checked={};state.checkedBy={};break;
