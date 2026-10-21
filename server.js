@@ -172,10 +172,26 @@ async function listWrzutkaSubmissions() {
   }));
 }
 
+function hashUserPassword(plaintext){
+ const salt=crypto.randomBytes(16).toString('hex');
+ const hash=crypto.scryptSync(String(plaintext),salt,64).toString('hex');
+ return 'scrypt$'+salt+'$'+hash;
+}
+function validUserPassword(input,stored){
+ if(typeof stored!=='string')return false;
+ if(stored.startsWith('scrypt$')){
+   const parts=stored.split('$');
+   if(parts.length!==3||!/^[a-f0-9]{32}$/.test(parts[1])||!/^[a-f0-9]{128}$/.test(parts[2]))return false;
+   const actual=crypto.scryptSync(String(input),parts[1],64);
+   return crypto.timingSafeEqual(actual,Buffer.from(parts[2],'hex'));
+ }
+ const a=Buffer.from(String(input)),b=Buffer.from(stored);
+ return a.length===b.length && crypto.timingSafeEqual(a,b);
+}
 function ensureUsers() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(USERS_FILE)) {
-    const seed = [{ id: crypto.randomBytes(8).toString('hex'), username: ADMIN_USER, password: ADMIN_PASS, role: 'admin', createdAt: new Date().toISOString() }];
+    const seed = [{ id: crypto.randomBytes(8).toString('hex'), username: ADMIN_USER, password: hashUserPassword(ADMIN_PASS), role: 'admin', createdAt: new Date().toISOString() }];
     fs.writeFileSync(USERS_FILE, JSON.stringify(seed, null, 2), 'utf8');
   }
 }
@@ -190,18 +206,25 @@ function readUsers() {
       users.push({
         id: crypto.randomBytes(8).toString('hex'),
         username: ADMIN_USER,
-        password: ADMIN_PASS,
+        password: hashUserPassword(ADMIN_PASS),
         role: 'admin',
         createdAt: new Date().toISOString()
       });
       fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
     }
+    let migration=false;
+    for(const account of users){
+      if(typeof account.password==='string'&&!account.password.startsWith('scrypt$')){
+        account.password=hashUserPassword(account.password);migration=true;
+      }
+    }
+    if(migration)fs.writeFileSync(USERS_FILE,JSON.stringify(users,null,2),'utf8');
     return users;
   } catch (e) {
     const users = [{
       id: crypto.randomBytes(8).toString('hex'),
       username: ADMIN_USER,
-      password: ADMIN_PASS,
+      password: hashUserPassword(ADMIN_PASS),
       role: 'admin',
       createdAt: new Date().toISOString()
     }];
@@ -789,7 +812,7 @@ app.use('/api', (req,res,next)=>{
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
   const users = readUsers();
-  const user = users.find(u => String(u.username) === String(username) && String(u.password) === String(password));
+  const user = users.find(u => String(u.username) === String(username) && validUserPassword(password,u.password));
   if (!user) {
     return res.status(401).json({ ok: false, message: 'Nieprawidłowy login lub hasło' });
   }
@@ -815,14 +838,14 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
   const cleanUsername = String(username || '').trim();
   const cleanPassword = String(password || '').trim();
   if (!cleanUsername) return res.status(400).json({ ok: false, message: 'Podaj login.' });
-  if (!cleanPassword) return res.status(400).json({ ok: false, message: 'Podaj hasło.' });
+  if (cleanPassword.length < 8) return res.status(400).json({ ok: false, message: 'Hasło musi mieć co najmniej 8 znaków.' });
   const users = readUsers();
   if (users.some(u => String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
     return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
   const userRole = role || 'pracownik';
   if(!validNewRole(userRole))return res.status(400).json({ok:false,message:'Rola musi być: administrator, realizator albo pracownik.'});
-  const user = { id: crypto.randomBytes(8).toString('hex'), username: cleanUsername, password: cleanPassword, role: userRole, createdAt: new Date().toISOString() };
+  const user = { id: crypto.randomBytes(8).toString('hex'), username: cleanUsername, password: hashUserPassword(cleanPassword), role: userRole, createdAt: new Date().toISOString() };
   users.push(user);
   writeUsers(users);
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
@@ -847,7 +870,7 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     return res.status(400).json({ ok: false, message: 'Nie można odebrać uprawnień ostatniemu administratorowi.' });
   }
   user.username = cleanUsername;
-  if (String(password || '').trim()) user.password = String(password).trim();
+  if(String(password||'').trim()){if(String(password).trim().length<8)return res.status(400).json({ok:false,message:'Nowe hasło musi mieć minimum 8 znaków.'});user.password=hashUserPassword(String(password).trim());}
   user.role = nextRole;
   writeUsers(users);
   // Nie pozostawiaj aktywnych sesji po zmianie roli lub hasła.
