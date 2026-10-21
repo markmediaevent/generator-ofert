@@ -1,51 +1,19 @@
-name: Faktury — testy
+name: Billing checks
 on:
   pull_request:
-    paths:
-      - "billing/**"
-      - "tests/billing.test.js"
-      - "server.js"
-      - "public/faktury.html"
-      - "public/app.html"
-      - "package.json"
-      - ".github/workflows/billing-ci.yml"
 permissions:
-  contents: write
+  contents: read
 jobs:
-  lockfile:
-    if: github.event.pull_request.head.repo.full_name == 'markmediaevent/generator-ofert' && github.head_ref == 'feature/marknet-faktury-ksef'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          persist-credentials: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Synchronizuj zależności
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Zapisz poprawiony lockfile na gałęzi PR
-        run: |
-          if ! git diff --quiet -- package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "build: aktualizuj package-lock dla faktur"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
   checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-      - name: Syntax
-        run: |
-          node --check server.js
-          node --check billing/core.js
-          node --check billing/ksef.js
-          node --check billing/routes.js
-      - name: Faktury tests
-        run: node --test tests/billing.test.js
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: node --check server.js
+      - run: node --check billing/routes.js
+      - run: node --check billing/core.js
+      - run: node --check billing/ksef.js
