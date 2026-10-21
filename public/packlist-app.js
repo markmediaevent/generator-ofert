@@ -139,7 +139,11 @@ function ledHtml(){
      '<label>Szerokość ekranu (m)<input name="width" type="number" min="0.01" max="500" step="0.01" value="'+esc(config.width||'')+'" required></label>'+
      '<label>Wysokość ekranu (m)<input name="height" type="number" min="0.01" max="500" step="0.01" value="'+esc(config.height||'')+'" required></label>'+
      '<label class="led-orientation"'+(config.model==='dicolor-p4'?'':' style="display:none"')+'>Obrót kabinetu (Dicolor)<select name="orientation"><option value="vertical"'+(config.orientation!=='horizontal'?' selected':'')+'>Bez obrotu (50×100 cm)</option><option value="horizontal"'+(config.orientation==='horizontal'?' selected':'')+'>Po obrocie (100×50 cm)</option></select></label>'+
-     '<div class="led-result '+(result&&!result.exact?'warn':'')+'">'+esc(text)+'</div>'+
+     '<label>Kabinety / case<input name="caseSize" type="number" min="1" max="50" step="1" value="'+esc(logistics.caseSize)+'" required></label>'+
+     '<label>Kabinety / ciąg DATA<input name="dataChainSize" type="number" min="1" max="100" step="1" value="'+esc(logistics.dataChainSize)+'" required></label>'+
+     '<label>Kabinety / obwód AC<input name="powerChainSize" type="number" min="1" max="100" step="1" value="'+esc(logistics.powerChainSize)+'" required></label>'+
+     '<label>Kabinety zapasowe<input name="spares" type="number" min="0" max="1000" step="1" value="'+esc(logistics.spares)+'" required></label>'+
+     '<div class="led-result '+(result&&!result.exact?'warn':'')+'">'+esc(text+(plan?' | Skrzynie: '+plan.cases+' · DATA: '+plan.dataJumpers+' łączących + '+plan.dataRuns+' startowych · AC: '+plan.powerJumpers+' łączących + '+plan.powerRuns+' startowych':'') )+'</div>'+
      '<button type="submit" class="btn primary">Przelicz i zapisz</button></form>';
  }).join('')+'</section>';
 }
@@ -152,7 +156,7 @@ function render(){
 function noteValue(el){return (el.innerText||'').slice(0,500);}
 function normalizeState(input){
  return {checked:input?.checked||{},checkedBy:input?.checkedBy||{},notes:input?.notes||{},
-   extraItems:input?.extraItems||[],ledConfigs:input?.ledConfigs||{},revision:input?.revision||0,updatedAt:input?.updatedAt||''};
+   extraItems:input?.extraItems||[],ledConfigs:input?.ledConfigs||{},ledLogistics:input?.ledLogistics||{},revision:input?.revision||0,updatedAt:input?.updatedAt||''};
 }
 function requestMutation(payload){
  pending++;
@@ -254,16 +258,32 @@ $('ledPanel').addEventListener('submit',event=>{
    width:Number(form.elements.width.value),height:Number(form.elements.height.value),
    orientation:form.elements.orientation.value
  };
+ const logistics={
+   caseSize:Number(form.elements.caseSize.value),
+   dataChainSize:Number(form.elements.dataChainSize.value),
+   powerChainSize:Number(form.elements.powerChainSize.value),
+   spares:Number(form.elements.spares.value)
+ };
  if(!MM_LED.calculate(config)){setStatus('Wybierz model i poprawne wymiary ekranu LED.',true);return;}
- requestMutation({action:'setLedConfig',id:form.dataset.ledConfig,config}).catch(()=>{});
+ if(!Number.isInteger(logistics.caseSize)||logistics.caseSize<1||logistics.caseSize>50 ||
+    !Number.isInteger(logistics.dataChainSize)||logistics.dataChainSize<1||logistics.dataChainSize>100 ||
+    !Number.isInteger(logistics.powerChainSize)||logistics.powerChainSize<1||logistics.powerChainSize>100 ||
+    !Number.isInteger(logistics.spares)||logistics.spares<0||logistics.spares>1000){
+   setStatus('Popraw liczbę kabinetów na case, ciąg DATA, obwód AC i zapas.',true);return;
+ }
+ requestMutation({action:'setLedSetup',id:form.dataset.ledConfig,config,logistics}).catch(()=>{});
 });
 $('ledPanel').addEventListener('input',event=>{
  const form=event.target.closest('[data-led-config]');
  if(!form)return;
  const config={model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value};
  const result=MM_LED.calculate(config),el=form.querySelector('.led-result');
+ const plan=MM_LED.logistics(result,{
+   caseSize:Number(form.elements.caseSize.value),dataChainSize:Number(form.elements.dataChainSize.value),
+   powerChainSize:Number(form.elements.powerChainSize.value),spares:Number(form.elements.spares.value)
+ });
  el.classList.toggle('warn',!!result&&!result.exact);
- el.textContent=result?(result.columns+' × '+result.rows+' = '+result.total+' kabinetów. '+(result.exact?'Wymiary pasują.':'NADMIAR: '+fmt(result.builtWidth)+' × '+fmt(result.builtHeight)+' m.')):'Uzupełnij wymiary i wybierz model.';
+ el.textContent=result?(result.columns+' × '+result.rows+' = '+result.total+' kabinetów. '+(result.exact?'Wymiary pasują.':'NADMIAR: '+fmt(result.builtWidth)+' × '+fmt(result.builtHeight)+' m.')+(plan?' Skrzynie: '+plan.cases+' · DATA '+plan.dataJumpers+' + '+plan.dataRuns+' · AC '+plan.powerJumpers+' + '+plan.powerRuns:'')):'Uzupełnij wymiary i wybierz model.';
 });
 $('ledPanel').addEventListener('change',event=>{
  const form=event.target.closest('[data-led-config]');
@@ -274,7 +294,8 @@ $('ledPanel').addEventListener('change',event=>{
  const result=MM_LED.calculate(payload);
  if(result){
    const el=form.querySelector('.led-result');
-   el.textContent=result.columns+' × '+result.rows+' = '+result.total+' kabinetów'+(result.exact?' · wymiary dokładne':' · nadmiar: '+fmt(result.builtWidth)+'×'+fmt(result.builtHeight)+' m');
+   const plan=MM_LED.logistics(result,{caseSize:Number(form.elements.caseSize.value),dataChainSize:Number(form.elements.dataChainSize.value),powerChainSize:Number(form.elements.powerChainSize.value),spares:Number(form.elements.spares.value)});
+   el.textContent=result.columns+' × '+result.rows+' = '+result.total+' kabinetów'+(result.exact?' · wymiary dokładne':' · nadmiar: '+fmt(result.builtWidth)+'×'+fmt(result.builtHeight)+' m')+(plan?' · Skrzynie: '+plan.cases+' · DATA '+plan.dataJumpers+' + '+plan.dataRuns+' · AC '+plan.powerJumpers+' + '+plan.powerRuns:'');
  }
 });
 async function clearChecks(){
@@ -294,7 +315,7 @@ async function reload(){
 async function init(){
  if(!offer){setStatus('Brak numeru oferty. Wygeneruj pack listę z generatora ofert.',true);return;}
  try{
-   const [saved,pack]=await Promise.all([fetch('/api/drafts/'+encodeURIComponent(offer)),fetch(apiPath)]);
+   const [saved,pack]=await Promise.all([fetch(apiPath+'/brief'),fetch(apiPath)]);
    if(!saved.ok)throw new Error('Nie znaleziono zapisanej oferty. Zapisz ją najpierw w generatorze.');
    if(!pack.ok)throw new Error(pack.status===401?'Zaloguj się ponownie.':'Błąd pobierania pack listy.');
    quote=(await saved.json()).data||{};
