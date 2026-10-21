@@ -1250,6 +1250,13 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
         clearGeneratedChecks(state,id);
         break;
       }
+      case 'setLedSetup': {
+        const id=safePackKey(payload.id);
+        state.ledConfigs[id]=normalizePackLedConfig(payload.config);
+        state.ledLogistics[id]=normalizeLedLogistics(payload.logistics);
+        clearGeneratedChecks(state,id);
+        break;
+      }
       case 'resetChecks':
         state.checked={};state.checkedBy={};break;
       default:
