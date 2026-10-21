@@ -1044,40 +1044,130 @@ function ensurePacklistsDir() {
 }
 
 // Kontrola pakowania jest niezależna od oferty i archiwum. Nie modyfikujemy szkiców.
-app.get('/api/packlists/:offerNumber', requireAuth, (req, res) => {
-  try {
-    const file = packlistFile(req.params.offerNumber);
-    const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { checked: {}, notes: {} };
-    res.json({ ok: true, data });
-  } catch (error) {
-    res.status(500).json({ ok: false, message: 'Nie udało się odczytać statusu pack listy.' });
-  }
+const PACKLIST_MAX_EXTRAS = 1200;
+function safePackKey(key){
+  const value=String(key ?? '');
+  if (!/^[a-zA-Z0-9._:-]{1,128}$/.test(value))throw new Error('Niepoprawny identyfikator pozycji.');
+  return value;
+}
+function packText(value,length){return String(value ?? '').trim().slice(0,length);}
+function readPacklistState(offerNumber){
+  const file=packlistFile(offerNumber);
+  const raw=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
+  return {
+    checked:raw.checked && typeof raw.checked==='object' && !Array.isArray(raw.checked)?raw.checked:{},
+    checkedBy:raw.checkedBy && typeof raw.checkedBy==='object' && !Array.isArray(raw.checkedBy)?raw.checkedBy:{},
+    notes:raw.notes && typeof raw.notes==='object' && !Array.isArray(raw.notes)?raw.notes:{},
+    extraItems:Array.isArray(raw.extraItems)?raw.extraItems:[],
+    ledConfigs:raw.ledConfigs && typeof raw.ledConfigs==='object' && !Array.isArray(raw.ledConfigs)?raw.ledConfigs:{},
+    revision:Number(raw.revision)||0,
+    updatedAt:raw.updatedAt||''
+  };
+}
+function writePacklistState(offerNumber,state){
+  ensurePacklistsDir();
+  const file=packlistFile(offerNumber);
+  const temporary=file+'.tmp-'+crypto.randomBytes(6).toString('hex');
+  const next={...state,revision:(Number(state.revision)||0)+1,updatedAt:new Date().toISOString()};
+  try{
+    fs.writeFileSync(temporary,JSON.stringify(next,null,2),'utf8');
+    fs.renameSync(temporary,file);
+  }finally{if(fs.existsSync(temporary))fs.unlinkSync(temporary);}
+  return next;
+}
+function normalizePackExtra(payload,id){
+  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Niepoprawne dane pozycji.');
+  const name=packText(payload.name,180);
+  if(!name)throw new Error('Podaj nazwę pozycji.');
+  const qty=Number(payload.qty);
+  if(!Number.isFinite(qty)||qty<=0||qty>100000)throw new Error('Podaj poprawną ilość.');
+  const kind=['equipment','task','crew'].includes(payload.kind)?payload.kind:'equipment';
+  return {
+    id,kind,name,qty,unit:packText(payload.unit,35)|| (kind==='task'?'zad.':'szt.'),
+    groupName:packText(payload.groupName,100)||'Dodatkowe / ręczne',
+    source:packText(payload.source,120), details:packText(payload.details,400)
+  };
+}
+function normalizePackLedConfig(payload){
+  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Brak konfiguracji ekranu.');
+  const model=packText(payload.model,40);
+  if(!['','yes-tech-p39','gloshine-p4','dicolor-p4'].includes(model))throw new Error('Nieznany model kabinetu.');
+  const width=Number(String(payload.width??0).replace(',','.')),height=Number(String(payload.height??0).replace(',','.'));
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<0||height<0||width>500||height>500)throw new Error('Niepoprawny wymiar ekranu.');
+  return {model,width,height,orientation:payload.orientation==='horizontal'?'horizontal':'vertical'};
+}
+app.get('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
+  try{res.json({ok:true,data:readPacklistState(req.params.offerNumber)});}
+  catch(error){res.status(500).json({ok:false,message:'Nie udało się wczytać pack listy.'});}
 });
-app.put('/api/packlists/:offerNumber', requireAuth, (req, res) => {
-  try {
-    const supplied = req.body || {};
-    if (typeof supplied.checked !== 'object' || !supplied.checked || Array.isArray(supplied.checked)) {
-      return res.status(400).json({ ok: false, message: 'Niepoprawny status pozycji.' });
-    }
-    const cleanChecked = {}, cleanNotes = {};
-    for (const [key, value] of Object.entries(supplied.checked).slice(0, 3000)) {
-      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && value === true) cleanChecked[key] = true;
-    }
-    for (const [key, value] of Object.entries(supplied.notes || {}).slice(0, 3000)) {
-      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && typeof value === 'string') {
-        cleanNotes[key] = value.slice(0, 500);
+// Operacje punktowe nie nadpisują zmian w innych wierszach, również gdy pracuje kilku techników.
+app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
+  try{
+    const payload=req.body||{}, action=String(payload.action||'');
+    const state=readPacklistState(req.params.offerNumber);
+    let item=null;
+    switch(action){
+      case 'addItem': {
+        if(state.extraItems.length>=PACKLIST_MAX_EXTRAS)throw new Error('Osiągnięto limit ręcznych pozycji.');
+        const id='extra-'+crypto.randomBytes(8).toString('hex');
+        item=normalizePackExtra(payload.item,id);
+        state.extraItems.push(item);break;
       }
+      case 'updateItem': {
+        const id=safePackKey(payload.id);
+        const idx=state.extraItems.findIndex(row=>row.id===id);
+        if(idx<0)throw new Error('Nie znaleziono pozycji do edycji.');
+        item=normalizePackExtra(payload.item,id);
+        state.extraItems[idx]=item;break;
+      }
+      case 'removeItem': {
+        const id=safePackKey(payload.id);
+        if(!state.extraItems.some(row=>row.id===id))throw new Error('Nie znaleziono pozycji do usunięcia.');
+        state.extraItems=state.extraItems.filter(row=>row.id!==id);
+        delete state.checked[id];delete state.notes[id];delete state.checkedBy[id];break;
+      }
+      case 'setChecked': {
+        const id=safePackKey(payload.id);
+        if(payload.value===true){
+          state.checked[id]=true;
+          state.checkedBy[id]={username:packText(req.user?.username||'',100),at:new Date().toISOString()};
+        }else{delete state.checked[id];delete state.checkedBy[id];}
+        break;
+      }
+      case 'setNote': {
+        const id=safePackKey(payload.id);
+        if(typeof payload.value!=='string')throw new Error('Niepoprawna notatka.');
+        state.notes[id]=payload.value.slice(0,500);break;
+      }
+      case 'setLedConfig': {
+        const id=safePackKey(payload.id);
+        state.ledConfigs[id]=normalizePackLedConfig(payload.config);break;
+      }
+      case 'resetChecks':
+        state.checked={};state.checkedBy={};break;
+      default:
+        return res.status(400).json({ok:false,message:'Nieznana operacja pack listy.'});
     }
-    const data = { checked: cleanChecked, notes: cleanNotes, updatedAt: new Date().toISOString() };
-    ensurePacklistsDir();
-    const file = packlistFile(req.params.offerNumber);
-    const temporary = file + '.tmp-' + crypto.randomBytes(5).toString('hex');
-    try { fs.writeFileSync(temporary, JSON.stringify(data, null, 2)); fs.renameSync(temporary, file); }
-    finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
-    res.json({ ok: true, data });
-  } catch (error) {
-    res.status(500).json({ ok: false, message: 'Nie udało się zapisać statusu pack listy.' });
-  }
+    const data=writePacklistState(req.params.offerNumber,state);
+    res.json({ok:true,data,item});
+  }catch(error){res.status(400).json({ok:false,message:error.message||'Nie udało się zapisać pack listy.'});}
+});
+// Stary klient używał PUT: zachowujemy kompatybilność bez kasowania nowych pozycji ręcznych.
+app.put('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
+  try{
+    const input=req.body||{};
+    if(!input.checked||typeof input.checked!=='object'||Array.isArray(input.checked))return res.status(400).json({ok:false,message:'Niepoprawny status.'});
+    const state=readPacklistState(req.params.offerNumber);
+    state.checked={};state.checkedBy={};
+    for(const [id,flag] of Object.entries(input.checked).slice(0,3000)){
+      if(/^[a-zA-Z0-9._:-]{1,128}$/.test(id)&&flag===true)state.checked[id]=true;
+    }
+    state.notes={};
+    for(const [id,value] of Object.entries(input.notes||{}).slice(0,3000)){
+      if(/^[a-zA-Z0-9._:-]{1,128}$/.test(id)&&typeof value==='string')state.notes[id]=value.slice(0,500);
+    }
+    res.json({ok:true,data:writePacklistState(req.params.offerNumber,state)});
+  }catch(error){res.status(500).json({ok:false,message:'Nie udało się zapisać pack listy.'});}
 });
 
 app.get('/api/drafts', async (req, res) => {
