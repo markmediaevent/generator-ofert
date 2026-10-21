@@ -185,6 +185,22 @@
     .pdf-meta-key{font-size:9.4px;text-transform:uppercase;letter-spacing:.08em;color:#0f1b33;font-weight:950;white-space:nowrap;line-height:1.15}
     .pdf-meta-val{font-size:14px;font-weight:950;color:#0b1633;white-space:nowrap;text-align:right;line-height:1.15}
 
+    .equip-group{border:1px solid var(--line);background:#f9fbfe;border-radius:16px;margin-bottom:10px;overflow:hidden}
+    .equip-group>summary{cursor:pointer;padding:15px 17px;font-weight:900;background:#eaf0f9;display:flex;justify-content:space-between;gap:12px;align-items:center;list-style:none}
+    .equip-group>summary::-webkit-details-marker{display:none}
+    .equip-group>summary:before{content:"▸";color:#3364a3;margin-right:7px}
+    .equip-group[open]>summary:before{content:"▾"}
+    .equip-group>summary .group-label{flex:1;overflow-wrap:anywhere}
+    .equip-group>summary .group-count{font-size:12px;font-weight:600;color:#57708e}
+    .equip-group>.equipment-grid{padding:13px}
+    .crew-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;padding:14px;border:1px dashed #bacce5;border-radius:15px;background:#f8fbff}
+    .crew-add{grid-column:1/-1;justify-self:start}
+    .crew-list{display:grid;gap:8px;margin-top:14px}
+    .crew-entry{padding:12px 14px;border:1px solid var(--line);border-radius:12px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(130px,1fr) auto;gap:12px;align-items:center}
+    .crew-entry strong{display:block}.crew-entry small{color:var(--muted)}
+    .crew-entry input{min-width:0;width:100%;border:1px solid var(--line);padding:10px;border-radius:10px}
+    @media(max-width:940px){.crew-form{grid-template-columns:repeat(2,minmax(0,1fr))}.crew-entry{grid-template-columns:1fr}}
+    @media(max-width:680px){.crew-form{grid-template-columns:1fr}.crew-form .span-2{grid-column:auto}}
     .pdf-sheet{display:none}
     @media (max-width:1280px){.page-grid{grid-template-columns:1fr}.sidebar{position:static}}
     @media (max-width:940px){.fields-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.equipment-grid{grid-template-columns:1fr}.hero-stats{grid-template-columns:1fr}.quick-add{grid-template-columns:1fr 1fr}.quick-add > :nth-last-child(-n+2){grid-column:span 1}}
@@ -303,6 +319,8 @@
               
             </div>
             <div class="toolbar">
+              <button class="btn soft" type="button" onclick="expandEquipmentGroups(true)">Rozwiń grupy</button>
+              <button class="btn soft" type="button" onclick="expandEquipmentGroups(false)">Zwiń grupy</button>
               <button class="btn soft" type="button" onclick="refreshEquipment()">Odśwież bazę</button>
             </div>
           </div>
@@ -368,6 +386,28 @@
             </div>
           </div>
         </section>
+
+        <section class="card" id="crewBlock">
+          <div class="card-head"><div><h2>Personel / obsługa techniczna</h2><p>Stawki wchodzą do oferty; nazwiska i godziny pozostają wyłącznie w pack liście.</p></div></div>
+          <div class="card-body">
+            <div class="crew-form">
+              <div class="field"><label>Stanowisko</label><select id="crewRole">
+                <option>Realizator wizji</option><option>Realizator dźwięku</option><option>Realizator oświetlenia</option>
+                <option>Operator kamery</option><option>Technik LED</option><option>Technik AV</option>
+                <option>Technik streaming / sieć</option><option>Operator grandMA</option>
+                <option>Kierownik techniczny</option><option>Rigger</option><option>Technik sceny</option>
+                <option>Stagehand / montażysta</option><option>Kierowca / logistyka</option><option>Inne</option>
+              </select></div>
+              <div class="field"><label>Osób</label><input id="crewQty" type="number" min="1" step="1" value="1"></div>
+              <div class="field"><label>Dni pracy</label><input id="crewDays" type="number" min="1" step="1" value="1"></div>
+              <div class="field"><label>Stawka netto / os. / dzień</label><input id="crewRate" type="number" min="0" step="0.01" value="0"></div>
+              <div class="field span-2"><label>Przydzielone osoby (opcjonalnie)</label><input id="crewAssigned" placeholder="Np. Jan Kowalski, Anna Nowak"></div>
+              <div class="field span-2"><label>Uwagi wewnętrzne / godziny (nie na ofercie)</label><input id="crewNotes" placeholder="Np. zbiórka 07:00, FOH"></div>
+              <button class="btn primary crew-add" type="button" onclick="addCrew()">Dodaj personel do oferty</button>
+            </div>
+            <div id="crewList" class="crew-list"></div>
+          </div>
+        </section>
       </main>
 
       <aside class="sidebar">
@@ -396,6 +436,7 @@
               <button class="btn dark" type="button" onclick="saveDraft()">Zapisz szkic</button>
               <label class="check-row"><input id="includeSignature" type="checkbox" /> Dodaj podpis do PDF</label>
               <button class="btn primary" type="button" onclick="preparePdfAndPrint()">Generuj PDF</button>
+              <button class="btn green" type="button" onclick="openPacklist()">Generuj pack listę</button>
               <button class="btn green" type="button" onclick="copyOfferText()">Kopiuj tekst</button>
               <button class="btn red" type="button" onclick="resetForm()">Wyczyść</button>
             </div>
@@ -431,7 +472,8 @@
       internet: { label: 'Internet / Starlink' },
       stage: { label: 'Scena' },
       transport: { label: 'Transport / montaż' },
-      custom: { label: 'Obsługa / inne' }
+      custom: { label: 'Obsługa / inne' },
+      crew: { label: 'Personel techniczny' }
     };
 
     let equipmentDb = { sections: {} };
@@ -473,7 +515,7 @@
     }
 
     function renderTabs(){
-      const entries = [['all','Wszystko'], ...Object.entries(categories).filter(([k]) => k !== 'custom').map(([k,v]) => [k,v.label]), ['custom','Obsługa / inne']];
+      const entries = [['all','Wszystko'], ...Object.entries(categories).filter(([k]) => k !== 'custom' && k !== 'crew').map(([k,v]) => [k,v.label]), ['custom','Obsługa / inne']];
       byId('categoryTabs').innerHTML = entries.map(([key,label]) => `<button class="section-tab ${selectedCategory===key?'active':''}" onclick="selectCategory('${key}')">${label}</button>`).join('');
     }
     function selectCategory(key){ selectedCategory = key; renderTabs(); renderEquipment(); }
