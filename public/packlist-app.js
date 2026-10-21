@@ -14,6 +14,32 @@ function crewItem(item){return item.category==='crew'||item.source==='personnel'
 function screenItem(item){return MM_LED.isScreen(item);}
 function initialLed(key,item){return state.ledConfigs[key]||MM_LED.initialConfig(item);}
 function calcFor(item,key){return MM_LED.calculate(initialLed(key,item));}
+function logisticFor(key){return {...MM_LED.LOGISTICS_DEFAULTS,...(state.ledLogistics?.[key]||{})};}
+function derivedLedRows(){
+ const rows=[];
+ for(const row of quoteRows()){
+   if(!screenItem(row.data))continue;
+   const c=calcFor(row.data,row.key);
+   if(!c)continue;
+   const plan=MM_LED.logistics(c,logisticFor(row.key));
+   const grp='Ekran '+row.data.name+' — osprzęt';
+   const generated=[
+     ['case','Skrzynie transportowe na kabinety',plan.cases,'case','Założono '+plan.caseSize+' kabinetów / case'],
+     ['data-jumper','Przewody DATA pomiędzy kabinetami',plan.dataJumpers,'szt.','Połączenia w obrębie '+plan.dataRuns+' ciągów DATA'],
+     ['data-feed','Przewody DATA do pierwszych kabinetów',plan.dataRuns,'szt.','Jeden przewód wejściowy na ciąg DATA'],
+     ['power-jumper','Przewody zasilające między kabinetami',plan.powerJumpers,'szt.','Połączenia w obrębie '+plan.powerRuns+' obwodów AC'],
+     ['power-feed','Przewody zasilające startowe',plan.powerRuns,'szt.','Jeden przewód startowy na obwód AC']
+   ];
+   if(plan.spares>0)generated.unshift(['spare','Kabinet zapasowy',plan.spares,'szt.','Kabinet zapasowy nie wchodzi w wymiary ekranu']);
+   for(const [type,name,qty,unit,details] of generated){
+     rows.push({key:'autogen:'+row.key+':'+type,auto:true,extra:false,data:{
+       name,qty,unitLabel:unit,category:'led',categoryLabel:'Osprzęt LED · automatycznie',
+       groupName:grp,source:'led-auto',details,ownership:'unknown'
+     }});
+   }
+ }
+ return rows;
+}
 function qtyText(item,key){
   if(screenItem(item)){
     const result=calcFor(item,key);
@@ -34,7 +60,7 @@ function rebuild(){
     kind:item.kind,ownership:'manual',sourceLabel:item.source,details:item.details
    }
  }));
- items=[...quoteRows(),...extra];
+ items=[...quoteRows(),...derivedLedRows(),...extra];
 }
 function progress(){
  const checked=items.filter(i=>state.checked[i.key]===true).length;
@@ -53,7 +79,7 @@ function grouped(){
  const result=new Map();
  for(const row of items){
    const item=row.data;
-   const label=crewItem(item)?'PERSONEL / OBSŁUGA': (row.extra?'DODANE RĘCZNIE':'SPRZĘT / ZAKRES OFERTY');
+   const label=crewItem(item)?'PERSONEL / OBSŁUGA': (row.auto?'AUTOMAT LED':row.extra?'DODANE RĘCZNIE':'SPRZĘT / ZAKRES OFERTY');
    const group=item.groupName||item.categoryLabel||'Pozostałe';
    const key=label+' / '+group;
    if(!result.has(key))result.set(key,{title:key,rows:[],crew:crewItem(item)});
@@ -68,7 +94,7 @@ function groupHtml(group){
    const led=screenItem(item)?calcFor(item,key):null;
    const leds=screenItem(item)?(led?led.columns+' × '+led.rows+' · '+(led.cabWidth*100)+'×'+(led.cabHeight*100)+' cm'+(led.exact?'':' · WYMIAR ZAOKRĄGLONY'):'Brak modelu lub wymiarów — skonfiguruj powyżej'):'';
    const details=[item.groupName||'',item.details||'',leds].filter(Boolean).join(' · ');
-   const owner=row.extra?(item.sourceLabel||'Dodano do pack listy'):
+   const owner=row.auto?'Wyliczono automatycznie':row.extra?(item.sourceLabel||'Dodano do pack listy'):
      crewItem(item)?(item.assignedNames||item.sourceLabel||'Do obsadzenia'):
      item.ownership==='cross-rental'?'Cross-rental':
      item.ownership==='own'||item.ownership==='owned'?'Własny':'Do ustalenia';
@@ -93,13 +119,15 @@ function modelsOptions(selected){
  return options.map(([id,label])=>'<option value="'+esc(id)+'"'+(id===selected?' selected':'')+'>'+esc(label)+'</option>').join('');
 }
 function ledHtml(){
- const screens=items.filter(row=>!row.extra&&screenItem(row.data));
+ const screens=items.filter(row=>!row.extra&&!row.auto&&screenItem(row.data));
  if(!screens.length){$('ledPanel').innerHTML='';return;}
  $('ledPanel').innerHTML='<section class="led-section"><div class="group-head"><h2>Ekrany LED — przeliczenie kabinetów</h2></div>'+
- '<p class="help">Liczba kabinetów = kolumny × rzędy, zaokrąglone w górę osobno. Ustaw model i ewentualny obrót. Ustawienia pack listy nie zmieniają wartości oferty.</p>'+
+ '<p class="help">Liczba kabinetów = kolumny × rzędy. Ustaw pojemność skrzyń i maksymalną liczbę kabinetów w ciągu DATA / AC. To założenia planowania, niezweryfikowane limity producentów. Zweryfikuj obciążenia, dokumentację i topologię przed realizacją. Zmiana ustawień odznacza wyliczone pozycje tego ekranu.</p>'+
  screens.map(row=>{
    const config=initialLed(row.key,row.data);
    const result=MM_LED.calculate(config);
+   const logistics=logisticFor(row.key);
+   const plan=MM_LED.logistics(result,logistics);
    const text=result?
      result.columns+' kolumn × '+result.rows+' rzędów = '+result.total+' kabinetów '+result.modelLabel+
      ' ('+(result.cabWidth*100)+'×'+(result.cabHeight*100)+' cm).'+
