@@ -81,14 +81,21 @@ function createBillingRouter({dataDir,offerLoader}){
     next();
   });
   function wrap(fn){return async(req,res)=>{try{await fn(req,res)}catch(e){res.status(e.status||500).json({ok:false,message:e.message||'Błąd modułu faktur.'})}}}
+  router.post('/manual',wrap(async(req,res)=>res.json({ok:true,invoice:store.manual(req.body||{})})));
+  router.get('/backup',wrap(async(req,res)=>{
+    res.set('Content-Disposition','attachment; filename="marknet-faktury-backup.json"');
+    res.set('Cache-Control','no-store');
+    res.json({version:1,exportedAt:new Date().toISOString(),invoices:store.list()});
+  }));
   router.get('/list',wrap(async(req,res)=>res.json({ok:true,invoices:store.list().map(i=>({
     id:i.id,number:i.number,offerNumber:i.offerNumber,buyerName:i.buyerName,status:i.status,createdAt:i.createdAt,
-    gross:i.totals.gross,ksefState:i.ksef.state,ksefNumber:i.ksef.ksefNumber||null
+    gross:i.totals.gross,ksefState:i.ksef.state,ksefNumber:i.ksef.ksefNumber||null,paymentStatus:i.paymentStatus||'unpaid'
   }))})));
   router.post('/from-offer/:number',wrap(async(req,res)=>res.json({ok:true,invoice:await store.convert(req.params.number)})));
   router.get('/:id',wrap(async(req,res)=>res.json({ok:true,invoice:store.get(req.params.id)})));
   router.patch('/:id',wrap(async(req,res)=>res.json({ok:true,invoice:store.update(req.params.id,req.body||{})})));
   router.post('/:id/issue',wrap(async(req,res)=>res.json({ok:true,invoice:store.issue(req.params.id)})));
+  router.post('/:id/payment',wrap(async(req,res)=>res.json({ok:true,invoice:store.setPaid(req.params.id,req.body?.paid===true)})));
   router.get('/:id/xml',wrap(async(req,res)=>{const i=store.get(req.params.id);res.type('application/xml; charset=utf-8').set('Content-Disposition','attachment; filename="faktura-FA3.xml"').send(toFA3(i))}));
   router.get('/:id/pdf',wrap(async(req,res)=>{const i=store.get(req.params.id);if(i.status==='draft')problem('Wystaw fakturę, aby pobrać PDF.');const p=await pdfBuffer(i);res.type('application/pdf').set('Content-Disposition','attachment; filename="faktura.pdf"').send(p)}));
   router.post('/:id/email',wrap(async(req,res)=>{
