@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mark Media — Pack lista</title>
+<style>
+:root{--navy:#10203a;--blue:#2467d2;--text:#1a283d;--muted:#64748b;--line:#dce5ef;--green:#087b58}
+*{box-sizing:border-box}
+body{margin:0;background:#edf2f8;color:var(--text);font-family:Inter,Arial,sans-serif}
+.wrapper{max-width:1140px;margin:0 auto;padding:24px}
+.header{background:linear-gradient(120deg,#102038,#1d4b80);color:#fff;border-radius:18px;padding:22px 26px;display:flex;justify-content:space-between;gap:14px;align-items:center}
+.header h1{font-size:28px;margin:4px 0 5px}.header p{margin:0;color:#c5d5ef}
+.header a{color:#fff}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}
+.btn{font:700 14px Inter,Arial,sans-serif;padding:12px 16px;background:#fff;border:1px solid #bdcce0;border-radius:10px;cursor:pointer;color:#172540}
+.btn.primary{background:#1b5bc7;color:#fff;border-color:#1b5bc7}.btn.danger{color:#b32237}
+.meta{background:#fff;border-radius:15px;border:1px solid var(--line);padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.meta div{min-width:0}.meta span{display:block;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.06em;font-weight:800;margin-bottom:4px}.meta strong{overflow-wrap:anywhere;font-size:14px}
+.status{padding:12px 15px;background:#e0ecfc;color:#1a406e;border-radius:10px;margin:14px 0;line-height:1.4}
+.group{margin:17px 0;background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden;break-inside:auto}
+.group-head{padding:14px 18px;background:#e6eef8;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.group-head h2{font-size:17px;margin:0}.group-head small{font-weight:700;color:#486078}
+.grid-head,.pack-row{display:grid;grid-template-columns:56px minmax(200px,3fr) 90px minmax(120px,1fr) minmax(150px,1.7fr);gap:12px;align-items:center;padding:12px 15px}
+.grid-head{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#576e8b;border-bottom:1px solid var(--line)}
+.pack-row{border-top:1px solid #edf1f5;break-inside:avoid}
+.pack-row:first-of-type{border-top:0}
+.pack-row[data-checked="true"]{background:#f0fbf5}
+.pack-row strong{font-size:14px;overflow-wrap:anywhere}
+.pack-row small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:3px}
+.qty{font-weight:800}
+.check{cursor:pointer;border:1px solid #adbfd2;background:#fff;border-radius:9px;width:36px;height:36px;font-size:24px;color:#087b58;line-height:1}
+.note{border:1px solid #dbe3ee;border-radius:9px;min-height:36px;padding:9px 11px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;outline-color:#5da0ff}
+.note:empty:before{content:"Dopisz uwagi do pakowania";color:#8999ad}
+.crew-row{grid-template-columns:56px minmax(200px,2fr) 80px minmax(160px,2fr) minmax(160px,1.7fr)}
+.summary{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);padding:16px;border-radius:13px;margin:16px 0;font-weight:800}
+@media(max-width:730px){.wrapper{padding:12px}.header{flex-direction:column;align-items:flex-start}.meta{grid-template-columns:1fr 1fr}.grid-head{display:none}.pack-row,.crew-row{grid-template-columns:45px 1fr 80px;gap:8px}.pack-row>.note{grid-column:2/-1}.pack-row>.source{grid-column:2/-1}.pack-row .qty{justify-self:end}}
+@media print{
+@page{size:A4;margin:10mm}
+body{background:#fff;color:#111;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrapper{max-width:none;padding:0}
+.header{background:#fff;color:#111;padding:0 0 12px;border-radius:0;border-bottom:2px solid #12375c}
+.header h1{font-size:22px}.header p{color:#333}.header a{display:none}
+.actions,.status{display:none!important}
+.meta{padding:10px 0;border:0;box-shadow:none;grid-template-columns:repeat(3,1fr);margin-bottom:9px}
+.group{border:1px solid #bbb;border-radius:0;margin:10px 0}
+.group-head{padding:6px 9px;background:#e8e8e8}.group-head h2{font-size:12px}
+.grid-head{padding:5px 8px;gap:5px;font-size:8px;display:grid}
+.pack-row{padding:6px 8px;gap:6px;grid-template-columns:32px minmax(155px,3fr) 62px minmax(90px,1fr) minmax(110px,1.6fr)}
+.pack-row.crew-row{grid-template-columns:32px minmax(155px,2fr) 62px minmax(110px,2fr) minmax(110px,1.6fr)}
+.pack-row strong{font-size:10px}.pack-row small{font-size:9px}.pack-row .qty{font-size:10px}
+.check{border:1px solid #555;width:20px;height:20px;font-size:15px;padding:0;cursor:default}
+.note{border:0;padding:0;font-size:9px;min-height:0}
+.note:empty:before{content:""}
+.summary{border:0;padding:6px 0}
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<header class="header"><div><small>MARK MEDIA EVENT SOLUTION · LOGISTYKA</small><h1>PACK LISTA / LISTA ZAŁADUNKOWA</h1><p>Sprzęt, transport i personel na wydarzenie — bez cen dla klienta</p></div><a href="/app">← Wróć do ofert</a></header>
+<div class="actions">
+<button class="btn primary" onclick="window.print()">Drukuj / zapisz jako PDF</button>
+<button class="btn" onclick="location.reload()">Odśwież</button>
+<button class="btn danger" onclick="clearChecks()">Odznacz wszystkie</button>
+</div>
+<div class="status" id="status">Wczytywanie oferty i statusu pakowania…</div>
+<div class="meta" id="meta"></div>
+<div class="summary" id="summary" style="display:none"></div>
+<div id="list"></div>
+</div>
+<script>
+const query=new URLSearchParams(location.search);
+const offer=query.get('offer')||'';
+const apiPath='/api/packlists/'+encodeURIComponent(offer);
+let data=null, state={checked:{},notes:{}}, items=[];
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function setStatus(v){$('status').textContent=v;}
+function keyFor(item,index){return /^[a-zA-Z0-9._:-]{1,125}$/.test(String(item.uid||''))?item.uid:'legacy-'+index;}
+function isCrew(item){return item.category==='crew'||item.source==='personnel';}
+function quantity(item){const q=Number(item.qty||0);const formatted=Number.isInteger(q)?String(q):String(q).replace('.',',');return formatted+(item.pricingMode==='per_m2'?' m²':item.unitLabel?' '+item.unitLabel:' szt.');}
+function getGroups(){
+ const groups=new Map();
+ for(const item of items.filter(x=>!isCrew(x.data))){
+  const label=item.data.categoryLabel||item.data.category||'Pozostałe';
+  const group=item.data.groupName||'Pozycje';
+  const k=label+' / '+group;
+  if(!groups.has(k))groups.set(k,[]);
+  groups.get(k).push(item);
+ }
+ return groups;
+}
+function progress(){
+ const count=items.filter(i=>state.checked[i.key]===true).length;
+ $('summary').style.display='flex';
+ $('summary').textContent='Spakowano / potwierdzono: '+count+' z '+items.length+' pozycji';
+}
+function render(){
+ const d=data;
+ $('meta').innerHTML=[
+  ['Numer oferty',d.offerNumber||offer],['Wydarzenie',d.eventName||'—'],['Klient',d.clientName||'—'],
+  ['Data wydarzenia',d.eventDate||'—'],['Lokalizacja',d.location||'—'],['Status oferty',d.offerStatus||'Szkic']
+ ].map(([label,value])=>'<div><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('');
+ const groupBlock=(title,rows,crew=false)=>{
+  const head=crew?'<div class="grid-head crew-row"><span>OK</span><span>Stanowisko</span><span>Osób</span><span>Przydział</span><span>Uwagi wewnętrzne</span></div>':'<div class="grid-head"><span>OK</span><span>Sprzęt / pozycja</span><span>Ilość</span><span>Źródło / stan</span><span>Uwagi logistyczne</span></div>';
+  const body=rows.map(({data:item,key})=>{
+    const checked=state.checked[key]===true;
+    const owner=item.ownership==='cross-rental'?'Cross-rental':item.ownership==='own'?'Własny':(item.ownership==='owned'?'Własny':'Do ustalenia');
+    const stored=item.stockAtQuote==null?'':String(item.stockAtQuote);
+    const warning=item.ownership!=='cross-rental'&&stored!==''&&Number(item.qty||0)>Number(stored)&&item.pricingMode!=='per_m2'?' · sprawdź dostępność':'';
+    const meta=crew
+      ? '<small>'+esc(item.assignedNames||'Nieprzypisany personel')+'</small>'
+      : '<small>'+esc(item.groupName||'')+(item.pricingMode==='per_m2'?' · określ liczbę kabinetów':'')+'</small>';
+    return '<div class="pack-row'+(crew?' crew-row':'')+'" data-checked="'+checked+'">'+
+      '<button class="check" aria-label="'+(checked?'Odznacz':'Oznacz')+'" onclick="toggleChecked(\''+esc(key)+'\')">'+(checked?'☑':'☐')+'</button>'+
+      '<div><strong>'+esc(item.name||'Pozycja')+'</strong>'+meta+'</div>'+
+      '<div class="qty">'+(crew?esc(String(item.qty||1))+' × '+esc(String(item.days||1))+' d':esc(quantity(item)))+'</div>'+
+      '<div class="source">'+(crew?esc(item.assignedNames||'Do obsadzenia'):esc(owner+(stored!==''?' · stan: '+stored:'')+warning))+'</div>'+
+      '<div class="note" contenteditable="true" role="textbox" aria-label="Uwagi logistyczne" data-note="'+esc(key)+'">'+esc(state.notes[key]||item.internalNotes||'')+'</div>'+
+      '</div>';
+  }).join('');
+  return '<section class="group"><div class="group-head"><h2>'+esc(title)+'</h2><small>'+rows.length+' pozycji</small></div>'+head+body+'</section>';
+ };
+ let html='';
+ for(const [name,rows] of getGroups())html+=groupBlock(name,rows);
+ const crew=items.filter(i=>isCrew(i.data));
+ if(crew.length)html+=groupBlock('PERSONEL / OBSŁUGA TECHNICZNA',crew,true);
+ $('list').innerHTML=html||'<p>Brak pozycji do spakowania.</p>';
+ progress();
+}
+let lastSavedAt=0,saveTimer=null;
+async function saveState(){
+ try{
+  const res=await fetch(apiPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+  if(!res.ok)throw Error('Zapis odrzucony: '+res.status);
+  const payload=await res.json();
+  lastSavedAt=Date.now();
+  setStatus('Status pakowania zapisany na serwerze · '+new Date().toLocaleTimeString('pl-PL'));
+ }catch(e){setStatus('Nie zapisano zmian! '+e.message+' — sprawdź połączenie.');}
+}
+function scheduleSave(){setStatus('Zapisywanie zmian…');clearTimeout(saveTimer);saveTimer=setTimeout(saveState,500);}
+function toggleChecked(key){if(state.checked[key])delete state.checked[key];else state.checked[key]=true;render();scheduleSave();}
+async function clearChecks(){if(!confirm('Odznaczyć wszystkie pozycje tej pack listy?'))return;state.checked={};render();scheduleSave();}
+$('list').addEventListener('input',event=>{
+ const el=event.target.closest('[data-note]');
+ if(!el)return;
+ const key=el.dataset.note;
+ const note=el.innerText.slice(0,500);
+ if(note.trim())state.notes[key]=note;else delete state.notes[key];
+ scheduleSave();
+});
+async function init(){
+ if(!offer){setStatus('Nie podano numeru oferty. Otwórz pack listę z generatora ofert.');return;}
+ try{
+  const [d,s]=await Promise.all([fetch('/api/drafts/'+encodeURIComponent(offer)),fetch(apiPath)]);
+  if(!d.ok)throw Error('Nie znaleziono zapisanej oferty ('+d.status+').');
+  if(!s.ok)throw Error(s.status===401?'Zaloguj się ponownie.':'Nie udało się pobrać statusu pakowania.');
+  const dJson=await d.json(), sJson=await s.json();
+  data=dJson.data||{};
+  const saved=sJson.data||{};
+  state={checked:saved.checked||{},notes:saved.notes||{}};
+  items=(Array.isArray(data.items)?data.items:[]).map((entry,index)=>({data:entry,key:keyFor(entry,index)}));
+  render();
+  setStatus('Gotowe · zaznaczaj przygotowane pozycje; stan zapisywany jest na serwerze.');
+ }catch(e){setStatus(e.message);}
+}
+init();
+</script>
+</body>
+</html>
