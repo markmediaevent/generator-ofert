@@ -92,4 +92,4 @@ async function getUpo(nip,sessionRef,invoiceRef){
   if(!r.ok)throw Error('UPO nie jest jeszcze dostępne ('+r.status+').');
   return Buffer.from(await r.arrayBuffer());
 }
-module.exports={submitInvoice,checkInvoice,getUpo};
+module.exports={submitInvoice,checkInvoice,getUpo,assertReady:checkMode};
