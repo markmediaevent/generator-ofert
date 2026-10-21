@@ -9,7 +9,7 @@ app.use(express.json({ limit: '2mb' }));
 
 // Generator i panel administratora nie mogą być otwierane bez aktywnej sesji.
 app.use((req, res, next) => {
-  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html']);
+  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html', '/faktury', '/faktury.html']);
   if (!protectedPages.has(req.path)) return next();
   const token = getToken(req);
   if (!token || !sessions.has(token)) return res.redirect('/login');
@@ -319,6 +319,7 @@ async function listGithubDrafts() {
         drafts.push({
           offerNumber: data.offerNumber || file.name.replace(/\.json$/i, ''),
           clientName: data.clientName || '',
+          offerStatus: data.offerStatus || 'Szkic',
           eventName: data.eventName || '',
           location: data.location || '',
           dateFrom: data.dateFrom || '',
@@ -346,6 +347,7 @@ function listLocalDrafts() {
         return {
           offerNumber: raw.offerNumber || name.replace(/\.json$/i, ''),
           clientName: raw.clientName || '',
+          offerStatus: raw.offerStatus || 'Szkic',
           eventName: raw.eventName || '',
           location: raw.location || '',
           dateFrom: raw.dateFrom || '',
@@ -584,6 +586,15 @@ function findGroup(db, sectionKey, groupId) {
 
 ensureDb();
 ensureUsers();
+const { createBillingRouter } = require('./billing/routes');
+app.use('/api/billing', requireAdmin, createBillingRouter({
+  dataDir: DATA_DIR,
+  offerLoader: async number => {
+    const file = localDraftFile(number);
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+    return githubEnabled() ? await readDraftFromGithub(number) : null;
+  }
+}));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
 app.get('/api/test', (req, res) => res.json({ status: 'OK', message: 'API działa' }));
@@ -906,7 +917,7 @@ app.post('/api/admin/equipment-db/import', requireAdmin, (req, res) => {
   }
 });
 
-app.post('/api/drafts/save', async (req, res) => {
+app.post('/api/drafts/save', requireAuth, async (req, res) => {
   try {
     const { offerNumber, data } = req.body || {};
     if (!offerNumber || !data) return res.status(400).json({ ok: false, message: 'Brak numeru oferty lub danych szkicu' });
@@ -933,7 +944,7 @@ app.post('/api/drafts/save', async (req, res) => {
 
 
 
-app.get('/api/drafts', async (req, res) => {
+app.get('/api/drafts', requireAuth, async (req, res) => {
   try {
     const local = listLocalDrafts();
     const github = githubEnabled() ? await listGithubDrafts() : [];
@@ -950,7 +961,7 @@ app.get('/api/drafts', async (req, res) => {
   }
 });
 
-app.get('/api/drafts/:offerNumber', async (req, res) => {
+app.get('/api/drafts/:offerNumber', requireAuth, async (req, res) => {
   try {
     const { offerNumber } = req.params;
     const file = localDraftFile(offerNumber);
@@ -970,6 +981,7 @@ app.get('/api/drafts/:offerNumber', async (req, res) => {
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
+app.get('/faktury', (req, res) => res.sendFile(path.join(__dirname, 'public', 'faktury.html')));
 app.get('/login', (req, res) => {
   const token = getToken(req);
   if (token && sessions.has(token)) {

@@ -1,0 +1,19 @@
+name: Billing checks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: node --check server.js
+      - run: node --check billing/routes.js
+      - run: node --check billing/core.js
+      - run: node --check billing/ksef.js

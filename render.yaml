@@ -2,7 +2,7 @@ services:
   - type: web
     name: generator-ofert
     runtime: node
-    buildCommand: npm ci --omit=dev --no-audit --no-fund
+    buildCommand: npm install --omit=dev --no-audit --no-fund
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
