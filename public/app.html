@@ -694,6 +694,37 @@
       renderOfferTable();
     }
 
+    function addCrew(){
+      const role=byId('crewRole').value;
+      const qty=Math.max(1,Math.floor(Number(byId('crewQty').value)||1));
+      const days=Math.max(1,Math.floor(Number(byId('crewDays').value)||1));
+      const price=Math.max(0,Number(byId('crewRate').value)||0);
+      const assignedNames=byId('crewAssigned').value.trim();
+      const internalNotes=byId('crewNotes').value.trim();
+      offerItems.push({uid:cryptoRandom(),category:'crew',categoryLabel:'Personel techniczny',
+        name:role,desc:'',qty,days,price,source:'personnel',assignedNames,internalNotes});
+      byId('crewAssigned').value='';
+      byId('crewNotes').value='';
+      renderOfferTable();
+    }
+    function renderPersonnelList(){
+      const el=byId('crewList');
+      const people=offerItems.filter(x=>x.source==='personnel'||x.category==='crew');
+      el.innerHTML=people.length?people.map(item=>`
+        <div class="crew-entry">
+          <div><strong>${escapeHtml(item.name)}</strong><small>${Number(item.qty)||1} os. × ${Number(item.days)||1} dni · ${formatMoney(lineTotal(item))} netto</small></div>
+          <div>
+            <div class="field"><label>Przydzielone osoby</label><input value="${escapeHtml(item.assignedNames||'')}" onchange="updateCrewMeta('${escapeHtml(item.uid)}','assignedNames',this.value)"></div>
+            <div class="field" style="margin-top:8px"><label>Uwagi wewnętrzne / godziny</label><input value="${escapeHtml(item.internalNotes||'')}" onchange="updateCrewMeta('${escapeHtml(item.uid)}','internalNotes',this.value)"></div>
+          </div>
+          <button class="btn red" type="button" onclick="removeItem('${escapeHtml(item.uid)}')">Usuń</button>
+        </div>`).join(''):'<div class="muted-box">Brak dodanego personelu. Stawka 0 zł jest dozwolona przy planowaniu ekipy.</div>';
+    }
+    function updateCrewMeta(uid,field,value){
+      const item=offerItems.find(i=>i.uid===uid);
+      if(item&&['assignedNames','internalNotes'].includes(field))item[field]=String(value).slice(0,500);
+    }
+
     function cryptoRandom(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
 
     function groupedItems(){
@@ -737,6 +768,7 @@
       if(!groups.length){
         body.innerHTML = '<tr><td colspan="7"><div class="muted-box" style="margin:6px 0">Brak pozycji w ofercie.</div></td></tr>';
         updateSummary();
+        renderPersonnelList();
         return;
       }
       let lp = 1;
@@ -771,6 +803,7 @@
         return `<tr class="section-row"><td colspan="7">${escapeHtml(group.label)}</td></tr>${rows}<tr class="subtotal-row"><td colspan="5">Suma sekcji: ${escapeHtml(group.label)}</td><td colspan="2">${formatMoney(subtotal)}</td></tr>`;
       }).join('');
       updateSummary();
+      renderPersonnelList();
     }
 
     function computeTotals(){
@@ -839,9 +872,9 @@
       renderOfferTable();
     }
 
-    async function saveDraft(){
+    async function saveDraft(options = {}){
       const data = collectData();
-      if(!data.offerNumber){ alert('Podaj numer oferty.'); return; }
+      if(!data.offerNumber){ if(!options.silent)alert('Podaj numer oferty.'); return false; }
       try{
         const res = await fetch('/api/drafts/save', {
           method:'POST', headers:{'Content-Type':'application/json'},
@@ -851,10 +884,21 @@
         if(!res.ok) throw new Error(json.message || 'Błąd zapisu');
         byId('saveStatus').textContent = json.message || 'Szkic zapisany.';
         refreshDraftList();
+        return true;
       }catch(e){
         byId('saveStatus').textContent = e.message || 'Nie udało się zapisać szkicu.';
-        alert(e.message || 'Nie udało się zapisać szkicu.');
+        if(!options.silent)alert(e.message || 'Nie udało się zapisać szkicu.');
+        return false;
       }
+    }
+
+    async function openPacklist(){
+      const popup=window.open('about:blank','_blank');
+      if(!popup){alert('Zezwól na otwieranie nowej karty.');return;}
+      popup.document.write('<p style="font:16px Arial;padding:22px">Zapisywanie oferty i przygotowanie pack listy…</p>');
+      const ok=await saveDraft({silent:true});
+      if(!ok){popup.close();alert('Nie udało się zapisać oferty.');return;}
+      popup.location.href='/packlist?offer='+encodeURIComponent(byId('offerNumber').value.trim());
     }
 
     async function refreshDraftList(){
@@ -875,6 +919,7 @@
             <div class="draft-meta">${escapeHtml(d.eventName || 'Bez tytułu')}<br>${escapeHtml(d.location || '')}${d.updatedAt ? '<br>Aktualizacja: ' + escapeHtml(String(d.updatedAt).slice(0,16).replace('T',' ')) : ''}</div>
             <div class="small-actions">
               <button class="btn soft" type="button" onclick="loadDraft('${escapeHtml(d.offerNumber || '')}')">Wczytaj</button>
+              <a class="btn green" href="/packlist?offer=${encodeURIComponent(d.offerNumber || '')}" target="_blank" rel="noopener" style="text-decoration:none">Pack lista</a>
             </div>
           </div>
         `).join('');
