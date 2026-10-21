@@ -30,11 +30,97 @@
     .field{display:flex;flex-direction:column;gap:8px}.field label{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
     .field input{padding:12px 13px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(5,13,25,.72);color:#fff}
     .group-form{display:grid;grid-template-columns:1fr auto;gap:10px}
-    .item-form{display:grid;grid-template-columns:1.2fr .65fr .75fr .6fr 1.35fr auto;gap:10px;margin-top:10px}
+    .item-form{display:grid;grid-template-columns:1.2fr .65fr .65fr .75fr .6fr 1.35fr auto;gap:10px;margin-top:10px}
     .item-list{display:grid;gap:8px;margin-top:12px}
-    .item-row{display:grid;grid-template-columns:minmax(0,1.25fr) .55fr .8fr .5fr auto auto;gap:8px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+    .item-row{display:grid;grid-template-columns:minmax(0,1.25fr) .55fr .55fr .8fr .5fr auto auto;gap:8px;align-items:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
     .item-row strong{display:block}.item-row small{display:block;color:var(--muted);margin-top:4px}.pill{padding:6px 10px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.05);font-size:12px;font-weight:800}
     @media (max-width:1100px){.toolbar,.grid{grid-template-columns:1fr}.item-form,.item-row,.group-form,.topbar{grid-template-columns:1fr;display:grid}.topbar{align-items:start}.stats{grid-template-columns:1fr}}
+
+    /* Czytelny, responsywny układ magazynu — pełna szerokość dla sekcji i sprzętu. */
+    .grid{grid-template-columns:minmax(0,1fr);gap:22px}
+    .grid>.card,.group,.item-list{min-width:0}
+    .grid>.card{padding:24px}
+    .grid>.card>.section-head{padding-bottom:15px;border-bottom:1px solid var(--line)}
+    .group{padding:18px 20px;margin-top:18px;background:rgba(255,255,255,.025)}
+    .group-top{margin-bottom:0;align-items:center}
+    .group-name{font-size:19px;line-height:1.35;overflow-wrap:anywhere}
+    .group-count{display:inline-block;margin-left:10px;font-size:12px;font-weight:600;color:var(--muted)}
+    .group .btn.red{background:rgba(255,95,109,.14);color:#ffd7de;border:1px solid rgba(255,95,109,.32)}
+    .group .btn.red:hover{background:rgba(255,95,109,.26)}
+    .add-item-panel{margin:14px 0 18px;border:1px dashed rgba(78,161,255,.32);border-radius:16px;background:rgba(78,161,255,.045)}
+    .add-item-panel>summary{cursor:pointer;list-style:none;padding:13px 16px;color:#bcdcff;font-weight:800;display:flex;align-items:center;gap:9px;user-select:none}
+    .add-item-panel>summary::-webkit-details-marker{display:none}
+    .add-item-panel>summary:before{content:"+";display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:rgba(78,161,255,.18);font-size:19px}
+    .add-item-panel[open]>summary:before{content:"−"}
+    .add-item-panel .item-form{margin:0;padding:0 16px 16px}
+    .item-form{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px}
+    .item-form>input{min-width:0;width:100%;height:44px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:#0b172c;color:var(--text);padding:10px 12px;font:inherit;font-size:13px}
+    .item-form>input::placeholder{color:#aab9d2;opacity:1}
+    .item-form>input:focus,.field input:focus,.search input:focus{outline:2px solid rgba(78,161,255,.55);outline-offset:1px}
+    .item-form>input[id^="name_"]{grid-column:span 4}
+    .item-form>input[id^="price_"],.item-form>input[id^="cross_"],.item-form>input[id^="unit_"],.item-form>input[id^="stock_"]{grid-column:span 2}
+    .item-form>input[id^="desc_"]{grid-column:span 10}
+    .item-form>.btn{grid-column:span 2}
+    .item-table-head,.item-list>.item-row{display:grid;grid-template-columns:minmax(210px,2.65fr) minmax(100px,1fr) minmax(120px,1.12fr) minmax(110px,1.05fr) minmax(70px,.65fr) 86px 76px;gap:10px;align-items:center}
+    .item-table-head{padding:4px 12px 7px;color:#a9bfdf;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+    .item-list>.item-row{padding:13px 12px;background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085)}
+    .item-list>.item-row:hover{background:rgba(78,161,255,.06);border-color:rgba(78,161,255,.22)}
+    .item-row>div{min-width:0;overflow-wrap:anywhere}
+    .item-list>.item-row>div:first-child strong{font-size:15px;line-height:1.35}
+    .item-list>.item-row>div:first-child small{font-size:12px;line-height:1.4}
+    .item-list>.item-row>div:not(:first-child){font-size:14px;font-weight:700}
+    .item-list>.item-row>div:not(:first-child) small{font-size:11px;font-weight:500}
+    .item-list>.item-row>.btn{padding:10px 9px;font-size:12px;border-radius:12px;min-width:0;white-space:nowrap}
+    .item-list>.item-row>.btn.red{color:white;background:linear-gradient(135deg,#ba3248,#ff6375);border:0}
+    .item-list>.item-row>div:nth-child(n+2):before{display:none}
+    .users-form{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(110px,.7fr) auto!important;gap:10px}
+    .users-form>.btn{grid-column:auto}
+    .users-form input{min-width:0;border-radius:12px;border:1px solid var(--line2);background:#0b172c;color:var(--text);padding:12px}
+    .users-list>.item-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1fr) auto auto;gap:10px}
+    @media(max-width:1150px){
+      .item-table-head{display:none}
+      .item-list>.item-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+      .item-list>.item-row>div:first-child{grid-column:1/-1;padding-bottom:7px;border-bottom:1px solid var(--line)}
+      .item-list>.item-row>div:nth-child(n+2):before{display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+      .item-list>.item-row>div:nth-child(2):before{content:"Klient netto"}
+      .item-list>.item-row>div:nth-child(3):before{content:"Cross-rental"}
+      .item-list>.item-row>div:nth-child(4):before{content:"Jednostka"}
+      .item-list>.item-row>div:nth-child(5):before{content:"Stan"}
+      .item-list>.item-row>.btn{justify-self:start;min-width:85px}
+      .item-form{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
+      .users-list>.item-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto}
+      .users-list>.item-row>div:nth-child(3){display:none}
+    }
+    @media(max-width:720px){
+      .app{padding:14px}
+      .topbar,.grid>.card,.card{padding:16px;border-radius:18px}
+      .title h1{font-size:29px}
+      .title p{font-size:14px}
+      .top-actions{gap:8px}
+      .top-actions>.btn{padding:10px 12px}
+      .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .stat{padding:11px}.stat strong{font-size:21px}
+      .group{padding:14px}
+      .group-top{align-items:flex-start}
+      .group-name{font-size:17px}
+      .group-count{display:block;margin:4px 0 0}
+      .group-form{display:grid;grid-template-columns:minmax(0,1fr)}
+      .group-form .btn{width:100%}
+      .add-item-panel .item-form{padding:0 12px 12px}
+      .item-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .item-form>input[id^="name_"],.item-form>input[id^="desc_"],.item-form>.btn{grid-column:1/-1}
+      .item-form>input[id^="price_"],.item-form>input[id^="cross_"],.item-form>input[id^="unit_"],.item-form>input[id^="stock_"]{grid-column:span 1}
+      .item-list>.item-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .users-form{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      .users-form>input:first-child,.users-form>.btn{grid-column:1/-1}
+      .users-list>.item-row{grid-template-columns:minmax(0,1fr) auto auto}
+      .users-list>.item-row>div:nth-child(2){display:none}
+    }
+    @media(max-width:410px){
+      .group-top{display:flex;flex-wrap:wrap}
+      .group-top>.btn{width:100%}
+      .item-form>input[id^="price_"],.item-form>input[id^="cross_"],.item-form>input[id^="unit_"],.item-form>input[id^="stock_"]{grid-column:1/-1}
+    }
   </style>
 </head>
 <body>
@@ -59,13 +145,13 @@
 
     <div class="card" style="margin-bottom:18px">
       <div class="section-head"><h2>Loginy i hasła</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
-      <div class="item-form" style="grid-template-columns:1fr 1fr .7fr auto">
+      <div class="item-form users-form">
         <input id="newUserLogin" placeholder="Nowy login" />
         <input id="newUserPass" placeholder="Nowe hasło" type="text" />
         <input id="newUserRole" placeholder="Rola" value="user" />
         <button class="btn green" type="button" id="addUserBtn">Dodaj użytkownika</button>
       </div>
-      <div class="item-list" id="usersList" style="margin-top:14px"></div>
+      <div class="item-list users-list" id="usersList" style="margin-top:14px"></div>
       <div class="muted" style="margin-top:10px">Domyślne konto po pierwszym uruchomieniu: admin / markmedia123. Po dodaniu nowego konta możesz zmienić lub usunąć stare.</div>
     </div>
 
@@ -93,7 +179,7 @@
     let filterText = '';
 
     function esc(text) {
-      return String(text || '').replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+      return String(text ?? '').replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
     }
     function zl(value) {
       return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -125,7 +211,7 @@
         const sectionMatch = [sectionKey, section.label].join(' ').toLowerCase().includes(q);
         const groups = (section.groups || []).map(group => {
           const groupMatch = [group.name].join(' ').toLowerCase().includes(q);
-          const items = (group.items || []).filter(item => [item.name, item.desc, item.unit].join(' ').toLowerCase().includes(q));
+          const items = sectionMatch || groupMatch ? (group.items || []) : (group.items || []).filter(item => [item.name, item.desc, item.unit].join(' ').toLowerCase().includes(q));
           if (sectionMatch || groupMatch || items.length) return { ...group, items };
           return null;
         }).filter(Boolean);
@@ -176,30 +262,37 @@
           ${(section.groups || []).map(group => `
             <div class="group">
               <div class="group-top">
-                <div class="group-name">${esc(group.name)}</div>
+                <div class="group-name">${esc(group.name)}<span class="group-count">${(group.items || []).length} pozycji</span></div>
                 <button class="btn red" type="button" onclick="deleteGroup('${sectionKey}','${group.id}')">Usuń grupę</button>
               </div>
-              <div class="item-form">
+              <details class="add-item-panel">
+                <summary>Dodaj pozycję do tej grupy</summary>
+                <div class="item-form">
                 <input id="name_${group.id}" placeholder="Nazwa pozycji" />
-                <input id="price_${group.id}" type="number" min="0" placeholder="Cena netto" />
+                <input id="price_${group.id}" type="number" min="0" step="0.01" placeholder="Dla klienta netto" />
+                <input id="cross_${group.id}" type="number" min="0" step="0.01" placeholder="Cross-rental netto / doba" />
                 <input id="unit_${group.id}" placeholder="np. szt. / dzień" />
                 <input id="stock_${group.id}" type="number" min="0" placeholder="Stan" />
                 <input id="desc_${group.id}" placeholder="Opis pozycji" />
                 <button class="btn blue" type="button" onclick="addItem('${sectionKey}','${group.id}')">Dodaj</button>
-              </div>
+                </div>
+              </details>
               <div class="item-list">
+                <div class="item-table-head"><span>Pozycja / opis</span><span>Klient netto</span><span>Cross-rental</span><span>Jednostka</span><span>Stan</span><span></span><span></span></div>
                 ${(group.items || []).map(item => `
                   <div class="item-row">
                     <div><strong>${esc(item.name)}</strong><small>${esc(item.desc || '')}</small></div>
-                    <div>${zl(item.price)}</div>
+                    <div><small>Dla klienta</small>${zl(item.price)}</div>
+                     <div><small>Cross-rental</small>${item.crossRentalPrice == null ? "—" : zl(item.crossRentalPrice)}${item.priceStatus === "szacunkowa" ? "<small>szacunek</small>" : ""}</div>
                     <div>${esc(item.unit || '')}</div>
-                    <div>${esc(item.stock ?? 0)}</div>
+                    <div>${item.ownership === "cross-rental" ? "<small>Sprzęt zewnętrzny</small>" : ""}${esc(item.stock ?? 0)}</div>
                     <button class="btn" type="button"
                       data-section="${esc(sectionKey)}"
                       data-group="${esc(group.id)}"
                       data-item="${esc(item.id)}"
                       data-name="${esc(item.name)}"
                       data-price="${esc(item.price)}"
+                       data-cross="${esc(item.crossRentalPrice ?? "")}"
                       data-unit="${esc(item.unit || '')}"
                       data-stock="${esc(item.stock ?? 0)}"
                       data-desc="${esc(item.desc || '')}"
@@ -224,7 +317,7 @@
       status.textContent = 'Ładowanie…';
       const data = await api('/api/admin/users');
       list.innerHTML = (data.users || []).map(user => `
-        <div class="item-row" style="grid-template-columns:1fr .7fr 1fr auto auto">
+        <div class="item-row user-row">
           <div><strong>${esc(user.username)}</strong><small>ID: ${esc(user.id)}</small></div>
           <div>${esc(user.role || 'user')}</div>
           <div>${esc(user.createdAt || '')}</div>
@@ -282,13 +375,16 @@
     async function addItem(sectionKey, groupId) {
       const name = document.getElementById('name_' + groupId).value.trim();
       const price = Number(document.getElementById('price_' + groupId).value || 0);
+       const crossValue = document.getElementById('cross_' + groupId).value;
+       const crossRentalPrice = crossValue === '' ? null : Number(crossValue);
       const unit = document.getElementById('unit_' + groupId).value.trim();
       const stock = Number(document.getElementById('stock_' + groupId).value || 0);
       const desc = document.getElementById('desc_' + groupId).value.trim();
       if (!name) return alert('Podaj nazwę pozycji.');
-      await api('/api/admin/items', { method: 'POST', body: JSON.stringify({ sectionKey, groupId, name, price, unit, stock, desc }) });
+      await api('/api/admin/items', { method: 'POST', body: JSON.stringify({ sectionKey, groupId, name, price, crossRentalPrice, unit, stock, desc }) });
       document.getElementById('name_' + groupId).value = '';
       document.getElementById('price_' + groupId).value = '';
+       document.getElementById('cross_' + groupId).value = '';
       document.getElementById('unit_' + groupId).value = '';
       document.getElementById('stock_' + groupId).value = '';
       document.getElementById('desc_' + groupId).value = '';
@@ -303,18 +399,20 @@
         data.item,
         data.name || '',
         data.price || 0,
+        data.cross ?? "",
         data.unit || '',
         data.stock || 0,
         data.desc || ''
       );
     }
-    async function editItem(sectionKey, groupId, itemId, name, price, unit, stock, desc) {
+    async function editItem(sectionKey, groupId, itemId, name, price, crossRentalPrice, unit, stock, desc) {
       const newName = prompt('Nazwa pozycji:', name); if (newName === null) return;
-      const newPrice = prompt('Cena netto:', price); if (newPrice === null) return;
+      const newPrice = prompt('Cena netto dla klienta:', price); if (newPrice === null) return;
+      const newCross = prompt('Koszt cross-rental netto / doba (puste = nieznany):', crossRentalPrice); if (newCross === null) return;
       const newUnit = prompt('Jednostka:', unit); if (newUnit === null) return;
       const newStock = prompt('Stan magazynowy:', stock); if (newStock === null) return;
       const newDesc = prompt('Opis:', desc || ''); if (newDesc === null) return;
-      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: Number(newPrice || 0), unit: newUnit, stock: Number(newStock || 0), desc: newDesc }) });
+      await api(`/api/admin/items/${sectionKey}/${groupId}/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: Number(newPrice || 0), crossRentalPrice: newCross === "" ? null : Number(newCross), unit: newUnit, stock: Number(newStock || 0), desc: newDesc }) });
       await loadDb();
     }
     async function deleteItem(sectionKey, groupId, itemId) {
