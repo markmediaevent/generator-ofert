@@ -121,6 +121,20 @@
       .group-top>.btn{width:100%}
       .item-form>input[id^="price_"],.item-form>input[id^="cross_"],.item-form>input[id^="unit_"],.item-form>input[id^="stock_"]{grid-column:1/-1}
     }
+
+    .catalog-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+    .catalog-toolbar>div{display:flex;gap:9px;flex-wrap:wrap}
+    .catalog-group{padding:0!important;overflow:hidden;border-radius:17px}
+    .catalog-group>.group-top{cursor:pointer;list-style:none;display:flex;justify-content:flex-start;gap:12px;align-items:center;padding:16px;margin:0}
+    .catalog-group>.group-top::-webkit-details-marker{display:none}
+    .catalog-group>.group-top:before{content:"▸";color:#9fc4f8;font-size:18px;font-weight:900}
+    .catalog-group[open]>.group-top:before{content:"▾"}
+    .catalog-group[open]>.group-top{border-bottom:1px solid var(--line)}
+    .catalog-group .group-content{padding:14px 16px 16px}
+    .catalog-group .group-actions{display:flex;justify-content:flex-end;gap:10px}
+    .catalog-group .group-actions>.btn{padding:9px 13px;font-size:12px}
+    .catalog-group .group-name{flex:1}
+    @media(max-width:720px){.catalog-group .group-content{padding:10px}.catalog-toolbar>div{width:100%}.catalog-toolbar .btn{flex:1;padding:10px;font-size:12px}}
   </style>
 </head>
 <body>
@@ -170,6 +184,11 @@
       </div>
     </div>
 
+    <div class="catalog-toolbar">
+      <strong>Kategorie magazynu</strong>
+      <div><button class="btn" type="button" onclick="toggleAllGroups(true)">Rozwiń wszystkie grupy</button>
+      <button class="btn" type="button" onclick="toggleAllGroups(false)">Zwiń wszystkie grupy</button></div>
+    </div>
     <div class="grid" id="sectionsGrid"></div>
   </div>
   <script>
@@ -177,6 +196,24 @@
     if (!token) location.href = '/login';
     let db = null;
     let filterText = '';
+    function getOpenGroups(){
+      try{return JSON.parse(localStorage.getItem('mm_admin_open_groups') || '{}') || {};}catch(e){return {};}
+    }
+    function toggleAllGroups(expanded){
+      const state=getOpenGroups();
+      document.querySelectorAll('#sectionsGrid details.catalog-group').forEach(el=>{
+        el.open=expanded;
+        state[el.dataset.groupKey]=expanded;
+      });
+      localStorage.setItem('mm_admin_open_groups',JSON.stringify(state));
+    }
+    document.getElementById('sectionsGrid').addEventListener('toggle',event=>{
+      const el=event.target;
+      if(!el.matches('details.catalog-group') || filterText)return;
+      const state=getOpenGroups();
+      state[el.dataset.groupKey]=el.open;
+      localStorage.setItem('mm_admin_open_groups',JSON.stringify(state));
+    },true);
 
     function esc(text) {
       return String(text ?? '').replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
@@ -243,6 +280,7 @@
         updateStats();
         return;
       }
+      const openGroups=getOpenGroups();
       grid.innerHTML = entries.map(([sectionKey, section]) => `
         <div class="card">
           <div class="section-head">
@@ -260,11 +298,10 @@
             <button class="btn green" type="button" onclick="addGroup('${sectionKey}')">Dodaj grupę</button>
           </div>
           ${(section.groups || []).map(group => `
-            <div class="group">
-              <div class="group-top">
-                <div class="group-name">${esc(group.name)}<span class="group-count">${(group.items || []).length} pozycji</span></div>
-                <button class="btn red" type="button" onclick="deleteGroup('${sectionKey}','${group.id}')">Usuń grupę</button>
-              </div>
+            <details class="group catalog-group" data-group-key="${esc(sectionKey)}::${esc(group.id)}" ${filterText || openGroups[sectionKey + '::' + group.id] ? 'open' : ''}>
+              <summary class="group-top"><span class="group-name">${esc(group.name)}<span class="group-count">${(group.items || []).length} pozycji</span></span></summary>
+              <div class="group-content">
+              <div class="group-actions"><button class="btn red" type="button" onclick="deleteGroup('${sectionKey}','${group.id}')">Usuń grupę</button></div>
               <details class="add-item-panel">
                 <summary>Dodaj pozycję do tej grupy</summary>
                 <div class="item-form">
@@ -283,7 +320,7 @@
                   <div class="item-row">
                     <div><strong>${esc(item.name)}</strong><small>${esc(item.desc || '')}</small></div>
                     <div><small>Dla klienta</small>${zl(item.price)}</div>
-                     <div><small>Cross-rental</small>${item.crossRentalPrice == null ? "—" : zl(item.crossRentalPrice)}${item.priceStatus === "szacunkowa" ? "<small>szacunek</small>" : ""}</div>
+                     <div><small>Cross-rental</small>${item.crossRentalPrice == null ? "—" : zl(item.crossRentalPrice)}</div>
                     <div>${esc(item.unit || '')}</div>
                     <div>${item.ownership === "cross-rental" ? "<small>Sprzęt zewnętrzny</small>" : ""}${esc(item.stock ?? 0)}</div>
                     <button class="btn" type="button"
@@ -301,7 +338,8 @@
                   </div>
                 `).join('') || '<div class="muted">Brak pozycji w tej grupie.</div>'}
               </div>
-            </div>
+              </div>
+            </details>
           `).join('')}
         </div>
       `).join('');
@@ -363,7 +401,9 @@
       const input = document.getElementById('newGroup_' + sectionKey);
       const name = input.value.trim();
       if (!name) return alert('Podaj nazwę grupy.');
-      await api('/api/admin/groups', { method: 'POST', body: JSON.stringify({ sectionKey, name }) });
+      const created=await api('/api/admin/groups', { method: 'POST', body: JSON.stringify({ sectionKey, name }) });
+      const state=getOpenGroups();
+      if(created.group?.id){state[sectionKey + '::' + created.group.id]=true;localStorage.setItem('mm_admin_open_groups',JSON.stringify(state));}
       input.value = '';
       await loadDb();
     }
