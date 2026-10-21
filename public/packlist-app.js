@@ -191,8 +191,9 @@ $('extraForm').addEventListener('submit',event=>{
  const item=extraFormData();
  if(!item.name||!Number.isFinite(item.qty)||item.qty<=0){setStatus('Wpisz nazwę i poprawną ilość.',true);return;}
  const id=$('extraId').value;
+ $('extraSave').disabled=true;
  requestMutation(id?{action:'updateItem',id,item}:{action:'addItem',item})
-  .then(()=>cancelExtraEdit()).catch(()=>{});
+  .then(()=>cancelExtraEdit()).catch(()=>{}).finally(()=>$('extraSave').disabled=false);
 });
 $('extraCancel').addEventListener('click',cancelExtraEdit);
 $('extraForm').elements.kind.addEventListener('change',event=>{
