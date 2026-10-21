@@ -237,6 +237,70 @@ function writeDb(db) {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
 }
 
+
+/* One-time additive import. Never overwrites existing items, prices, stocks or archived offers. */
+function importCrossRentalCatalogOnce() {
+  ensureDb();
+  const marker=path.join(DATA_DIR,'.cross-rental-catalog-v1.done');
+  if(fs.existsSync(marker))return;
+  const file=path.join(__dirname,'data','cross-rental-catalog-2026.json');
+  if(!fs.existsSync(file))return;
+  const catalog=JSON.parse(fs.readFileSync(file,'utf8'));
+  if(!Array.isArray(catalog.items)||!catalog.items.length)throw new Error('Cross-rental catalog empty');
+  const db=readDb(), normalize=(v)=>String(v||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const existingNames=new Set(),existingIds=new Set();
+  for(const section of Object.values(db.sections||{}))
+    for(const group of section.groups||[])
+      for(const item of group.items||[]){
+        existingNames.add(normalize(item.name));existingIds.add(String(item.id));
+      }
+  const labels={
+    led:'Ekrany LED / procesory',audio:'Nagłośnienie',light:'Oświetlenie',video:'Wideo / streaming',
+    internet:'Internet / sieć',stage:'Scena / rigging',cables:'Okablowanie AV',
+    power:'Zasilanie',furniture:'Meble / scenografia',intercom:'Interkom / komunikacja',
+    accessories:'Akcesoria / logistyka'
+  };
+  let added=0,skipped=0;
+  for(const source of catalog.items){
+    if(!source?.id||!source?.name||!source?.sectionKey)continue;
+    const key=normalize(source.name);
+    if(!key||existingNames.has(key)||existingIds.has(String(source.id))){skipped++;continue;}
+    const sk=String(source.sectionKey),groupName=String(source.groupName||'Pozostałe');
+    if(!db.sections[sk])db.sections[sk]={label:labels[sk]||sk,groups:[]};
+    const section=db.sections[sk];
+    if(!Array.isArray(section.groups))section.groups=[];
+    let group=section.groups.find(g=>normalize(g.name)===normalize(groupName));
+    if(!group){
+      group={id:'crg-'+crypto.createHash('sha1').update(sk+'/'+groupName).digest('hex').slice(0,12),
+             name:groupName,items:[]};
+      section.groups.push(group);
+    }
+    if(!Array.isArray(group.items))group.items=[];
+    group.items.push({
+      id:String(source.id),name:String(source.name),
+      price:Math.max(0,Number(source.price||0)),crossRentalPrice:Math.max(0,Number(source.crossRentalPrice||0)),
+      unit:String(source.unit||'szt. / dzień'),stock:0,
+      ownership:'cross-rental',priceStatus:'szacunkowa',desc:String(source.desc||'')
+    });
+    existingNames.add(key);existingIds.add(String(source.id));added++;
+  }
+  if(added){
+    const backup=path.join(DATA_DIR,'equipment-db.backup-pre-crossrental-v1.json');
+    try{fs.copyFileSync(DB_FILE,backup,fs.constants.COPYFILE_EXCL);}
+    catch(e){if(e.code!=='EEXIST')throw e;}
+    const temp=DB_FILE+'.tmp-cross-'+process.pid;
+    try{fs.writeFileSync(temp,JSON.stringify(db,null,2),'utf8');fs.renameSync(temp,DB_FILE);}
+    finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
+  }
+  const markerTemp=marker+'.tmp-'+process.pid;
+  try{
+    fs.writeFileSync(markerTemp,JSON.stringify({added,skipped,importedAt:new Date().toISOString()})+'\n','utf8');
+    fs.renameSync(markerTemp,marker);
+  }finally{if(fs.existsSync(markerTemp))fs.unlinkSync(markerTemp);}
+  console.log('Cross-rental reference catalog: added '+added+', skipped '+skipped+' existing.');
+}
+
 function sanitizeOfferNumber(value) {
   return String(value || 'draft')
     .trim()
@@ -408,6 +472,9 @@ function dbRowsForExport(db) {
           groupName: group.name || '',
           itemName: item.name || '',
           price: Number(item.price || 0),
+          crossRentalPrice: item.crossRentalPrice ?? '',
+          ownership: item.ownership || '',
+          priceStatus: item.priceStatus || '',
           unit: item.unit || '',
           stock: Number(item.stock || 0),
           desc: item.desc || ''
@@ -427,18 +494,21 @@ function workbookForDbExport(db) {
     groupName: 'Przykładowa grupa',
     itemName: 'Przykładowa pozycja',
     price: 0,
+    crossRentalPrice: '',
+    ownership: 'cross-rental',
+    priceStatus: 'szacunkowa',
     unit: 'szt.',
     stock: 0,
     desc: 'Wpisz własne dane lub usuń ten wiersz'
   }]);
   ws['!cols'] = [
     { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 34 },
-    { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 40 }
+    { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 40 }
   ];
   XLSX.utils.book_append_sheet(wb, ws, 'Magazyn');
   const infoRows = [
     ['Instrukcja importu'],
-    ['Kolumny wymagane:', 'sectionKey', 'sectionLabel', 'groupName', 'itemName', 'price', 'unit', 'stock', 'desc'],
+    ['Kolumny wymagane:', 'sectionKey', 'sectionLabel', 'groupName', 'itemName', 'price', 'crossRentalPrice', 'ownership', 'priceStatus', 'unit', 'stock', 'desc'],
     ['Import aktualizuje istniejące pozycje i dodaje nowe.'],
     ['Dozwolone sectionKey istniejące w systemie:', Object.keys(db.sections || {}).join(', ')]
   ];
@@ -487,6 +557,9 @@ function dbFromWorkbookBuffer(buffer) {
       id: require('crypto').randomBytes(8).toString('hex'),
       name: itemName,
       price: Number(row.price || 0),
+      crossRentalPrice: row.crossRentalPrice === '' ? null : Math.max(0, Number(row.crossRentalPrice || 0)),
+      ownership: String(row.ownership || '').trim(),
+      priceStatus: String(row.priceStatus || '').trim(),
       unit: String(row.unit || '').trim(),
       stock: Math.max(0, Number(row.stock || 0)),
       desc: String(row.desc || '').trim()
@@ -536,6 +609,9 @@ function mergeDbWithWorkbookBuffer(buffer) {
 
     item.name = itemName;
     item.price = Number(row.price || 0);
+    if (row.crossRentalPrice !== undefined && row.crossRentalPrice !== '') item.crossRentalPrice = Math.max(0, Number(row.crossRentalPrice || 0));
+    if (String(row.ownership || '').trim()) item.ownership = String(row.ownership).trim();
+    if (String(row.priceStatus || '').trim()) item.priceStatus = String(row.priceStatus).trim();
     item.unit = String(row.unit || '').trim();
     item.stock = Math.max(0, Number(row.stock || 0));
     item.desc = String(row.desc || '').trim();
@@ -583,6 +659,7 @@ function findGroup(db, sectionKey, groupId) {
 }
 
 ensureDb();
+importCrossRentalCatalogOnce();
 ensureUsers();
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString(), app: 'Mark Media Oferty' }));
@@ -774,12 +851,12 @@ app.delete('/api/admin/groups/:sectionKey/:groupId', requireAdmin, (req, res) =>
 });
 
 app.post('/api/admin/items', requireAdmin, (req, res) => {
-  const { sectionKey, groupId, name, price, unit, stock, desc } = req.body || {};
+  const { sectionKey, groupId, name, price, crossRentalPrice, unit, stock, desc } = req.body || {};
   const db = readDb();
   const group = findGroup(db, sectionKey, groupId);
   if (!group) return res.status(400).json({ ok: false, message: 'Nie znaleziono grupy' });
   if (!name || !String(name).trim()) return res.status(400).json({ ok: false, message: 'Podaj nazwę pozycji' });
-  const item = { id: crypto.randomBytes(8).toString('hex'), name: String(name).trim(), price: Number(price || 0), unit: String(unit || 'pozycja').trim(), stock: Math.max(0, Number(stock || 0)), desc: String(desc || '').trim() };
+  const item = { id: crypto.randomBytes(8).toString('hex'), name: String(name).trim(), price: Number(price || 0), crossRentalPrice: crossRentalPrice == null || crossRentalPrice === '' ? null : Math.max(0, Number(crossRentalPrice)), unit: String(unit || 'pozycja').trim(), stock: Math.max(0, Number(stock || 0)), desc: String(desc || '').trim() };
   group.items.push(item);
   writeDb(db);
   res.json({ ok: true, item, db });
@@ -787,7 +864,7 @@ app.post('/api/admin/items', requireAdmin, (req, res) => {
 
 app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, res) => {
   const { sectionKey, groupId, itemId } = req.params;
-  const { name, price, unit, stock, desc } = req.body || {};
+  const { name, price, crossRentalPrice, unit, stock, desc } = req.body || {};
   const db = readDb();
   const group = findGroup(db, sectionKey, groupId);
   if (!group) return res.status(400).json({ ok: false, message: 'Nie znaleziono grupy' });
@@ -795,6 +872,7 @@ app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, res
   if (!item) return res.status(404).json({ ok: false, message: 'Nie znaleziono pozycji' });
   item.name = String(name || item.name).trim();
   item.price = Number(price ?? item.price);
+  if (crossRentalPrice !== undefined) item.crossRentalPrice = crossRentalPrice == null || crossRentalPrice === '' ? null : Math.max(0, Number(crossRentalPrice));
   item.unit = String(unit ?? item.unit).trim();
   item.stock = Math.max(0, Number(stock ?? item.stock ?? 0));
   item.desc = String(desc ?? item.desc).trim();
