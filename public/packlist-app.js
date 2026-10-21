@@ -69,7 +69,7 @@ function groupHtml(group){
    const leds=screenItem(item)?(led?led.columns+' × '+led.rows+' · '+(led.cabWidth*100)+'×'+(led.cabHeight*100)+' cm'+(led.exact?'':' · WYMIAR ZAOKRĄGLONY'):'Brak modelu lub wymiarów — skonfiguruj powyżej'):'';
    const details=[item.groupName||'',item.details||'',leds].filter(Boolean).join(' · ');
    const owner=row.extra?(item.sourceLabel||'Dodano do pack listy'):
-     crewItem(item)?(item.assignedNames||'Do obsadzenia'):
+     crewItem(item)?(item.assignedNames||item.sourceLabel||'Do obsadzenia'):
      item.ownership==='cross-rental'?'Cross-rental':
      item.ownership==='own'||item.ownership==='owned'?'Własny':'Do ustalenia';
    const stock=Number(item.stockAtQuote);
@@ -110,7 +110,7 @@ function ledHtml(){
      '<label>Model<select name="model">'+modelsOptions(config.model)+'</select></label>'+
      '<label>Szerokość ekranu (m)<input name="width" type="number" min="0.01" max="500" step="0.01" value="'+esc(config.width||'')+'" required></label>'+
      '<label>Wysokość ekranu (m)<input name="height" type="number" min="0.01" max="500" step="0.01" value="'+esc(config.height||'')+'" required></label>'+
-     '<label>Ułożenie<select name="orientation"><option value="vertical"'+(config.orientation!=='horizontal'?' selected':'')+'>Standardowe 50×100 cm (Dicolor)</option><option value="horizontal"'+(config.orientation==='horizontal'?' selected':'')+'>Obrót Dicolor 100×50 cm</option></select></label>'+
+     '<label class="led-orientation"'+(config.model==='dicolor-p4'?'':' style="display:none"')+'>Obrót kabinetu (Dicolor)<select name="orientation"><option value="vertical"'+(config.orientation!=='horizontal'?' selected':'')+'>Bez obrotu (50×100 cm)</option><option value="horizontal"'+(config.orientation==='horizontal'?' selected':'')+'>Po obrocie (100×50 cm)</option></select></label>'+
      '<div class="led-result '+(result&&!result.exact?'warn':'')+'">'+esc(text)+'</div>'+
      '<button type="submit" class="btn primary">Przelicz i zapisz</button></form>';
  }).join('')+'</section>';
@@ -240,6 +240,8 @@ $('ledPanel').addEventListener('change',event=>{
  const form=event.target.closest('[data-led-config]');
  if(!form)return;
  const payload={model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value};
+ const orientation=form.querySelector('.led-orientation');
+ if(orientation)orientation.style.display=payload.model==='dicolor-p4'?'flex':'none';
  const result=MM_LED.calculate(payload);
  if(result){
    const el=form.querySelector('.led-result');
