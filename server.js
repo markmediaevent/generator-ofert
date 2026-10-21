@@ -365,7 +365,16 @@ async function getGithubDraftMeta(offerNumber) {
 async function saveDraftToGithub(offerNumber, data) {
   const { filePath, meta } = await getGithubDraftMeta(offerNumber);
   const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-  const content = Buffer.from(JSON.stringify(data, null, 2), 'utf8').toString('base64');
+  // Repozytorium GitHub może być publiczne: nazwisk i notatek wewnętrznych ekipy
+  // nie wysyłamy w kopii zapasowej oferty. Pełny szkic zostaje na dysku serwera.
+  const externalCopy = JSON.parse(JSON.stringify(data));
+  if (Array.isArray(externalCopy.items)) {
+    externalCopy.items.forEach(item => {
+      delete item.assignedNames;
+      delete item.internalNotes;
+    });
+  }
+  const content = Buffer.from(JSON.stringify(externalCopy, null, 2), 'utf8').toString('base64');
   const payload = {
     message: `save draft ${offerNumber}`,
     content,
