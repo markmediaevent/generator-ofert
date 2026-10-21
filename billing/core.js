@@ -52,6 +52,25 @@ class BillingStore {
       lines,totals:totals(lines),emailEvents:[],ksef:{state:'not_sent'}
     });
   }
+  manual(data){
+    const description=String(data?.description||'').trim().slice(0,400);
+    const net=Number(data?.net);
+    if(!description||!Number.isFinite(net)||net<=0||net>100000000)problem('Podaj opis i poprawną kwotę netto.');
+    const c=Math.round(net*100),date=iso();
+    const lines=[{description,detail:'1 usługa',net:c,vat:Math.round(c*.23)}];
+    return this.save({
+      id:crypto.randomUUID(),status:'draft',number:null,offerNumber:null,createdAt:new Date().toISOString(),
+      issueDate:date,saleDate:date,dueDate:afterDays(date,7),
+      buyerName:'',buyerNip:'',buyerAddress:'',buyerEmail:'',title:description,
+      seller:{name:process.env.BILLING_SELLER_NAME||'Marek Wyganowski MarkNet',nip:process.env.BILLING_SELLER_NIP||'',address:process.env.BILLING_SELLER_ADDRESS||'',bank:process.env.BILLING_BANK_ACCOUNT||''},
+      lines,totals:totals(lines),emailEvents:[],ksef:{state:'not_sent'},paymentStatus:'unpaid'
+    });
+  }
+  setPaid(id,paid){
+    const v=this.get(id);if(v.status==='draft')problem('Nie można rozliczyć szkicu.');
+    v.paymentStatus=paid?'paid':'unpaid';v.paidAt=paid?new Date().toISOString():null;
+    return this.save(v);
+  }
   update(id,data){
     const inv=this.get(id);if(inv.status!=='draft')problem('Po wystawieniu fakturę można zmienić wyłącznie przez korektę.',409);
     for(const key of ['buyerName','buyerNip','buyerAddress','buyerEmail','title','issueDate','saleDate','dueDate'])if(Object.prototype.hasOwnProperty.call(data,key)){
