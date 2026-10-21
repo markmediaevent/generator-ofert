@@ -548,6 +548,27 @@
       return list;
     }
 
+    function cleanDescription(value){
+      return String(value || '').replace(/Katalog cross-rental\s*;\s*cena B2B orientacyjna\s*,\s*do potwierdzenia z wypożyczalnią\.?/gi,'').trim();
+    }
+    function savedCatalogGroups(){
+      try{return JSON.parse(localStorage.getItem('mm_equipment_groups_open')||'{}')||{};}catch(e){return {};}
+    }
+    function expandEquipmentGroups(expanded){
+      const state=savedCatalogGroups();
+      document.querySelectorAll('#equipmentGrid details.equip-group').forEach(el=>{
+        el.open=expanded;
+        state[el.dataset.groupKey]=expanded;
+      });
+      localStorage.setItem('mm_equipment_groups_open',JSON.stringify(state));
+    }
+    byId('equipmentGrid').addEventListener('toggle',e=>{
+      if(!e.target.matches('details.equip-group')||byId('equipmentSearch').value.trim())return;
+      const state=savedCatalogGroups();
+      state[e.target.dataset.groupKey]=e.target.open;
+      localStorage.setItem('mm_equipment_groups_open',JSON.stringify(state));
+    },true);
+
     function renderEquipment(){
       const q = byId('equipmentSearch').value.trim().toLowerCase();
       const sort = byId('equipmentSort').value;
@@ -559,25 +580,35 @@
       if(sort === 'nameAsc') items.sort((a,b)=>String(a.name).localeCompare(String(b.name), 'pl'));
       const grid = byId('equipmentGrid');
       if(!items.length){ grid.innerHTML = '<div class="muted-box">Brak pozycji w tej kategorii lub dla tego wyszukiwania.</div>'; return; }
-      grid.innerHTML = items.map(item => `
-        <div class="equip-card">
-          <div class="equip-main">
-            <div class="equip-path">${escapeHtml(item.sectionLabel)} / ${escapeHtml(item.groupName)}</div>
-            <div class="equip-name">${escapeHtml(item.name)}</div>
-            <div class="equip-desc">${escapeHtml(item.desc || '')}</div>
-            <div class="equip-meta">
-              <span class="chip">Dla klienta: ${formatMoney(item.price)}</span>
-              ${item.crossRentalPrice != null ? `<span class="chip">Cross-rental netto: ${formatMoney(item.crossRentalPrice)} / doba</span>` : ''}
-              ${item.ownership === 'cross-rental' ? '<span class="chip">Katalog zewnętrzny · dostępność do potwierdzenia</span>' : ''}
-              <span class="chip">${escapeHtml(item.unit || 'szt.')}</span>
-              <span class="chip">${item.ownership === 'cross-rental' ? 'Własny stan: 0 · cross-rental' : 'Stan: ' + escapeHtml(item.stock ?? 0)}</span>
+      const groups = new Map();
+      items.forEach(item=>{
+        const key=String(item.sectionKey)+'::'+String(item.groupName||'Pozostałe');
+        if(!groups.has(key))groups.set(key,{label:(item.sectionLabel||item.sectionKey)+' / '+(item.groupName||'Pozostałe'),items:[]});
+        groups.get(key).items.push(item);
+      });
+      const openState=savedCatalogGroups();
+      grid.innerHTML=Array.from(groups,([key,group])=>`
+        <details class="equip-group" data-group-key="${escapeHtml(key)}" ${q||openState[key]?'open':''}>
+          <summary><span class="group-label">${escapeHtml(group.label)}</span><span class="group-count">${group.items.length} pozycji</span></summary>
+          <div class="equipment-grid">${group.items.map(item=>`
+            <div class="equip-card">
+              <div class="equip-main">
+                <div class="equip-name">${escapeHtml(item.name)}</div>
+                ${cleanDescription(item.desc)?`<div class="equip-desc">${escapeHtml(cleanDescription(item.desc))}</div>`:''}
+                <div class="equip-meta">
+                  <span class="chip">Dla klienta: ${formatMoney(item.price)}</span>
+                  ${item.crossRentalPrice != null ? `<span class="chip">Cross-rental: ${formatMoney(item.crossRentalPrice)} / doba</span>` : ''}
+                  <span class="chip">${escapeHtml(item.unit || 'szt.')}</span>
+                  <span class="chip">${item.ownership === 'cross-rental'?'Cross-rental':'Stan: '+escapeHtml(item.stock ?? 0)}</span>
+                </div>
+              </div>
+              <div class="equip-action">
+                <div class="equip-price">${formatMoney(item.price)}<small>${escapeHtml(item.unit || '')}</small></div>
+                <button class="btn primary" type="button" onclick="addDbItem('${escapeHtml(item.sectionKey)}','${escapeHtml(item.id)}')">Dodaj</button>
+              </div>
             </div>
-          </div>
-          <div class="equip-action">
-            <div class="equip-price">${formatMoney(item.price)}<small>${escapeHtml(item.unit || '')} · cena dla klienta</small></div>
-            <button class="btn primary" type="button" onclick="addDbItem('${item.sectionKey}','${item.id}')">Dodaj</button>
-          </div>
-        </div>
+          `).join('')}</div>
+        </details>
       `).join('');
     }
 
@@ -589,7 +620,12 @@
         category: sectionKey,
         categoryLabel: categories[sectionKey]?.label || found.sectionLabel || sectionKey,
         name: found.name,
-        desc: found.desc || found.groupName || '',
+        desc: cleanDescription(found.desc),
+        sourceItemId: found.id,
+        groupName: found.groupName || '',
+        unitLabel: String(found.unit || 'szt.').split('/')[0].trim(),
+        ownership: found.ownership || 'unknown',
+        stockAtQuote: found.stock == null ? null : Number(found.stock),
         qty: 1,
         days: 1,
         price: Number(found.price || 0),
@@ -661,7 +697,7 @@
     function cryptoRandom(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
 
     function groupedItems(){
-      const order = ['led','audio','light','video','internet','stage','transport','custom'];
+      const order = [...new Set(['led','audio','light','video','internet','stage','transport','custom','crew',...offerItems.map(item=>item.category)])];
       const groups = [];
       order.forEach(key => {
         const rows = offerItems.filter(i => i.category === key);
@@ -799,7 +835,7 @@
       byId('notes').value = data.notes || '';
       byId('discountPercent').value = data.discountPercent || 0;
       if(byId('includeSignature')) byId('includeSignature').checked = !!data.includeSignature;
-      offerItems = Array.isArray(data.items) ? data.items.map(item => ({ uid: item.uid || cryptoRandom(), ...item })) : [];
+      offerItems = Array.isArray(data.items) ? data.items.map(item => ({ ...item, uid: item.uid || cryptoRandom(), desc: cleanDescription(item.desc) })) : [];
       renderOfferTable();
     }
 
@@ -915,7 +951,7 @@
             <tr>
               <td>${escapeHtml(group.label)}</td>
               <td><div class="pdf-item-name">${escapeHtml(item.name)}</div></td>
-              <td>${item.desc ? `<div class="pdf-item-desc">${escapeHtml(item.desc)}</div>` : '—'}</td>
+              <td>${cleanDescription(item.desc) ? `<div class="pdf-item-desc">${escapeHtml(cleanDescription(item.desc))}</div>` : '—'}</td>
               <td class="center">${qtyLabel}</td>
               <td class="center">${escapeHtml(String(item.days || 1))}</td>
               <td class="num">${formatMoney(item.price)}</td>
