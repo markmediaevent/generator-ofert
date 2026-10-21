@@ -695,7 +695,8 @@
     }
 
     function addCrew(){
-      const role=byId('crewRole').value;
+      let role=byId('crewRole').value;
+      if(role==='Inne'){const custom=prompt('Podaj nazwę stanowiska personelu:');if(!custom||!custom.trim())return;role=custom.trim().slice(0,100);}
       const qty=Math.max(1,Math.floor(Number(byId('crewQty').value)||1));
       const days=Math.max(1,Math.floor(Number(byId('crewDays').value)||1));
       const price=Math.max(0,Number(byId('crewRate').value)||0);
@@ -783,9 +784,9 @@
             </td>
             <td>
               <div class="qty-box">
-                <button type="button" onclick="stepItem('${item.uid}','qty', item.pricingMode === 'per_m2' ? -0.1 : -1)">−</button>
+                <button type="button" onclick="stepItem('${item.uid}','qty',${item.pricingMode === 'per_m2' ? -0.1 : -1})">−</button>
                 <input value="${Number(item.qty || 0).toFixed(item.pricingMode === 'per_m2' ? 2 : 0)}" onchange="updateItem('${item.uid}','qty',this.value)" />
-                <button type="button" onclick="stepItem('${item.uid}','qty', item.pricingMode === 'per_m2' ? 0.1 : 1)">+</button>
+                <button type="button" onclick="stepItem('${item.uid}','qty',${item.pricingMode === 'per_m2' ? 0.1 : 1})">+</button>
               </div>${item.unitLabel ? `<div class=\"item-desc\" style=\"margin-top:6px\">${escapeHtml(item.unitLabel)}</div>` : ''}
             </td>
             <td>
