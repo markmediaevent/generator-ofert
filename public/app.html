@@ -173,9 +173,9 @@
 
 
     .pdf-header{display:grid;grid-template-columns:minmax(0,1fr) 75mm;gap:8mm;align-items:stretch;margin-bottom:12px}
-    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:10mm 9mm 9mm;min-height:62mm;overflow:visible}
-    .pdf-company{display:inline-block;width:122%;white-space:nowrap;font-size:31px;line-height:.95;font-weight:950;letter-spacing:0;color:#0b1633;margin:0 0 18mm;text-transform:uppercase;transform:scaleX(.82);transform-origin:left center}
-    .pdf-title-card h1{margin:0 0 7mm;font-size:43px;line-height:.98;letter-spacing:-.06em;color:#0b1633;font-weight:950;white-space:nowrap}
+    .pdf-title-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:10mm 9mm 9mm;min-height:62mm;min-width:0;overflow-wrap:anywhere}
+    .pdf-company{display:block;max-width:100%;white-space:normal;overflow-wrap:break-word;font-size:20px;line-height:1.12;font-weight:950;letter-spacing:-.045em;color:#0b1633;margin:0 0 13mm;text-transform:uppercase}
+    .pdf-title-card h1{margin:0 0 7mm;font-size:36px;line-height:1;letter-spacing:-.06em;color:#0b1633;font-weight:950;white-space:normal;overflow-wrap:break-word}
     .pdf-event-line{margin:0;font-size:13px;color:#101b34;line-height:1.35;white-space:normal;max-width:100%}
     .pdf-event-line strong{color:#103f87;font-weight:950;margin-right:8px}
     .pdf-meta-card{background:#fff;border:1px solid #dbe3ee;border-radius:20px;padding:8mm 7mm;display:grid;align-content:start;min-height:62mm;overflow:visible}
@@ -192,10 +192,11 @@
 
     @media print{
       @page{size:A4;margin:10mm}
+      .app{max-width:none;margin:0;padding:0 !important}
       body{background:#fff}
       .app>*:not(.pdf-sheet){display:none !important}
       .pdf-sheet{display:block !important;font-family:Inter,Arial,sans-serif;color:#1a2435}
-      .pdf-page{min-height:auto;padding:0;background:#fff;page-break-after:always;break-inside:auto;page-break-inside:auto}
+      .pdf-page{min-height:auto;padding:0;background:#fff;page-break-after:auto;break-inside:auto;page-break-inside:auto}
       .pdf-page:last-child{page-break-after:auto}
       .pdf-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:14px}
       .pdf-hero h1{margin:10px 0 6px;font-size:28px;letter-spacing:-.04em}
@@ -218,14 +219,14 @@
       .pdf-total-hero{background:linear-gradient(135deg,#0f1d35,#1b467f);color:#fff;border-radius:16px;padding:14px 16px}
       .pdf-total-hero strong{display:block;font-size:28px;margin-top:6px;letter-spacing:-.04em}
       .pdf-note{line-height:1.7;color:#5e6b7f;font-size:12px}
-      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px}
+      .pdf-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:46px;break-inside:avoid;page-break-inside:avoid}
       .pdf-line-sign{position:relative;padding-top:42px;border-bottom:1px solid #9cabbe;color:#687688;text-align:center;font-size:12px}
       .pdf-signature-img{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);max-width:120px;max-height:58px;object-fit:contain}
       .pdf-table thead{display:table-header-group}
       .pdf-table tfoot{display:table-footer-group}
       .pdf-table tr{break-inside:avoid;page-break-inside:avoid}
       .pdf-table tr.pdf-section{break-after:avoid;page-break-after:avoid}
-      .pdf-footer-card{min-height:auto !important}
+      .pdf-footer-card{min-height:auto !important;margin-top:12px}
     }
   </style>
 </head>
@@ -949,8 +950,6 @@
               <tbody>${pdfRows()}</tbody>
             </table>
           </div>
-        </div>
-        <div class="pdf-page">
           <div class="pdf-card pdf-footer-card" style="min-height:auto;display:grid;gap:18px;align-content:start;">
             <div>
               <div class="pdf-label">Standard realizacji</div>
