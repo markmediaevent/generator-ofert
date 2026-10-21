@@ -55,6 +55,9 @@ body{background:#fff;color:#111;font-size:11px;-webkit-print-color-adjust:exact;
 .summary{border:0;padding:6px 0}
 }
 
+.pack-nav{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.pack-nav .btn{padding:9px 12px}
+.pack-nav a{font-size:13px;text-decoration:underline}.pack-nav button{background:#24446c;color:#fff}
+@media print{.pack-nav{display:none}}
 .status.error{background:#ffebed;color:#a11a30;border:1px solid #f3bfc9}
 .help{margin:9px 16px 14px;color:#546782;font-size:13px;line-height:1.55}
 .add-panel,.led-section{border:1px solid var(--line);background:#fff;border-radius:15px;margin:17px 0;overflow:hidden}
@@ -84,7 +87,7 @@ body{background:#fff;color:#111;font-size:11px;-webkit-print-color-adjust:exact;
 </head>
 <body>
 <div class="wrapper">
-<header class="header"><div><small>MARK MEDIA EVENT SOLUTION · LOGISTYKA</small><h1>PACK LISTA / LISTA ZAŁADUNKOWA</h1><p>Sprzęt, transport i personel na wydarzenie — bez cen dla klienta</p></div><a href="/app">← Wróć do ofert</a></header>
+<header class="header"><div><small>MARK MEDIA EVENT SOLUTION · LOGISTYKA</small><h1>PACK LISTA / LISTA ZAŁADUNKOWA</h1><p>Sprzęt, transport i personel na wydarzenie — bez cen dla klienta</p></div><div class="pack-nav"><a href="/packlists">← Wszystkie pack listy</a><a id="offerBack" href="/app" hidden>Oferty</a><button id="logoutPack" type="button" class="btn">Wyloguj</button></div></header>
 <div class="actions">
 <button class="btn primary" onclick="printPacklist()">Drukuj / zapisz jako PDF</button>
 <button class="btn" onclick="reload()">Synchronizuj z pracownikami</button>
