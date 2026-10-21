@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
-const { makeHash, verifyHash } = require('./billing/auth');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
