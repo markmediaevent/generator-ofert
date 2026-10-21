@@ -185,6 +185,11 @@
     .pdf-meta-key{font-size:9.4px;text-transform:uppercase;letter-spacing:.08em;color:#0f1b33;font-weight:950;white-space:nowrap;line-height:1.15}
     .pdf-meta-val{font-size:14px;font-weight:950;color:#0b1633;white-space:nowrap;text-align:right;line-height:1.15}
 
+    .led-form{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+    .led-preview{grid-column:1/-1;padding:12px 15px;border:1px solid #bfd5ed;border-radius:12px;background:#edf5ff;color:#123968;font-size:13px;font-weight:750}
+    .led-preview.warning{background:#fff4e5;color:#8a4b0b;border-color:#f5d3a3}
+    @media(max-width:780px){.led-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:520px){.led-form{grid-template-columns:1fr}}
     .equip-group{border:1px solid var(--line);background:#f9fbfe;border-radius:16px;margin-bottom:10px;overflow:hidden}
     .equip-group>summary{cursor:pointer;padding:15px 17px;font-weight:900;background:#eaf0f9;display:flex;justify-content:space-between;gap:12px;align-items:center;list-style:none}
     .equip-group>summary::-webkit-details-marker{display:none}
@@ -351,13 +356,26 @@
             </div>
           </div>
           <div class="card-body">
-            <div class="quick-add" id="ledForm" style="display:none;grid-template-columns:1.1fr 1.1fr .7fr .7fr .8fr .8fr auto;">
-              <div class="field"><label>Typ LED</label><input id="ledType" placeholder="Np. P3.9 outdoor" value="P3.9" /></div>
+            <div class="quick-add led-form" id="ledForm" style="display:none;">
+              <div class="field"><label>Model kabinetu</label><select id="ledModel" onchange="updateLedPreview()">
+                <option value="yes-tech-p39">Yes Tech P3.9 — 50 × 50 cm</option>
+                <option value="gloshine-p4">Gloshine P4 / P4.8 — 50 × 50 cm</option>
+                <option value="dicolor-p4">Dicolor P4 — 50 × 100 cm</option>
+                <option value="other">Inny ekran LED (bez automatycznego przeliczenia)</option>
+              </select></div>
+              <div class="field" id="ledCustomWrap" style="display:none"><label>Inny typ</label><input id="ledType" placeholder="Podaj model LED" /></div>
+              <div class="field" id="ledOrientationWrap" style="display:none"><label>Ułożenie Dicolor</label>
+                <select id="ledOrientation" onchange="updateLedPreview()">
+                  <option value="vertical">Kabinet 50 cm szer. × 100 cm wys.</option>
+                  <option value="horizontal">Kabinet obrócony: 100 cm szer. × 50 cm wys.</option>
+                </select>
+              </div>
               <div class="field"><label>Montaż</label><select id="ledMount"><option>Stojący</option><option>Wiszący</option></select></div>
               <div class="field"><label>Szerokość (m)</label><input id="ledWidth" type="number" min="0" step="0.01" value="5.5" /></div>
               <div class="field"><label>Wysokość (m)</label><input id="ledHeight" type="number" min="0" step="0.01" value="2.5" /></div>
               <div class="field"><label>Dni</label><input id="ledDays" type="number" min="1" step="1" value="1" /></div>
               <div class="field"><label>Stawka zł / m² / dzień</label><input id="ledRate" type="number" min="0" step="0.01" value="0" /></div>
+              <div class="field led-preview" id="ledPreview" aria-live="polite">Wybierz model i wymiary, aby przeliczyć kabinety.</div>
               <div class="toolbar"><button class="btn primary" type="button" onclick="confirmLedItem()">Dodaj LED</button></div>
             </div>
             <div class="quick-add" id="manualForm" style="display:none;">
@@ -463,6 +481,7 @@
     <div class="pdf-sheet" id="pdfSheet"></div>
   </div>
 
+  <script src="/led-utils.js"></script>
   <script>
     const categories = {
       led: { label: 'Ekran LED' },
@@ -646,12 +665,38 @@
       form.style.display = form.style.display === 'none' ? 'grid' : 'none';
     }
 
+    function updateLedPreview(){
+      const model=byId('ledModel').value;
+      byId('ledCustomWrap').style.display=model==='other'?'flex':'none';
+      byId('ledOrientationWrap').style.display=model==='dicolor-p4'?'flex':'none';
+      const calc=MM_LED.calculate({
+        model,width:byId('ledWidth').value,height:byId('ledHeight').value,orientation:byId('ledOrientation').value
+      });
+      const target=byId('ledPreview');
+      target.classList.toggle('warning',!calc||!calc.exact);
+      if(!calc){
+        target.textContent=model==='other'?'Niestandardowy ekran: uzupełnij liczbę kabinetów ręcznie na pack liście.':'Wprowadź dodatnie wymiary ekranu.';
+        return;
+      }
+      target.textContent=calc.columns+' kolumn × '+calc.rows+' rzędów = '+calc.total+' kabinetów ('+
+        (calc.cabWidth*100)+' × '+(calc.cabHeight*100)+' cm).'+
+        (calc.exact?' Wymiary są dokładną wielokrotnością kabinetów.':
+        ' UWAGA: wymiar nie jest wielokrotnością kabinetu. Układ po zaokrągleniu: '+
+        calc.builtWidth.toLocaleString('pl-PL')+' × '+calc.builtHeight.toLocaleString('pl-PL')+' m. Zweryfikuj docelowy wymiar.');
+    }
+    ['ledWidth','ledHeight'].forEach(id=>byId(id).addEventListener('input',updateLedPreview));
+    updateLedPreview();
+
     function confirmLedItem(){
       const width = Math.max(0, Number(byId('ledWidth').value || 0));
       const height = Math.max(0, Number(byId('ledHeight').value || 0));
       const days = Math.max(1, Number(byId('ledDays').value || 1));
       const rate = Math.max(0, Number(byId('ledRate').value || 0));
-      const type = (byId('ledType').value || 'P3.9').trim();
+      const model=byId('ledModel').value;
+      const type=model==='other' ? byId('ledType').value.trim() : MM_LED.MODELS[model]?.label;
+      if(!type){alert('Podaj model ekranu LED.');return;}
+      const orientation=byId('ledOrientation').value;
+      const calc=MM_LED.calculate({model,width,height,orientation});
       const mount = (byId('ledMount').value || 'Stojący').trim();
       const area = Number((width * height).toFixed(2));
       if(!width || !height){ alert('Podaj szerokość i wysokość ekranu.'); return; }
@@ -666,7 +711,12 @@
         price: rate,
         unitLabel: 'm²',
         pricingMode: 'per_m2',
-        source: 'led-calc'
+        source: 'led-calc',
+        ledModel: calc?.model || '',
+        ledScreenWidth: width,
+        ledScreenHeight: height,
+        ledOrientation: orientation,
+        ledCabinetCount: calc?.total ?? null
       });
       byId('ledForm').style.display = 'none';
       renderOfferTable();
