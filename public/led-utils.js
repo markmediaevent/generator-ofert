@@ -58,5 +58,29 @@
     return {model:model.id,modelLabel:model.label,columns,rows,total,cabWidth,cabHeight,builtWidth,builtHeight,
       requestedWidth:width,requestedHeight:height,exact};
   }
-  root.MM_LED={MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate};
+  // Założenia planistyczne, nie parametry fabryczne. Edytowane per ekran na pack liście.
+  const LOGISTICS_DEFAULTS=Object.freeze({caseSize:8,dataChainSize:10,powerChainSize:8,spares:0});
+  function logistics(calculation,settings={}){
+    if(!calculation)return null;
+    const cfg={...LOGISTICS_DEFAULTS,...settings};
+    const whole=(key,min,max)=>{
+      const n=Number(cfg[key]);
+      return Number.isInteger(n)&&n>=min&&n<=max?n:LOGISTICS_DEFAULTS[key];
+    };
+    const caseSize=whole('caseSize',1,50);
+    const dataChainSize=whole('dataChainSize',1,100);
+    const powerChainSize=whole('powerChainSize',1,100);
+    const spares=whole('spares',0,1000);
+    const count=calculation.total;
+    const dataRuns=Math.ceil(count/dataChainSize);
+    const powerRuns=Math.ceil(count/powerChainSize);
+    return {
+      count,spares,totalCabinets:count+spares,caseSize,dataChainSize,powerChainSize,
+      cases:Math.ceil((count+spares)/caseSize),
+      dataRuns, dataJumpers:Math.max(0,count-dataRuns),
+      powerRuns, powerJumpers:Math.max(0,count-powerRuns),
+      assumptions:'Wartości orientacyjne. Zweryfikuj obciążenie, topologię i limity producenta.'
+    };
+  }
+  root.MM_LED={MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate,LOGISTICS_DEFAULTS,logistics};
 })(typeof window!=='undefined'?window:globalThis);
