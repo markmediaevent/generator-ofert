@@ -68,7 +68,7 @@ class BillingStore {
     const ym=inv.issueDate.slice(0,7);
     const used=this.list().filter(v=>v.number&&v.issueDate.slice(0,7)===ym).map(v=>Number((v.number.match(/\/(\d+)$/)||[])[1]||0));
     inv.number='MM/FV/'+ym.slice(0,4)+'/'+ym.slice(5,7)+'/'+String(Math.max(0,...used)+1).padStart(4,'0');
-    inv.status='issued';inv.issuedAt=new Date().toISOString();return this.save(inv);
+    inv.status='issued';inv.issuedAt=new Date().toISOString();inv.xmlCreatedAt=inv.issuedAt;return this.save(inv);
   }
 }
 function toFA3(inv){
@@ -76,7 +76,7 @@ function toFA3(inv){
   const rows=inv.lines.map((r,i)=>'<FaWiersz><NrWierszaFa>'+(i+1)+'</NrWierszaFa><P_7>'+esc(r.description+' ('+r.detail+')')+'</P_7><P_8A>usługa</P_8A><P_8B>1</P_8B><P_9A>'+fmt(r.net)+'</P_9A><P_11>'+fmt(r.net)+'</P_11><P_12>23</P_12></FaWiersz>').join('');
   return '<?xml version="1.0" encoding="UTF-8"?>'
   +'<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">'
-  +'<Naglowek><KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza><WariantFormularza>3</WariantFormularza><DataWytworzeniaFa>'+new Date().toISOString()+'</DataWytworzeniaFa><SystemInfo>MarkNet Faktury</SystemInfo></Naglowek>'
+  +'<Naglowek><KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza><WariantFormularza>3</WariantFormularza><DataWytworzeniaFa>'+esc(inv.xmlCreatedAt||inv.issuedAt)+'</DataWytworzeniaFa><SystemInfo>MarkNet Faktury</SystemInfo></Naglowek>'
   +'<Podmiot1><DaneIdentyfikacyjne><NIP>'+esc(inv.seller.nip)+'</NIP><Nazwa>'+esc(inv.seller.name)+'</Nazwa></DaneIdentyfikacyjne><Adres><KodKraju>PL</KodKraju><AdresL1>'+esc(inv.seller.address)+'</AdresL1></Adres></Podmiot1>'
   +'<Podmiot2><DaneIdentyfikacyjne><NIP>'+esc(inv.buyerNip.replace(/[\s-]/g,''))+'</NIP><Nazwa>'+esc(inv.buyerName)+'</Nazwa></DaneIdentyfikacyjne><Adres><KodKraju>PL</KodKraju><AdresL1>'+esc(inv.buyerAddress)+'</AdresL1></Adres><JST>2</JST><GV>2</GV></Podmiot2>'
   +'<Fa><KodWaluty>PLN</KodWaluty><P_1>'+esc(inv.issueDate)+'</P_1><P_2>'+esc(inv.number)+'</P_2><P_6>'+esc(inv.saleDate)+'</P_6>'
