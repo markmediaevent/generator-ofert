@@ -136,7 +136,7 @@ function saveState(){
  try{
   const res=await fetch(apiPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:payload});
   if(!res.ok)throw Error('Zapis odrzucony: '+res.status);
-  const payload=await res.json();
+  await res.json();
   lastSavedAt=Date.now();
   setStatus('Status pakowania zapisany na serwerze · '+new Date().toLocaleTimeString('pl-PL'));
  }catch(e){setStatus('Nie zapisano zmian! '+e.message+' — sprawdź połączenie.');}
