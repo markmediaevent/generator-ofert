@@ -1055,7 +1055,7 @@ app.put('/api/packlists/:offerNumber', requireAuth, (req, res) => {
       if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && value === true) cleanChecked[key] = true;
     }
     for (const [key, value] of Object.entries(supplied.notes || {}).slice(0, 3000)) {
-      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && typeof value === 'string' && value.trim()) {
+      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && typeof value === 'string') {
         cleanNotes[key] = value.slice(0, 500);
       }
     }
