@@ -75,6 +75,7 @@
     .item-list>.item-row>div:nth-child(n+2):before{display:none}
     .users-form{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(110px,.7fr) auto!important;gap:10px}
     .users-form>.btn{grid-column:auto}
+    .users-form select{min-width:0;border-radius:12px;border:1px solid var(--line2);background:#0b172c;color:var(--text);padding:12px}
     .users-form input{min-width:0;border-radius:12px;border:1px solid var(--line2);background:#0b172c;color:var(--text);padding:12px}
     .users-list>.item-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1fr) auto auto;gap:10px}
     @media(max-width:1150px){
@@ -146,6 +147,7 @@
       </div>
       <div class="top-actions">
         <a class="btn" href="/app">Generator ofert</a>
+        <a class="btn" href="/packlists">Pack listy</a>
         <a class="btn" href="/live">Live</a>
         <a class="btn" href="/admin-wrzutka">Wrzutka</a>
         <button class="btn green" id="exportExcelBtn" type="button">Export Excel</button>
@@ -158,15 +160,19 @@
     <div class="notice">Zmiany zapisane tutaj są od razu widoczne w generatorze ofert pod <strong>/app</strong>. Magazyn możesz wyeksportować do Excela i później zaimportować z powrotem.</div>
 
     <div class="card" style="margin-bottom:18px">
-      <div class="section-head"><h2>Loginy i hasła</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
+      <div class="section-head"><h2>Konta zespołu Mark Media</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
       <div class="item-form users-form">
         <input id="newUserLogin" placeholder="Nowy login" />
         <input id="newUserPass" placeholder="Nowe hasło" type="text" />
-        <input id="newUserRole" placeholder="Rola" value="user" />
+        <select id="newUserRole" aria-label="Uprawnienia nowego użytkownika">
+          <option value="pracownik">Pracownik — tylko pack listy</option>
+          <option value="realizator">Realizator — oferty i pack listy</option>
+          <option value="admin">Administrator — pełen dostęp</option>
+        </select>
         <button class="btn green" type="button" id="addUserBtn">Dodaj użytkownika</button>
       </div>
       <div class="item-list users-list" id="usersList" style="margin-top:14px"></div>
-      <div class="muted" style="margin-top:10px">Domyślne konto po pierwszym uruchomieniu: admin / markmedia123. Po dodaniu nowego konta możesz zmienić lub usunąć stare.</div>
+      <div class="muted" style="margin-top:10px">Pracownik: checklista i dodawanie pozycji. Realizator: oferty i pack listy. Administrator: pełen dostęp i zarządzanie kontami.</div>
     </div>
 
     <div class="toolbar">
@@ -357,7 +363,7 @@
       list.innerHTML = (data.users || []).map(user => `
         <div class="item-row user-row">
           <div><strong>${esc(user.username)}</strong><small>ID: ${esc(user.id)}</small></div>
-          <div>${esc(user.role || 'user')}</div>
+          <div>${esc({admin:'Administrator',realizator:'Realizator',pracownik:'Pracownik',user:'Realizator'}[user.role]||user.role||'Realizator')}</div>
           <div>${esc(user.createdAt || '')}</div>
           <button class="btn" type="button" onclick="editUser('${esc(user.id)}','${esc(user.username)}','${esc(user.role || 'user')}')">Edytuj</button>
           <button class="btn red" type="button" onclick="deleteUser('${esc(user.id)}')">Usuń</button>
@@ -369,20 +375,22 @@
     async function addUser() {
       const username = document.getElementById('newUserLogin').value.trim();
       const password = document.getElementById('newUserPass').value.trim();
-      const role = document.getElementById('newUserRole').value.trim() || 'user';
+      const role = document.getElementById('newUserRole').value;
       if (!username || !password) return alert('Podaj login i hasło.');
       await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username, password, role }) });
       document.getElementById('newUserLogin').value = '';
       document.getElementById('newUserPass').value = '';
-      document.getElementById('newUserRole').value = 'user';
+      document.getElementById('newUserRole').value = 'pracownik';
       await loadUsers();
     }
 
     async function editUser(id, username, role) {
       const newLogin = prompt('Login:', username); if (newLogin === null) return;
       const newPass = prompt('Nowe hasło. Zostaw puste, żeby nie zmieniać:', ''); if (newPass === null) return;
-      const newRole = prompt('Rola:', role || 'user'); if (newRole === null) return;
-      await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ username: newLogin, password: newPass, role: newRole || 'user' }) });
+      const newRole = prompt('Nowa rola: admin / realizator / pracownik', role === 'user' ? 'realizator' : (role || 'pracownik'));
+      if(newRole===null)return;
+      if(!['admin','realizator','pracownik'].includes(newRole.trim()))return alert('Wybierz: admin, realizator lub pracownik.');
+      await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ username: newLogin, password: newPass, role: newRole.trim() }) });
       await loadUsers();
     }
 
