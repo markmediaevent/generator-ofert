@@ -7,16 +7,24 @@ const XLSX = require('xlsx');
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 
-// Generator i panel administratora nie mogą być otwierane bez aktywnej sesji.
-app.use((req, res, next) => {
-  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html', '/packlist', '/packlist.html']);
-  if (!protectedPages.has(req.path)) return next();
-  const token = getToken(req);
-  if (!token || !sessions.has(token)) return res.redirect('/login');
-  req.user = sessions.get(token);
-  if ((req.path === '/admin' || req.path === '/admin.html' || req.path === '/admin-wrzutka' || req.path === '/admin-wrzutka.html') && (req.user.role || 'user') !== 'admin') {
-    return res.redirect('/app');
-  }
+// Strony weryfikujemy przed express.static — również pliki *.html nie mogą obchodzić ról.
+const pageRoles = new Map([
+  ['/app',['admin','realizator']],['/app.html',['admin','realizator']],
+  ['/admin',['admin']],['/admin.html',['admin']],
+  ['/admin-wrzutka',['admin']],['/admin-wrzutka.html',['admin']],
+  ['/live',['admin','realizator']],['/live.html',['admin','realizator']],
+  ['/packlists',['admin','realizator','pracownik']],['/packlists.html',['admin','realizator','pracownik']],
+  ['/packlist',['admin','realizator','pracownik']],['/packlist.html',['admin','realizator','pracownik']]
+]);
+function normalizedRole(role) { return role==='user'?'realizator':role; }
+function homeForRole(role){return role==='admin'?'/admin':normalizedRole(role)==='pracownik'?'/packlists':'/app';}
+app.use((req,res,next)=>{
+  const allowed=pageRoles.get(req.path);
+  if(!allowed)return next();
+  const token=getToken(req);
+  if(!token||!sessions.has(token))return res.redirect('/login');
+  req.user=sessions.get(token);
+  if(!allowed.includes(normalizedRole(req.user.role)))return res.redirect(homeForRole(req.user.role));
   next();
 });
 
@@ -206,7 +214,7 @@ function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
 }
 function publicUser(user) {
-  return { id: user.id, username: user.username, role: user.role || 'user', createdAt: user.createdAt || '' };
+  return { id: user.id, username: user.username, role: normalizedRole(user.role || 'realizator'), createdAt: user.createdAt || '' };
 }
 
 function ensureDb() {
@@ -668,14 +676,16 @@ function requireAuth(req, res, next) {
   req.user = sessions.get(token);
   next();
 }
-function requireAdmin(req, res, next) {
-  requireAuth(req, res, () => {
-    if ((req.user.role || 'user') !== 'admin') {
-      return res.status(403).json({ ok: false, message: 'Brak uprawnień administratora' });
-    }
+function requireRole(...allowedRoles) {
+  return (req,res,next)=>requireAuth(req,res,()=>{
+    if(!allowedRoles.includes(normalizedRole(req.user.role)))
+      return res.status(403).json({ok:false,message:'Brak uprawnień do tej funkcji.'});
     next();
   });
 }
+const requireAdmin = requireRole('admin');
+const requireRealizator = requireRole('admin','realizator');
+function validNewRole(role){return ['admin','realizator','pracownik'].includes(role);}
 function findGroup(db, sectionKey, groupId) {
   const section = db.sections?.[sectionKey];
   if (!section) return null;
@@ -763,10 +773,17 @@ app.post('/wrzutka-api/upload/:submissionId', async (req, res) => {
   }
 });
 
-app.use('/api', (req, res, next) => {
-  const publicApi = new Set(['/login', '/health', '/test']);
-  if (publicApi.has(req.path)) return next();
-  return requireAuth(req, res, next);
+app.use('/api', (req,res,next)=>{
+  const publicApi=new Set(['/login','/health','/test']);
+  if(publicApi.has(req.path))return next();
+  return requireAuth(req,res,()=>{
+    // Domyślnie tylko realizator i administrator mają dostęp do pozostałego API
+    // (w tym ofert, cen, magazynu, szkiców, materiałów klientów).
+    if(normalizedRole(req.user.role)==='pracownik' &&
+       !(/^\/packlists(?:\/|$)/.test(req.path) || /^\/packlist-offers$/.test(req.path) || req.path==='/me' || req.path==='/logout'))
+      return res.status(403).json({ok:false,message:'Konto pracownika ma dostęp tylko do pack list.'});
+    next();
+  });
 });
 
 app.post('/api/login', (req, res) => {
@@ -779,9 +796,9 @@ app.post('/api/login', (req, res) => {
   const token = createToken();
   sessions.set(token, { id: user.id, username: user.username, role: user.role || 'user', createdAt: Date.now() });
   setSessionCookie(res, token);
-  res.json({ ok: true, token, username: user.username, role: user.role || 'user' });
+  res.json({ ok: true, token, username: user.username, role: normalizedRole(user.role || 'realizator') });
 });
-app.get('/api/me', requireAuth, (req, res) => res.json({ ok: true, username: req.user.username }));
+app.get('/api/me', requireAuth, (req, res) => res.json({ ok: true, username: req.user.username, role: normalizedRole(req.user.role) }));
 app.post('/api/logout', requireAuth, (req, res) => {
   const token = getToken(req);
   sessions.delete(token);
@@ -803,7 +820,9 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
   if (users.some(u => String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
     return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
-  const user = { id: crypto.randomBytes(8).toString('hex'), username: cleanUsername, password: cleanPassword, role: role || 'user', createdAt: new Date().toISOString() };
+  const userRole = role || 'pracownik';
+  if(!validNewRole(userRole))return res.status(400).json({ok:false,message:'Rola musi być: administrator, realizator albo pracownik.'});
+  const user = { id: crypto.randomBytes(8).toString('hex'), username: cleanUsername, password: cleanPassword, role: userRole, createdAt: new Date().toISOString() };
   users.push(user);
   writeUsers(users);
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
@@ -820,7 +839,8 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   if (users.some(u => u.id !== id && String(u.username).toLowerCase() === cleanUsername.toLowerCase())) {
     return res.status(400).json({ ok: false, message: 'Taki login już istnieje.' });
   }
-  const nextRole = role || user.role || 'user';
+  const nextRole = role || normalizedRole(user.role) || 'realizator';
+  if(!validNewRole(nextRole))return res.status(400).json({ok:false,message:'Nieprawidłowa rola użytkownika.'});
   const isLastAdmin = (user.role || 'user') === 'admin' &&
     users.filter(u => (u.role || 'user') === 'admin').length <= 1;
   if (isLastAdmin && nextRole !== 'admin') {
@@ -830,6 +850,10 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   if (String(password || '').trim()) user.password = String(password).trim();
   user.role = nextRole;
   writeUsers(users);
+  // Nie pozostawiaj aktywnych sesji po zmianie roli lub hasła.
+  for(const [sessionToken,sessionUser] of sessions.entries()){
+    if(sessionUser.id===user.id) sessions.delete(sessionToken);
+  }
   res.json({ ok: true, user: publicUser(user), users: users.map(publicUser) });
 });
 
@@ -1211,12 +1235,13 @@ app.get('/login', (req, res) => {
   const token = getToken(req);
   if (token && sessions.has(token)) {
     const user = sessions.get(token);
-    return res.redirect((user.role || 'user') === 'admin' ? '/admin' : '/app');
+    return res.redirect(homeForRole(user.role));
   }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/packlist', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'packlist.html')));
+app.get('/packlists',(req,res)=>res.sendFile(path.join(__dirname,'public','packlists.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 app.get('/wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wrzutka.html')));
 app.get('/admin-wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-wrzutka.html')));
