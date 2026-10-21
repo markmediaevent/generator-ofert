@@ -75,6 +75,7 @@
     .item-list>.item-row>div:nth-child(n+2):before{display:none}
     .users-form{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(110px,.7fr) auto!important;gap:10px}
     .users-form>.btn{grid-column:auto}
+    .users-list .role-select{width:100%;min-width:120px;max-width:180px;border-radius:10px;border:1px solid var(--line2);background:#102035;color:#fff;padding:9px}
     .users-form select{min-width:0;border-radius:12px;border:1px solid var(--line2);background:#0b172c;color:var(--text);padding:12px}
     .users-form input{min-width:0;border-radius:12px;border:1px solid var(--line2);background:#0b172c;color:var(--text);padding:12px}
     .users-list>.item-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1fr) auto auto;gap:10px}
@@ -163,7 +164,7 @@
       <div class="section-head"><h2>Konta zespołu Mark Media</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
       <div class="item-form users-form">
         <input id="newUserLogin" placeholder="Nowy login" />
-        <input id="newUserPass" placeholder="Nowe hasło" type="text" />
+        <input id="newUserPass" placeholder="Hasło nowej osoby (min. 8 znaków)" type="password" autocomplete="new-password" />
         <select id="newUserRole" aria-label="Uprawnienia nowego użytkownika">
           <option value="pracownik">Pracownik — tylko pack listy</option>
           <option value="realizator">Realizator — oferty i pack listy</option>
@@ -363,7 +364,11 @@
       list.innerHTML = (data.users || []).map(user => `
         <div class="item-row user-row">
           <div><strong>${esc(user.username)}</strong><small>ID: ${esc(user.id)}</small></div>
-          <div>${esc({admin:'Administrator',realizator:'Realizator',pracownik:'Pracownik',user:'Realizator'}[user.role]||user.role||'Realizator')}</div>
+          <select class="role-select" data-user="${esc(user.id)}" onchange="changeUserRole(this)" aria-label="Uprawnienia ${esc(user.username)}">
+            <option value="pracownik" ${user.role==='pracownik'?'selected':''}>Pracownik</option>
+            <option value="realizator" ${user.role==='realizator'||user.role==='user'?'selected':''}>Realizator</option>
+            <option value="admin" ${user.role==='admin'?'selected':''}>Administrator</option>
+          </select>
           <div>${esc(user.createdAt || '')}</div>
           <button class="btn" type="button" onclick="editUser('${esc(user.id)}','${esc(user.username)}','${esc(user.role || 'user')}')">Edytuj</button>
           <button class="btn red" type="button" onclick="deleteUser('${esc(user.id)}')">Usuń</button>
@@ -384,14 +389,22 @@
       await loadUsers();
     }
 
+    async function changeUserRole(select){
+      const id=select.dataset.user;
+      try{
+        await api('/api/admin/users/'+encodeURIComponent(id), {
+          method:'PUT',body:JSON.stringify({role:select.value})
+        });
+        await loadUsers();
+      }catch(e){alert(e.message||'Nie udało się zmienić roli.');await loadUsers();}
+    }
     async function editUser(id, username, role) {
-      const newLogin = prompt('Login:', username); if (newLogin === null) return;
-      const newPass = prompt('Nowe hasło. Zostaw puste, żeby nie zmieniać:', ''); if (newPass === null) return;
-      const newRole = prompt('Nowa rola: admin / realizator / pracownik', role === 'user' ? 'realizator' : (role || 'pracownik'));
-      if(newRole===null)return;
-      if(!['admin','realizator','pracownik'].includes(newRole.trim()))return alert('Wybierz: admin, realizator lub pracownik.');
-      await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ username: newLogin, password: newPass, role: newRole.trim() }) });
-      await loadUsers();
+      const newLogin=prompt('Login:',username);if(newLogin===null)return;
+      const newPass=prompt('Nowe hasło (min. 8 znaków). Puste — bez zmiany:','');if(newPass===null)return;
+      try{
+        await api('/api/admin/users/'+id,{method:'PUT',body:JSON.stringify({username:newLogin,password:newPass})});
+        await loadUsers();
+      }catch(e){alert(e.message||'Nie udało się zmienić konta.');}
     }
 
     async function deleteUser(id) {
