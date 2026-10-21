@@ -124,6 +124,13 @@
       .item-form>input[id^="price_"],.item-form>input[id^="cross_"],.item-form>input[id^="unit_"],.item-form>input[id^="stock_"]{grid-column:1/-1}
     }
 
+    .user-feedback{min-height:22px;margin-top:11px;font-size:13px;font-weight:750;color:#bcd0ef}
+    .user-feedback[data-type="error"]{color:#ff98a7}
+    .user-feedback[data-type="success"]{color:#74e6b1}
+    .user-feedback[data-type="info"]{color:#a8cfff}
+    .users-form .btn:disabled{opacity:.6;cursor:wait}
+    .users-form input:invalid:not(:placeholder-shown){border-color:#f47789}
+    .users-form input{width:100%;min-width:0}
     .catalog-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px}
     .catalog-toolbar>div{display:flex;gap:9px;flex-wrap:wrap}
     .catalog-group{padding:0!important;overflow:hidden;border-radius:17px}
@@ -162,16 +169,17 @@
 
     <div class="card" style="margin-bottom:18px">
       <div class="section-head"><h2>Konta zespołu Mark Media</h2><span class="pill" id="usersStatus">Ładowanie…</span></div>
-      <div class="item-form users-form">
-        <input id="newUserLogin" placeholder="Nowy login" />
-        <input id="newUserPass" placeholder="Hasło nowej osoby (min. 8 znaków)" type="password" autocomplete="new-password" />
-        <select id="newUserRole" aria-label="Uprawnienia nowego użytkownika">
+      <form class="item-form users-form" id="newUserForm" autocomplete="off">
+        <input id="newUserLogin" name="username" placeholder="Login pracownika" autocomplete="off" maxlength="60" required aria-label="Login nowej osoby" />
+        <input id="newUserPass" name="password" placeholder="Hasło (minimum 8 znaków)" type="password" minlength="8" autocomplete="new-password" required aria-label="Hasło nowej osoby, minimum 8 znaków" />
+        <select id="newUserRole" name="role" aria-label="Uprawnienia nowego użytkownika">
           <option value="pracownik">Pracownik — tylko pack listy</option>
           <option value="realizator">Realizator — oferty i pack listy</option>
           <option value="admin">Administrator — pełen dostęp</option>
         </select>
-        <button class="btn green" type="button" id="addUserBtn">Dodaj użytkownika</button>
-      </div>
+        <button class="btn green" type="submit" id="addUserBtn">Dodaj użytkownika</button>
+      </form>
+      <div class="user-feedback" id="addUserFeedback" role="status" aria-live="polite"></div>
       <div class="item-list users-list" id="usersList" style="margin-top:14px"></div>
       <div class="muted" style="margin-top:10px">Pracownik: checklista i dodawanie pozycji. Realizator: oferty i pack listy. Administrator: pełen dostęp i zarządzanie kontami.</div>
     </div>
@@ -242,8 +250,8 @@
         location.href = '/login';
         return;
       }
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Błąd API');
+      const data = await response.json().catch(() => ({ message: 'Serwer zwrócił nieprawidłową odpowiedź.' }));
+      if (!response.ok) throw new Error(data.message || 'Błąd API (HTTP ' + response.status + ')');
       return data;
     }
 
@@ -377,16 +385,58 @@
       status.textContent = `${(data.users || []).length} kont`;
     }
 
-    async function addUser() {
-      const username = document.getElementById('newUserLogin').value.trim();
-      const password = document.getElementById('newUserPass').value.trim();
-      const role = document.getElementById('newUserRole').value;
-      if (!username || !password) return alert('Podaj login i hasło.');
-      await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username, password, role }) });
-      document.getElementById('newUserLogin').value = '';
-      document.getElementById('newUserPass').value = '';
-      document.getElementById('newUserRole').value = 'pracownik';
-      await loadUsers();
+    function userFeedback(message,type='error'){
+      const el=document.getElementById('addUserFeedback');
+      el.textContent=message;
+      el.dataset.type=type;
+    }
+
+    async function addUser(event) {
+      event?.preventDefault();
+      const loginInput = document.getElementById('newUserLogin');
+      const passwordInput = document.getElementById('newUserPass');
+      const roleInput = document.getElementById('newUserRole');
+      const button = document.getElementById('addUserBtn');
+      const username = loginInput.value.trim();
+      const password = passwordInput.value;
+      const role = roleInput.value;
+      if (!username) {
+        userFeedback('Podaj login nowego pracownika.');
+        loginInput.focus();
+        return;
+      }
+      if (password.length < 8) {
+        userFeedback('Hasło musi zawierać minimum 8 znaków (wpisano ' + password.length + ').');
+        passwordInput.focus();
+        return;
+      }
+      if (!['pracownik','realizator','admin'].includes(role)) {
+        userFeedback('Wybierz prawidłowy rodzaj konta.');
+        return;
+      }
+      button.disabled = true;
+      button.textContent = 'Tworzenie konta…';
+      userFeedback('Zapisywanie nowego konta…','info');
+      try {
+        const result = await api('/api/admin/users', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, role })
+        });
+        loginInput.value = '';
+        passwordInput.value = '';
+        roleInput.value = 'pracownik';
+        userFeedback('Utworzono konto „' + result.user.username + '”. Użytkownik może się już zalogować.','success');
+        try {
+          await loadUsers();
+        } catch(refreshError){
+          userFeedback('Konto zostało utworzone, ale nie udało się odświeżyć listy. Odśwież stronę.','info');
+        }
+      } catch (error) {
+        userFeedback('Nie udało się dodać konta: ' + (error.message || 'Nieznany błąd serwera.'));
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Dodaj użytkownika';
+      }
     }
 
     async function changeUserRole(select){
@@ -531,7 +581,7 @@
       reader.readAsDataURL(file);
     }
 
-    document.getElementById('addUserBtn').addEventListener('click', addUser);
+    document.getElementById('newUserForm').addEventListener('submit', addUser);
     document.getElementById('searchInput').addEventListener('input', (e) => { filterText = e.target.value.trim(); render(); });
     document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
     document.getElementById('importExcelBtn').addEventListener('click', () => document.getElementById('importExcelInput').click());
