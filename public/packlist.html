@@ -117,7 +117,7 @@ function render(){
       '<div><strong>'+esc(item.name||'Pozycja')+'</strong>'+meta+'</div>'+
       '<div class="qty">'+(crew?esc(String(item.qty||1))+' × '+esc(String(item.days||1))+' d':esc(quantity(item)))+'</div>'+
       '<div class="source">'+(crew?esc(item.assignedNames||'Do obsadzenia'):esc(owner+(stored!==''?' · stan: '+stored:'')+warning))+'</div>'+
-      '<div class="note" contenteditable="true" role="textbox" aria-label="Uwagi logistyczne" data-note="'+esc(key)+'">'+esc(state.notes[key]||item.internalNotes||'')+'</div>'+
+      '<div class="note" contenteditable="true" role="textbox" aria-label="Uwagi logistyczne" data-note="'+esc(key)+'">'+esc(Object.prototype.hasOwnProperty.call(state.notes,key)?state.notes[key]:(item.internalNotes||''))+'</div>'+
       '</div>';
   }).join('');
   return '<section class="group"><div class="group-head"><h2>'+esc(title)+'</h2><small>'+rows.length+' pozycji</small></div>'+head+body+'</section>';
@@ -129,15 +129,19 @@ function render(){
  $('list').innerHTML=html||'<p>Brak pozycji do spakowania.</p>';
  progress();
 }
-let lastSavedAt=0,saveTimer=null;
-async function saveState(){
+let lastSavedAt=0,saveTimer=null,writeQueue=Promise.resolve();
+function saveState(){
+ const payload=JSON.stringify(state);
+ writeQueue=writeQueue.catch(()=>{}).then(async()=>{
  try{
-  const res=await fetch(apiPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+  const res=await fetch(apiPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:payload});
   if(!res.ok)throw Error('Zapis odrzucony: '+res.status);
   const payload=await res.json();
   lastSavedAt=Date.now();
   setStatus('Status pakowania zapisany na serwerze · '+new Date().toLocaleTimeString('pl-PL'));
  }catch(e){setStatus('Nie zapisano zmian! '+e.message+' — sprawdź połączenie.');}
+ });
+ return writeQueue;
 }
 function scheduleSave(){setStatus('Zapisywanie zmian…');clearTimeout(saveTimer);saveTimer=setTimeout(saveState,500);}
 function toggleChecked(key){if(state.checked[key])delete state.checked[key];else state.checked[key]=true;render();scheduleSave();}
@@ -147,7 +151,7 @@ $('list').addEventListener('input',event=>{
  if(!el)return;
  const key=el.dataset.note;
  const note=el.innerText.slice(0,500);
- if(note.trim())state.notes[key]=note;else delete state.notes[key];
+ state.notes[key]=note;
  scheduleSave();
 });
 async function init(){
