@@ -9,7 +9,7 @@ app.use(express.json({ limit: '2mb' }));
 
 // Generator i panel administratora nie mogą być otwierane bez aktywnej sesji.
 app.use((req, res, next) => {
-  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html']);
+  const protectedPages = new Set(['/app', '/app.html', '/admin', '/admin.html', '/admin-wrzutka', '/admin-wrzutka.html', '/packlist', '/packlist.html']);
   if (!protectedPages.has(req.path)) return next();
   const token = getToken(req);
   if (!token || !sessions.has(token)) return res.redirect('/login');
@@ -28,6 +28,7 @@ const DATA_DIR = process.env.STORAGE_DIR
   : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'equipment-db.json');
 const DRAFTS_DIR = path.join(DATA_DIR, 'drafts');
+const PACKLISTS_DIR = path.join(DATA_DIR, 'packlists');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_OWNER = process.env.GITHUB_OWNER || '';
@@ -227,9 +228,23 @@ function ensureDb() {
   }
 }
 
+function cleanEquipmentDescription(value) {
+  // Usuwamy powtarzalne dopiski importu, nie opisy techniczne napisane ręcznie.
+  return String(value ?? '')
+    .replace(/Katalog cross-rental\s*;\s*cena B2B orientacyjna\s*,\s*do potwierdzenia z wypożyczalnią\.?/gi, '')
+    .trim();
+}
 function readDb() {
   ensureDb();
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  for (const section of Object.values(db.sections || {})) {
+    for (const group of section.groups || []) {
+      for (const item of group.items || []) {
+        item.desc = cleanEquipmentDescription(item.desc);
+      }
+    }
+  }
+  return db;
 }
 
 function writeDb(db) {
@@ -281,7 +296,7 @@ function importCrossRentalCatalogOnce() {
       id:String(source.id),name:String(source.name),
       price:Math.max(0,Number(source.price||0)),crossRentalPrice:Math.max(0,Number(source.crossRentalPrice||0)),
       unit:String(source.unit||'szt. / dzień'),stock:0,
-      ownership:'cross-rental',priceStatus:'szacunkowa',desc:String(source.desc||'')
+      ownership:'cross-rental',priceStatus:'szacunkowa',desc:cleanEquipmentDescription(source.desc)
     });
     existingNames.add(key);existingIds.add(String(source.id));added++;
   }
@@ -856,7 +871,7 @@ app.post('/api/admin/items', requireAdmin, (req, res) => {
   const group = findGroup(db, sectionKey, groupId);
   if (!group) return res.status(400).json({ ok: false, message: 'Nie znaleziono grupy' });
   if (!name || !String(name).trim()) return res.status(400).json({ ok: false, message: 'Podaj nazwę pozycji' });
-  const item = { id: crypto.randomBytes(8).toString('hex'), name: String(name).trim(), price: Number(price || 0), crossRentalPrice: crossRentalPrice == null || crossRentalPrice === '' ? null : Math.max(0, Number(crossRentalPrice)), unit: String(unit || 'pozycja').trim(), stock: Math.max(0, Number(stock || 0)), desc: String(desc || '').trim() };
+  const item = { id: crypto.randomBytes(8).toString('hex'), name: String(name).trim(), price: Number(price || 0), crossRentalPrice: crossRentalPrice == null || crossRentalPrice === '' ? null : Math.max(0, Number(crossRentalPrice)), unit: String(unit || 'pozycja').trim(), stock: Math.max(0, Number(stock || 0)), desc: cleanEquipmentDescription(desc) };
   group.items.push(item);
   writeDb(db);
   res.json({ ok: true, item, db });
@@ -875,7 +890,7 @@ app.put('/api/admin/items/:sectionKey/:groupId/:itemId', requireAdmin, (req, res
   if (crossRentalPrice !== undefined) item.crossRentalPrice = crossRentalPrice == null || crossRentalPrice === '' ? null : Math.max(0, Number(crossRentalPrice));
   item.unit = String(unit ?? item.unit).trim();
   item.stock = Math.max(0, Number(stock ?? item.stock ?? 0));
-  item.desc = String(desc ?? item.desc).trim();
+  item.desc = cleanEquipmentDescription(desc ?? item.desc);
   writeDb(db);
   res.json({ ok: true, item, db });
 });
@@ -1011,6 +1026,51 @@ app.post('/api/drafts/save', async (req, res) => {
 
 
 
+
+function packlistFile(offerNumber) {
+  return path.join(PACKLISTS_DIR, sanitizeOfferNumber(offerNumber) + '.json');
+}
+function ensurePacklistsDir() {
+  fs.mkdirSync(PACKLISTS_DIR, { recursive: true });
+}
+
+// Kontrola pakowania jest niezależna od oferty i archiwum. Nie modyfikujemy szkiców.
+app.get('/api/packlists/:offerNumber', requireAuth, (req, res) => {
+  try {
+    const file = packlistFile(req.params.offerNumber);
+    const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { checked: {}, notes: {} };
+    res.json({ ok: true, data });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się odczytać statusu pack listy.' });
+  }
+});
+app.put('/api/packlists/:offerNumber', requireAuth, (req, res) => {
+  try {
+    const supplied = req.body || {};
+    if (typeof supplied.checked !== 'object' || !supplied.checked || Array.isArray(supplied.checked)) {
+      return res.status(400).json({ ok: false, message: 'Niepoprawny status pozycji.' });
+    }
+    const cleanChecked = {}, cleanNotes = {};
+    for (const [key, value] of Object.entries(supplied.checked).slice(0, 3000)) {
+      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && value === true) cleanChecked[key] = true;
+    }
+    for (const [key, value] of Object.entries(supplied.notes || {}).slice(0, 3000)) {
+      if (key.length < 130 && /^[a-zA-Z0-9._:-]+$/.test(key) && typeof value === 'string' && value.trim()) {
+        cleanNotes[key] = value.slice(0, 500);
+      }
+    }
+    const data = { checked: cleanChecked, notes: cleanNotes, updatedAt: new Date().toISOString() };
+    ensurePacklistsDir();
+    const file = packlistFile(req.params.offerNumber);
+    const temporary = file + '.tmp-' + crypto.randomBytes(5).toString('hex');
+    try { fs.writeFileSync(temporary, JSON.stringify(data, null, 2)); fs.renameSync(temporary, file); }
+    finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+    res.json({ ok: true, data });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się zapisać statusu pack listy.' });
+  }
+});
+
 app.get('/api/drafts', async (req, res) => {
   try {
     const local = listLocalDrafts();
@@ -1057,6 +1117,7 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/packlist', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'packlist.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 app.get('/wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wrzutka.html')));
 app.get('/admin-wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-wrzutka.html')));
