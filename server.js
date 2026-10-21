@@ -11,6 +11,7 @@ app.use(express.json({ limit: '2mb' }));
 const pageRoles = new Map([
   ['/app',['admin','realizator']],['/app.html',['admin','realizator']],
   ['/admin',['admin']],['/admin.html',['admin']],
+  ['/admin-magazyn',['admin']],['/admin-magazyn.html',['admin']],
   ['/admin-wrzutka',['admin']],['/admin-wrzutka.html',['admin']],
   ['/live',['admin','realizator']],['/live.html',['admin','realizator']],
   ['/packlists',['admin','realizator','pracownik']],['/packlists.html',['admin','realizator','pracownik']],
@@ -28,6 +29,11 @@ app.use((req,res,next)=>{
   next();
 });
 
+app.use((req,res,next)=>{
+  if(req.path.endsWith('.html') || ['/app','/admin','/packlist','/packlists','/led-utils.js','/packlist-app.js'].includes(req.path))
+    res.setHeader('Cache-Control','no-store');
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Render's persistent disk already stores equipment-db.json, users.json and drafts here.
