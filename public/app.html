@@ -483,6 +483,13 @@
         const res = await fetch('/api/equipment-db');
         equipmentDb = await res.json();
       }catch(e){ equipmentDb = { sections: {} }; }
+      // Sekcje są dynamiczne — po imporcie katalogu pojawiają się m.in. Okablowanie, Zasilanie i Interkom.
+      Object.entries(equipmentDb.sections || {}).forEach(([key, section]) => {
+        if(!categories[key]) categories[key] = { label: section.label || key };
+      });
+      byId('manualCategory').innerHTML = Object.entries(categories)
+        .map(([key,val]) => `<option value="${escapeHtml(key)}">${escapeHtml(val.label)}</option>`).join('');
+      renderTabs();
       renderEquipment();
     }
 
@@ -517,13 +524,15 @@
             <div class="equip-name">${escapeHtml(item.name)}</div>
             <div class="equip-desc">${escapeHtml(item.desc || '')}</div>
             <div class="equip-meta">
-              <span class="chip">${formatMoney(item.price)}</span>
+              <span class="chip">Dla klienta: ${formatMoney(item.price)}</span>
+              ${item.crossRentalPrice != null ? `<span class="chip">Cross-rental netto: ${formatMoney(item.crossRentalPrice)} / doba</span>` : ''}
+              ${item.ownership === 'cross-rental' ? '<span class="chip">Katalog zewnętrzny · dostępność do potwierdzenia</span>' : ''}
               <span class="chip">${escapeHtml(item.unit || 'szt.')}</span>
-              <span class="chip">Stan: ${escapeHtml(item.stock ?? 0)}</span>
+              <span class="chip">${item.ownership === 'cross-rental' ? 'Własny stan: 0 · cross-rental' : 'Stan: ' + escapeHtml(item.stock ?? 0)}</span>
             </div>
           </div>
           <div class="equip-action">
-            <div class="equip-price">${formatMoney(item.price)}<small>${escapeHtml(item.unit || '')}</small></div>
+            <div class="equip-price">${formatMoney(item.price)}<small>${escapeHtml(item.unit || '')} · cena dla klienta</small></div>
             <button class="btn primary" type="button" onclick="addDbItem('${item.sectionKey}','${item.id}')">Dodaj</button>
           </div>
         </div>
