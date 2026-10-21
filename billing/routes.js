@@ -1,10 +1,17 @@
 'use strict';
-const express=require('express'),fs=require('fs');
+const express=require('express'),fs=require('fs'),crypto=require('crypto');
 const {BillingStore,toFA3,fmt,problem}=require('./core');
 const ksef=require('./ksef');
 const {createTransport}=require('nodemailer');
-function pdfBuffer(inv){
+async function pdfBuffer(inv){
   const PDFDocument=require('pdfkit');
+  let qr=null;
+  if(inv.ksef?.state==='accepted' && inv.ksef.ksefNumber && inv.ksef.invoiceHash){
+    const date=inv.issueDate.slice(8,10)+'-'+inv.issueDate.slice(5,7)+'-'+inv.issueDate.slice(0,4);
+    const hash=Buffer.from(inv.ksef.invoiceHash,'base64').toString('base64url');
+    const url='https://qr.ksef.mf.gov.pl/invoice/'+inv.seller.nip+'/'+date+'/'+hash;
+    qr=await require('qrcode').toBuffer(url,{errorCorrectionLevel:'M',margin:2,width:190});
+  }
   return new Promise((resolve,reject)=>{
     const doc=new PDFDocument({size:'A4',margin:46,info:{Title:'Faktura '+inv.number,Author:'MarkNet'}});
     const chunks=[];doc.on('data',b=>chunks.push(b));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);
@@ -52,7 +59,14 @@ function pdfBuffer(inv){
     y+=83;doc.fillColor('#142b4d').font(reg).fontSize(9).text('Przelew bankowy na rachunek:',46,y);
     y+=18;doc.font(strong).text(inv.seller.bank,46,y);
     if(inv.ksef&&inv.ksef.ksefNumber){
-      y+=36;doc.font(reg).text('Numer KSeF: '+inv.ksef.ksefNumber,46,y,{width:500});
+      if(qr){
+        if(y>672){doc.addPage();y=55;} else y+=8;
+        doc.image(qr,46,y,{width:80,height:80});
+        doc.font(reg).fontSize(8).text('Sprawdź fakturę w KSeF',145,y+8,{width:390});
+        doc.font(strong).fontSize(8).text('Numer KSeF: '+inv.ksef.ksefNumber,145,y+27,{width:390});
+      }else{
+        y+=36;doc.font(reg).text('Numer KSeF: '+inv.ksef.ksefNumber,46,y,{width:500});
+      }
     }else{
       y+=35;doc.font(reg).fontSize(8).fillColor('#6a7789').text('Brak potwierdzonego numeru KSeF — ten PDF nie zawiera urzędowego kodu weryfikacyjnego.',46,y,{width:500});
     }
@@ -95,6 +109,7 @@ function createBillingRouter({dataDir,offerLoader}){
   }));
   router.post('/:id/ksef/send',wrap(async(req,res)=>{
     if(req.body?.confirm!==true)problem('Wymagane jawne potwierdzenie wysyłki.');
+    ksef.assertReady();
     const i=store.get(req.params.id);
     if(i.status!=='issued'||i.ksef.state!=='not_sent')problem('Ten dokument jest już w procesie wysyłki lub nie został wystawiony.',409);
     const xml=toFA3(i);
