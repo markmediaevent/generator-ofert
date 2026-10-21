@@ -28,6 +28,8 @@ test('Zaakceptowana oferta → jeden szkic → wystawienie → FA(3)',async()=>{
     assert.match(xml,/<P_13_1>3600.00<\/P_13_1>/);
     assert.match(xml,/<P_15>4428.00<\/P_15>/);
     assert.match(xml,/Test &amp; Spółka/);
+    assert.equal(toFA3(issued),xml,'Wysłany XML musi być deterministyczny dla QR/hash');
+    assert.equal(store.setPaid(a.id,true).paymentStatus,'paid');
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
 test('Nie można fakturować oferty bez akceptacji',async()=>{
@@ -35,5 +37,17 @@ test('Nie można fakturować oferty bez akceptacji',async()=>{
   try{
     const s=new BillingStore(dir,async()=>({offerStatus:'Wysłana',items:[{name:'Usługa',qty:1,days:1,price:1}]}));
     await assert.rejects(s.convert('OF-2'),/Zaakceptowana/);
+  }finally{fs.rmSync(dir,{recursive:true,force:true})}
+});
+test('Faktura ręczna, kontrola kwoty i płatność',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'marknet-billing-'));
+  try{
+    const store=new BillingStore(dir,async()=>null);
+    const draft=store.manual({description:'Obsługa eventu',net:1000});
+    assert.equal(draft.status,'draft');
+    assert.equal(draft.totals.net,100000);
+    assert.equal(draft.totals.vat,23000);
+    assert.equal(draft.offerNumber,null);
+    assert.throws(()=>store.manual({description:'Błędna faktura',net:-5}),/poprawną kwotę/);
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
