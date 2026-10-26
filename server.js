@@ -1214,8 +1214,20 @@ async function getDraftRecord(number){
   if(fs.existsSync(file))return JSON.parse(fs.readFileSync(file,'utf8'));
   return githubEnabled()?await readDraftFromGithub(number):null;
 }
+// Weryfikacja przydziału obejmuje każdy odczyt i zapis, także bezpośrednie linki.
+function requirePackAssignment(req,res,next){
+  res.setHeader('Cache-Control','no-store');
+  if(normalizedRole(req.user.role)!=='pracownik')return next();
+  try{
+    const assigned=readPacklistState(req.params.offerNumber).crewAssignments.some(row=>row.userId===req.user.id);
+    if(!assigned)return res.status(403).json({ok:false,message:'Ta pack lista nie jest do Ciebie przypisana.'});
+    next();
+  }catch(error){res.status(500).json({ok:false,message:'Nie można sprawdzić przydziału.'});}
+}
+app.use('/api/packlists/:offerNumber',requireAuth,requirePackAssignment);
 app.get('/api/packlist-offers', requireAuth, async(req,res)=>{
   try{
+    res.setHeader('Cache-Control','no-store');
     const local=listLocalDrafts(),external=githubEnabled()?await listGithubDrafts():[];
     const merged=new Map();
     for(const item of [...external,...local]){
@@ -1229,7 +1241,7 @@ app.get('/api/packlist-offers', requireAuth, async(req,res)=>{
       clientName:String(item.clientName||'').slice(0,200),
       updatedAt:String(item.updatedAt||'').slice(0,36),
       assignedToMe:readPacklistState(item.offerNumber).crewAssignments.some(row=>row.userId===req.user.id)
-    })).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+    })).filter(item=>normalizedRole(req.user.role)!=='pracownik'||item.assignedToMe).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
     res.json({ok:true,offers});
   }catch(error){res.status(500).json({ok:false,message:'Nie udało się pobrać listy realizacji.'});}
 });
@@ -1395,7 +1407,7 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/packlist', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'packlist.html')));
+app.get('/packlist', requireAuth, (req,res,next)=>{req.params.offerNumber=req.query.offer;requirePackAssignment(req,res,next);}, (req, res) => res.sendFile(path.join(__dirname, 'public', 'packlist.html')));
 app.get('/packlists',(req,res)=>res.sendFile(path.join(__dirname,'public','packlists.html')));
 app.get('/live', (req, res) => res.sendFile(path.join(__dirname, 'public', 'live.html')));
 app.get('/wrzutka', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wrzutka.html')));

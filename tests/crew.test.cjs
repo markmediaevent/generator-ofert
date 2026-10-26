@@ -23,8 +23,17 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   const endpoint='/api/packlists/test-event';
   fs.mkdirSync(path.join(dir,'drafts'),{recursive:true});
   fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test'}));
-  const assignedTo=async token=>(await api('/api/packlist-offers',token)).offers.find(o=>o.offerNumber==='test-event').assignedToMe;
+  const assignedTo=async token=>(await api('/api/packlist-offers',token)).offers.find(o=>o.offerNumber==='test-event')?.assignedToMe||false;
   assert.equal(await assignedTo(workerToken),false);
+  async function assertBlocked(token){
+    assert.equal((await api('/api/packlist-offers',token)).offers.length,0);
+    for(const suffix of ['', '/brief','/crew-users'])assert.equal((await api(endpoint+suffix,token)).status,403);
+    assert.equal((await api(endpoint,token,'PATCH',{action:'setChecked',id:'blocked',value:true})).status,403);
+    assert.equal((await api(endpoint,token,'PUT',{checked:{blocked:true}})).status,403);
+    const page=await fetch(base+'/packlist?offer=test-event',{headers:{Authorization:'Bearer '+token}});assert.equal(page.status,403);
+  }
+  await assertBlocked(workerToken);
+
   assert.equal((await api(endpoint,null)).status,401);
   assert.equal((await api(endpoint+'/crew-users',workerToken)).status,403);
   const users=await api(endpoint+'/crew-users',manager);
@@ -49,7 +58,8 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.deepEqual(fs.readFileSync(path.join(dir,'equipment-db.json')),equipment);assert.equal(fs.readFileSync(archive,'utf8'),'{"unchanged":true}');
   const own=result.data.crewAssignments.find(a=>a.userId===worker.id);
   assert.equal((await api(endpoint,fresh,'PATCH',{...payload,selected:false,expectedUpdatedAt:own.updatedAt})).data.crewAssignments.length,1);
-  assert.equal(await assignedTo(await login('worker')),false);
+  const revoked=await login('worker');assert.equal(await assignedTo(revoked),false);await assertBlocked(revoked);
+  assert.equal((await api(endpoint,fresh)).status,200);assert.equal((await api('/api/packlist-offers',fresh)).offers.length,2);
   const html=fs.readFileSync('public/app.html','utf8');assert.match(html,/<a href="\$\{escapeHtml\(new URL\('\/wrzutka', window.location.origin\).href\)\}"/);
  }finally{if(child&&child.exitCode===null)await stop();fs.rmSync(dir,{recursive:true,force:true});}
 });

@@ -33,7 +33,7 @@ function draw(){
     <h2>${escapeHtml(d.eventName||'Realizacja bez tytułu')}</h2>
     <div class="meta"><span>📍 ${escapeHtml(d.location||'Miejsce nieustalone')}</span><span>Klient: ${escapeHtml(d.clientName||'—')}</span></div>
     <a class="button primary" href="/packlist?offer=${encodeURIComponent(d.offerNumber)}">Otwórz pack listę →</a>
-  </article>`).join(''):'<div class="empty">Nie znaleziono wydarzeń. Pack lista pojawia się po zapisaniu oferty przez realizatora.</div>';
+  </article>`).join(''):'<div class="empty">Brak wydarzeń do wyświetlenia. Pracownik widzi tylko pack listy przypisane do swojego konta.</div>';
  el('status').textContent=list.length+' wydarzeń · kliknij realizację, aby przygotować sprzęt i zadania';
 }
 async function load(){
