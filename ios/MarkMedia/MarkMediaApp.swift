@@ -62,6 +62,13 @@ enum CredentialStore {
     @Published var error: String?
     @Published var busy = false
     let webStore = WKWebsiteDataStore.nonPersistent()
+    private let client: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        return URLSession(configuration: configuration)
+    }()
 
     func call<T: Decodable>(_ path: String, method: String = "GET", body: [String: String]? = nil) async throws -> T {
         guard let url = URL(string: path, relativeTo: serviceURL)?.absoluteURL,
@@ -74,7 +81,7 @@ enum CredentialStore {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await client.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw APIError(message: "Brak odpowiedzi serwera.") }
         if response.statusCode == 401, account != nil {
             await clear()
@@ -96,7 +103,14 @@ enum CredentialStore {
     }
     func validate() async {
         guard account != nil else { return }
-        do { let _: Me = try await call("/api/me") }
+        do {
+            let me: Me = try await call("/api/me")
+            if let current = account {
+                let refreshed = Account(token: current.token, username: me.username, role: me.role)
+                try CredentialStore.save(refreshed)
+                account = refreshed
+            }
+        }
         catch { self.error = error.localizedDescription }
     }
     func clear() async {
