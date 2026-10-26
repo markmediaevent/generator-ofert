@@ -51,10 +51,13 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   result=await api(endpoint,workerToken,'PATCH',{action:'setChecked',id:'item1',value:true});assert.equal(result.data.crewAssignments.length,1);
   await api(endpoint,workerToken,'PUT',{checked:{item1:true},notes:{item1:'test'}});
   assert.equal((await api(endpoint,admin)).data.crewAssignments.length,2);
+  const ledPayload={action:'setLedSetup',id:'screen1',config:{model:'yes-tech-p39',width:6,height:3,orientation:'vertical'},logistics:{caseSize:8,dataChainSize:10,powerChainSize:8,spares:0,pixelWidth:128,pixelHeight:128,portCapacity:650000,portCount:4,backup:true,portCabinets:'36,36'}};
+  assert.equal((await api(endpoint,admin,'PATCH',{...ledPayload,logistics:{...ledPayload.logistics,portCabinets:'35,36'}})).status,400);
+  assert.equal((await api(endpoint,admin,'PATCH',ledPayload)).status,200);
   const archive=path.join(dir,'drafts','sentinel.json');fs.mkdirSync(path.dirname(archive),{recursive:true});fs.writeFileSync(archive,'{"unchanged":true}');
   const equipment=fs.readFileSync(path.join(dir,'equipment-db.json'));
   await stop();await start();const fresh=await login('testadmin');
-  result=await api(endpoint,fresh);assert.equal(result.data.crewAssignments.length,2);assert.equal(result.data.notes.item1,'test');
+  result=await api(endpoint,fresh);assert.equal(result.data.crewAssignments.length,2);assert.equal(result.data.notes.item1,'test');assert.deepEqual(result.data.ledLogistics.screen1,ledPayload.logistics);
   assert.deepEqual(fs.readFileSync(path.join(dir,'equipment-db.json')),equipment);assert.equal(fs.readFileSync(archive,'utf8'),'{"unchanged":true}');
   const own=result.data.crewAssignments.find(a=>a.userId===worker.id);
   assert.equal((await api(endpoint,fresh,'PATCH',{...payload,selected:false,expectedUpdatedAt:own.updatedAt})).data.crewAssignments.length,1);

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
+require('./public/led-utils.js');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -1173,6 +1174,15 @@ function normalizeLedLogistics(input){
     if(!Number.isInteger(v)||v<min||v>max)throw new Error('Niepoprawna liczba: '+k);
     clean[k]=v;
   }
+  for(const [key,fallback,min,max] of [['pixelWidth',0,0,16384],['pixelHeight',0,0,16384],['portCapacity',650000,1,10000000],['portCount',4,1,128]]){
+    const value=Number(input[key]??fallback);
+    if(!Number.isInteger(value)||value<min||value>max)throw new Error('Niepoprawny parametr '+key);
+    clean[key]=value;
+  }
+  if(input.backup!==undefined&&typeof input.backup!=='boolean')throw new Error('Niepoprawny backup.');
+  clean.backup=input.backup===true;
+  clean.portCabinets=String(input.portCabinets||'').trim();
+  if(clean.portCabinets.length>5000||!/^[0-9,;\s]*$/.test(clean.portCabinets))throw new Error('Niepoprawny podział portów.');
   return clean;
 }
 function clearGeneratedChecks(state,id){
@@ -1201,7 +1211,6 @@ function safePackOffer(raw,number){
     ownership:String(i.ownership||'').slice(0,30),
     stockAtQuote:i.stockAtQuote==null?null:Number(i.stockAtQuote),
     assignedNames:String(i.assignedNames||'').slice(0,500),
-    internalNotes:String(i.internalNotes||'').slice(0,500),
     ledModel:String(i.ledModel||'').slice(0,35),
     ledScreenWidth:Number(i.ledScreenWidth)||0,ledScreenHeight:Number(i.ledScreenHeight)||0,
     ledOrientation:i.ledOrientation==='horizontal'?'horizontal':'vertical',
@@ -1324,6 +1333,8 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
       case 'setLedLogistics': {
         const id=safePackKey(payload.id);
         state.ledLogistics[id]=normalizeLedLogistics(payload.config);
+        const signal=globalThis.MM_LED.signalPlan(globalThis.MM_LED.calculate(state.ledConfigs[id]),state.ledLogistics[id]);
+        if(signal?.ready&&!signal.valid)throw new Error(signal.message);
         clearGeneratedChecks(state,id);
         break;
       }
@@ -1331,6 +1342,8 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
         const id=safePackKey(payload.id);
         state.ledConfigs[id]=normalizePackLedConfig(payload.config);
         state.ledLogistics[id]=normalizeLedLogistics(payload.logistics);
+        const signal=globalThis.MM_LED.signalPlan(globalThis.MM_LED.calculate(state.ledConfigs[id]),state.ledLogistics[id]);
+        if(signal?.ready&&!signal.valid)throw new Error(signal.message);
         clearGeneratedChecks(state,id);
         break;
       }

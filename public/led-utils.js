@@ -59,7 +59,7 @@
       requestedWidth:width,requestedHeight:height,exact};
   }
   // Założenia planistyczne, nie parametry fabryczne. Edytowane per ekran na pack liście.
-  const LOGISTICS_DEFAULTS=Object.freeze({caseSize:8,dataChainSize:10,powerChainSize:8,spares:0});
+  const LOGISTICS_DEFAULTS=Object.freeze({caseSize:8,dataChainSize:10,powerChainSize:8,spares:0,pixelWidth:0,pixelHeight:0,portCapacity:650000,portCount:4,backup:false,portCabinets:''});
   function logistics(calculation,settings={}){
     if(!calculation)return null;
     const cfg={...LOGISTICS_DEFAULTS,...settings};
@@ -72,15 +72,36 @@
     const powerChainSize=whole('powerChainSize',1,100);
     const spares=whole('spares',0,1000);
     const count=calculation.total;
-    const dataRuns=Math.ceil(count/dataChainSize);
+    const signal=signalPlan(calculation,cfg);
+    const dataRuns=signal.ready&&signal.valid?signal.ports.length:Math.ceil(count/dataChainSize);
     const powerRuns=Math.ceil(count/powerChainSize);
     return {
-      count,spares,totalCabinets:count+spares,caseSize,dataChainSize,powerChainSize,
+      signal,backupFeeds:signal.ready&&signal.valid&&cfg.backup?dataRuns:0,count,spares,totalCabinets:count+spares,caseSize,dataChainSize,powerChainSize,
       cases:Math.ceil((count+spares)/caseSize),
       dataRuns, dataJumpers:Math.max(0,count-dataRuns),
       powerRuns, powerJumpers:Math.max(0,count-powerRuns),
       assumptions:'Wartości orientacyjne. Zweryfikuj obciążenie, topologię i limity producenta.'
     };
   }
-  root.MM_LED={MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate,LOGISTICS_DEFAULTS,logistics};
+  function signalPlan(calculation,cfg={}){
+    if(!calculation)return null;
+    const w=Number(cfg.pixelWidth),h=Number(cfg.pixelHeight),capacity=Number(cfg.portCapacity),available=Number(cfg.portCount);
+    if(!w||!h)return {ready:false,valid:false,ports:[],message:'Podaj rozdzielczość kabinetu w pikselach, aby policzyć porty DATA.'};
+    if(![w,h,capacity,available].every(Number.isInteger)||w<1||h<1||capacity<1||available<1||available>128)return {ready:true,valid:false,ports:[],message:'Niepoprawne parametry portów.'};
+    const pixels=w*h,perPort=Math.floor(capacity/pixels);
+    if(perPort<1)return {ready:true,valid:false,ports:[],message:'Jeden kabinet przekracza limit portu.'};
+    let counts=[];
+    if(String(cfg.portCabinets||'').trim()){
+      counts=String(cfg.portCabinets).split(/[,;\s]+/).filter(Boolean).map(Number);
+      if(counts.length>1000||counts.some(n=>!Number.isInteger(n)||n<1)||counts.reduce((a,b)=>a+b,0)!==calculation.total)return {ready:true,valid:false,ports:[],message:'Suma kabinetów na portach musi odpowiadać liczbie kabinetów ekranu.'};
+    }else{
+      if(Math.ceil(calculation.total/perPort)>1000)return {ready:true,valid:false,ports:[],message:'Plan przekracza 1000 portów. Sprawdź parametry.'};
+      for(let left=calculation.total;left>0;left-=perPort)counts.push(Math.min(left,perPort));
+    }
+    const ports=counts.map((count,index)=>({port:index+1,count,pixels:count*pixels,load:count*pixels/capacity*100,overloaded:count*pixels>capacity}));
+    const required=ports.length*(cfg.backup?2:1),overloaded=ports.some(p=>p.overloaded);
+    return {ready:true,valid:true,ports,capacity,available,required,primaryFeeds:ports.length,backupFeeds:cfg.backup?ports.length:0,overloaded,insufficient:required>available,
+      message:overloaded?'PRZECIĄŻENIE PORTU':required>available?'ZA MAŁO PORTÓW DLA WYBRANEGO BACKUPU':''};
+  }
+  root.MM_LED={signalPlan,MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate,LOGISTICS_DEFAULTS,logistics};
 })(typeof window!=='undefined'?window:globalThis);

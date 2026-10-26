@@ -26,10 +26,12 @@ function derivedLedRows(){
    const generated=[
      ['case','Skrzynie transportowe na kabinety',plan.cases,'case','Założono '+plan.caseSize+' kabinetów / case'],
      ['data-jumper','Przewody DATA pomiędzy kabinetami',plan.dataJumpers,'szt.','Połączenia w obrębie '+plan.dataRuns+' ciągów DATA'],
-     ['data-feed','Przewody DATA do pierwszych kabinetów',plan.dataRuns,'szt.','Jeden przewód wejściowy na ciąg DATA'],
+     ['data-feed','Kable sygnałowe startowe DATA (główne)',plan.dataRuns,'szt.','Jeden przewód wejściowy na ciąg DATA'],
      ['power-jumper','Przewody zasilające między kabinetami',plan.powerJumpers,'szt.','Połączenia w obrębie '+plan.powerRuns+' obwodów AC'],
      ['power-feed','Przewody zasilające startowe',plan.powerRuns,'szt.','Jeden przewód startowy na obwód AC']
    ];
+   if(plan.backupFeeds>0)generated.push(['data-backup','Kable sygnałowe startowe BACKUP',plan.backupFeeds,'szt.','Jeden kabel do końca każdego ciągu DATA']);
+   if(plan.signal.ready&&!plan.signal.valid){for(let i=generated.length-1;i>=0;i--)if(generated[i][0].startsWith('data-'))generated.splice(i,1);}
    if(plan.spares>0)generated.unshift(['spare','Kabinet zapasowy',plan.spares,'szt.','Kabinet zapasowy nie wchodzi w wymiary ekranu']);
    for(const [type,name,qty,unit,details] of generated){
      rows.push({key:'autogen:'+row.key+':'+type,auto:true,extra:false,data:{
@@ -88,7 +90,7 @@ function grouped(){
  return Array.from(result.values());
 }
 function groupHtml(group){
- const head='<div class="grid-head"><span>OK</span><span>Pozycja / szczegóły</span><span>Ilość</span><span>Źródło / obsada</span><span>Uwagi / akcje</span></div>';
+ const head='<div class="grid-head"><span>OK</span><span>Pozycja / szczegóły</span><span>Ilość</span><span>Źródło / obsada</span><span>Akcje</span></div>';
  const rows=group.rows.map(row=>{
    const item=row.data,key=row.key,checked=state.checked[key]===true;
    const led=screenItem(item)?calcFor(item,key):null;
@@ -108,9 +110,7 @@ function groupHtml(group){
     '<div><strong>'+esc(item.name||'Pozycja')+'</strong><small>'+esc(details)+'</small>'+checkWho+'</div>'+
     '<div class="qty">'+esc(qtyText(item,key))+'</div>'+
     '<div class="source">'+esc(owner+stockWarning)+'</div>'+
-    '<div><div class="note" contenteditable="true" role="textbox" aria-label="Notatka logistyczna" data-note="'+esc(key)+'">'+esc(
-      Object.prototype.hasOwnProperty.call(state.notes||{},key)?state.notes[key]:item.internalNotes||''
-    )+'</div>'+actions+'</div></div>';
+    '<div>'+actions+'</div></div>';
  }).join('');
  return '<section class="group"><div class="group-head"><h2>'+esc(group.title)+'</h2><small>'+group.rows.length+' pozycji</small></div>'+head+rows+'</section>';
 }
@@ -140,16 +140,17 @@ function ledHtml(){
      '<label>Wysokość ekranu (m)<input name="height" type="number" min="0.01" max="500" step="0.01" value="'+esc(config.height||'')+'" required></label>'+
      '<label class="led-orientation"'+(config.model==='dicolor-p4'?'':' style="display:none"')+'>Obrót kabinetu (Dicolor)<select name="orientation"><option value="vertical"'+(config.orientation!=='horizontal'?' selected':'')+'>Bez obrotu (50×100 cm)</option><option value="horizontal"'+(config.orientation==='horizontal'?' selected':'')+'>Po obrocie (100×50 cm)</option></select></label>'+
      '<label>Kabinety / case<input name="caseSize" type="number" min="1" max="50" step="1" value="'+esc(logistics.caseSize)+'" required></label>'+
-     '<label>Kabinety / ciąg DATA<input name="dataChainSize" type="number" min="1" max="100" step="1" value="'+esc(logistics.dataChainSize)+'" required></label>'+
+     '<label>Kabinety / ciąg DATA (bez px)<input name="dataChainSize" type="number" min="1" max="100" step="1" value="'+esc(logistics.dataChainSize)+'" required></label>'+
      '<label>Kabinety / obwód AC<input name="powerChainSize" type="number" min="1" max="100" step="1" value="'+esc(logistics.powerChainSize)+'" required></label>'+
+     signalFields(logistics)+
      '<label>Kabinety zapasowe<input name="spares" type="number" min="0" max="1000" step="1" value="'+esc(logistics.spares)+'" required></label>'+
-     '<div class="led-result '+(result&&!result.exact?'warn':'')+'">'+esc(text+(plan?' | Skrzynie: '+plan.cases+' · DATA: '+plan.dataJumpers+' łączących + '+plan.dataRuns+' startowych · AC: '+plan.powerJumpers+' łączących + '+plan.powerRuns+' startowych':'') )+'</div>'+
+     '<div class="led-result '+(result&&!result.exact?'warn':'')+'">'+esc(text+(plan?' | Skrzynie: '+plan.cases+' · DATA: '+plan.dataJumpers+' łączących + '+plan.dataRuns+' startowych · BACKUP: '+plan.backupFeeds+' · AC: '+plan.powerJumpers+' łączących + '+plan.powerRuns+' startowych':'') )+'</div>'+
      '<button type="submit" class="btn primary">Przelicz i zapisz</button></form>';
  }).join('')+'</section>';
 }
 function render(){
  if(!quote)return;
- rebuild();meta();ledHtml();renderCrew();
+ rebuild();meta();ledHtml();renderSignal();renderCrew();
  $('list').innerHTML=grouped().map(groupHtml).join('')||'<section class="group"><p style="padding:15px">Brak pozycji. Dodaj pierwszą poniżej.</p></section>';
  progress();
 }
@@ -243,12 +244,6 @@ $('list').addEventListener('click',event=>{
    requestMutation({action:'removeItem',id}).catch(()=>{});
  }
 });
-$('list').addEventListener('focusout',event=>{
- const el=event.target.closest('[data-note]');
- if(!el)return;
- const key=el.dataset.note,value=noteValue(el);
- if((state.notes[key]??'')!==value)setNote(key,value);
-});
 $('ledPanel').addEventListener('submit',event=>{
  const form=event.target.closest('[data-led-config]');
  if(!form)return;
@@ -258,12 +253,7 @@ $('ledPanel').addEventListener('submit',event=>{
    width:Number(form.elements.width.value),height:Number(form.elements.height.value),
    orientation:form.elements.orientation.value
  };
- const logistics={
-   caseSize:Number(form.elements.caseSize.value),
-   dataChainSize:Number(form.elements.dataChainSize.value),
-   powerChainSize:Number(form.elements.powerChainSize.value),
-   spares:Number(form.elements.spares.value)
- };
+ const logistics=readLogisticsForm(form);
  if(!MM_LED.calculate(config)){setStatus('Wybierz model i poprawne wymiary ekranu LED.',true);return;}
  if(!Number.isInteger(logistics.caseSize)||logistics.caseSize<1||logistics.caseSize>50 ||
     !Number.isInteger(logistics.dataChainSize)||logistics.dataChainSize<1||logistics.dataChainSize>100 ||
@@ -271,32 +261,18 @@ $('ledPanel').addEventListener('submit',event=>{
     !Number.isInteger(logistics.spares)||logistics.spares<0||logistics.spares>1000){
    setStatus('Popraw liczbę kabinetów na case, ciąg DATA, obwód AC i zapas.',true);return;
  }
+ const signal=MM_LED.signalPlan(MM_LED.calculate(config),logistics);
+ if(signal.ready&&!signal.valid){setStatus(signal.message,true);return;}
  requestMutation({action:'setLedSetup',id:form.dataset.ledConfig,config,logistics}).catch(()=>{});
 });
 $('ledPanel').addEventListener('input',event=>{
- const form=event.target.closest('[data-led-config]');
- if(!form)return;
- const config={model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value};
- const result=MM_LED.calculate(config),el=form.querySelector('.led-result');
- const plan=MM_LED.logistics(result,{
-   caseSize:Number(form.elements.caseSize.value),dataChainSize:Number(form.elements.dataChainSize.value),
-   powerChainSize:Number(form.elements.powerChainSize.value),spares:Number(form.elements.spares.value)
- });
- el.classList.toggle('warn',!!result&&!result.exact);
- el.textContent=result?(result.columns+' × '+result.rows+' = '+result.total+' kabinetów. '+(result.exact?'Wymiary pasują.':'NADMIAR: '+fmt(result.builtWidth)+' × '+fmt(result.builtHeight)+' m.')+(plan?' Skrzynie: '+plan.cases+' · DATA '+plan.dataJumpers+' + '+plan.dataRuns+' · AC '+plan.powerJumpers+' + '+plan.powerRuns:'')):'Uzupełnij wymiary i wybierz model.';
-});
-$('ledPanel').addEventListener('change',event=>{
- const form=event.target.closest('[data-led-config]');
- if(!form)return;
- const payload={model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value};
- const orientation=form.querySelector('.led-orientation');
- if(orientation)orientation.style.display=payload.model==='dicolor-p4'?'flex':'none';
- const result=MM_LED.calculate(payload);
- if(result){
-   const el=form.querySelector('.led-result');
-   const plan=MM_LED.logistics(result,{caseSize:Number(form.elements.caseSize.value),dataChainSize:Number(form.elements.dataChainSize.value),powerChainSize:Number(form.elements.powerChainSize.value),spares:Number(form.elements.spares.value)});
-   el.textContent=result.columns+' × '+result.rows+' = '+result.total+' kabinetów'+(result.exact?' · wymiary dokładne':' · nadmiar: '+fmt(result.builtWidth)+'×'+fmt(result.builtHeight)+' m')+(plan?' · Skrzynie: '+plan.cases+' · DATA '+plan.dataJumpers+' + '+plan.dataRuns+' · AC '+plan.powerJumpers+' + '+plan.powerRuns:'');
- }
+ const form=event.target.closest('[data-led-config]');if(!form)return;
+ const c=MM_LED.calculate({model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value});
+ const plan=MM_LED.logistics(c,readLogisticsForm(form));
+ const el=form.querySelector('.led-result');
+ el.textContent=c?c.columns+' × '+c.rows+' = '+c.total+' kabinetów · '+(c.exact?'Wymiary pasują.':'Wymiary zaokrąglone.')+' · Skrzynie: '+plan.cases+' · '+signalSummary(plan.signal):'Uzupełnij model i wymiary.';
+ el.classList.toggle('warn',!!plan&&(!c.exact||!plan.signal.valid||plan.signal.overloaded||plan.signal.insufficient));
+ const orientation=form.querySelector('.led-orientation');if(orientation)orientation.style.display=form.elements.model.value==='dicolor-p4'?'flex':'none';
 });
 async function clearChecks(){
  if(!confirm('Odznaczyć wszystkie pozycje dla tego wydarzenia?'))return;
@@ -355,3 +331,23 @@ $('crewPanel').addEventListener('submit',event=>{
  const userId=form.dataset.crew,existing=(state.crewAssignments||[]).find(a=>a.userId===userId);
  requestMutation({action:'setCrewAssignment',userId,selected:form.elements.selected.checked,departure:form.elements.departure.value,returnAt:form.elements.returnAt.value,expectedUpdatedAt:existing?.updatedAt||''}).catch(()=>{});
 });
+
+function readLogisticsForm(form){
+ const result={};for(const key of ['caseSize','dataChainSize','powerChainSize','spares','pixelWidth','pixelHeight','portCapacity','portCount'])result[key]=Number(form.elements[key].value);
+ result.backup=form.elements.backup.checked;result.portCabinets=form.elements.portCabinets.value.trim();return result;
+}
+function signalFields(cfg){
+ return [['pixelWidth','Szerokość kabinetu (px)',0,16384],['pixelHeight','Wysokość kabinetu (px)',0,16384],['portCapacity','Limit pikseli / port',1,10000000],['portCount','Porty RJ45 dla tego ekranu',1,128]].map(([key,label,min,max])=>'<label>'+label+'<input name="'+key+'" type="number" min="'+min+'" max="'+max+'" step="1" value="'+esc(cfg[key]||'')+'"></label>').join('')+
+ '<label>Podział kabinetów na porty<input name="portCabinets" maxlength="5000" placeholder="Automatyczny lub np. 36,36" value="'+esc(cfg.portCabinets||'')+'"></label><label>Backup portów<input name="backup" type="checkbox" '+(cfg.backup?'checked':'')+'></label><p class="led-label">Rozdzielczość dotyczy jednego kabinetu w jego standardowej orientacji. Limit portu wpisz zgodnie z ustawieniami kontrolera w SmartLCT. Podział automatyczny wykorzystuje limit pikseli; ręczny podział określa kolejne porty główne. Każdy port główny wymaga osobnego portu backupowego. Pole „kabinety / ciąg DATA” dotyczy wcześniejszego trybu bez rozdzielczości.</p>';
+}
+function signalSummary(signal){
+ if(!signal.ready||!signal.valid)return signal.message;
+ return 'DATA startowe: '+signal.primaryFeeds+' · BACKUP startowe: '+signal.backupFeeds+' · Porty: '+signal.required+'/'+signal.available+(signal.message?' · '+signal.message:'');
+}
+function renderSignal(){
+ $('signalPanel').innerHTML=quoteRows().filter(row=>screenItem(row.data)).map(row=>{
+ const c=calcFor(row.data,row.key),plan=MM_LED.logistics(c,logisticFor(row.key));if(!plan)return '';
+ const s=plan.signal;
+ return '<section class="group"><div class="group-head"><h2>'+esc(row.data.name)+' — porty sygnałowe</h2></div><p class="help">'+esc(signalSummary(s))+'</p>'+(s.ready&&s.valid?'<table class="signal-table"><thead><tr><th>Port główny</th><th>Kabinety</th><th>Piksele</th><th>Obciążenie</th><th>Backup</th></tr></thead><tbody>'+s.ports.map(p=>'<tr'+(p.overloaded?' class="overload"':'')+'><td>'+p.port+'</td><td>'+p.count+'</td><td>'+fmt(p.pixels)+'</td><td>'+fmt(p.load)+'%</td><td>'+(s.backupFeeds?fmt(p.load)+'% · 1 port / 1 kabel':'Brak')+'</td></tr>').join('')+'</tbody></table>':'')+'</section>';
+ }).join('');
+}
