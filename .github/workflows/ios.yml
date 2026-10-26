@@ -26,3 +26,13 @@ jobs:
           name: MarkMedia-iOS-Simulator
           path: ios/build/Build/Products/Debug-iphonesimulator/MarkMedia.app
           if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarkMedia-Xcode-project
+          path: |
+            ios/MarkMedia/
+            ios/MarkMedia.xcodeproj/
+            ios/README.md
+            ios/project.yml
+          if-no-files-found: error

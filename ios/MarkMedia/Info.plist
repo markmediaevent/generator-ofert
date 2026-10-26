@@ -12,5 +12,8 @@
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
 <key>UISupportedInterfaceOrientations~ipad</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+<key>NSCameraUsageDescription</key><string>Aparat umożliwia dołączenie wybranego zdjęcia lub filmu do materiałów wydarzenia.</string>
+<key>NSMicrophoneUsageDescription</key><string>Mikrofon służy do nagrania dźwięku w filmie dodawanym do materiałów wydarzenia.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>Wybierz zdjęcia lub filmy, które chcesz dołączyć do materiałów wydarzenia.</string>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict></plist>
