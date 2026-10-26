@@ -14,7 +14,7 @@ function crewItem(item){return item.category==='crew'||item.source==='personnel'
 function screenItem(item){return MM_LED.isScreen(item);}
 function initialLed(key,item){return state.ledConfigs[key]||MM_LED.initialConfig(item);}
 function calcFor(item,key){return MM_LED.calculate(initialLed(key,item));}
-function logisticFor(key){return {...MM_LED.LOGISTICS_DEFAULTS,...(state.ledLogistics?.[key]||{})};}
+function logisticFor(key){const row=quoteRows().find(row=>row.key===key);return MM_LED.modelLogistics(initialLed(key,row?.data||{}).model,state.ledLogistics?.[key]||{});}
 function derivedLedRows(){
  const rows=[];
  for(const row of quoteRows()){
@@ -267,6 +267,7 @@ $('ledPanel').addEventListener('submit',event=>{
 });
 $('ledPanel').addEventListener('input',event=>{
  const form=event.target.closest('[data-led-config]');if(!form)return;
+ if(event.target.name==='model'){const m=MM_LED.MODELS[form.elements.model.value];if(m){form.elements.pixelWidth.value=m.pixelWidth;form.elements.pixelHeight.value=m.pixelHeight;}}
  const c=MM_LED.calculate({model:form.elements.model.value,width:form.elements.width.value,height:form.elements.height.value,orientation:form.elements.orientation.value});
  const plan=MM_LED.logistics(c,readLogisticsForm(form));
  const el=form.querySelector('.led-result');

@@ -1,9 +1,9 @@
 (function(root){
   'use strict';
   const MODELS = Object.freeze({
-    'yes-tech-p39': { id:'yes-tech-p39', label:'Yes Tech P3.9', width:0.5, height:0.5 },
-    'gloshine-p4': { id:'gloshine-p4', label:'Gloshine P4 / P4.8', width:0.5, height:0.5 },
-    'dicolor-p4': { id:'dicolor-p4', label:'Dicolor P4', width:0.5, height:1.0 }
+    'yes-tech-p39': { id:'yes-tech-p39', label:'Yes Tech P3.9', width:0.5, height:0.5, pixelWidth:128, pixelHeight:128 },
+    'gloshine-p4': { id:'gloshine-p4', label:'Gloshine P4.8', width:0.5, height:0.5, pixelWidth:104, pixelHeight:104 },
+    'dicolor-p4': { id:'dicolor-p4', label:'Dicolor P4.8', width:0.5, height:1.0, pixelWidth:104, pixelHeight:208 }
   });
   function numeric(value){
     if(typeof value==='string')value=value.replace(',','.');
@@ -62,7 +62,7 @@
   const LOGISTICS_DEFAULTS=Object.freeze({caseSize:8,dataChainSize:10,powerChainSize:8,spares:0,pixelWidth:0,pixelHeight:0,portCapacity:650000,portCount:4,backup:false,portCabinets:''});
   function logistics(calculation,settings={}){
     if(!calculation)return null;
-    const cfg={...LOGISTICS_DEFAULTS,...settings};
+    const cfg=modelLogistics(calculation.model,settings);
     const whole=(key,min,max)=>{
       const n=Number(cfg[key]);
       return Number.isInteger(n)&&n>=min&&n<=max?n:LOGISTICS_DEFAULTS[key];
@@ -83,8 +83,13 @@
       assumptions:'Wartości orientacyjne. Zweryfikuj obciążenie, topologię i limity producenta.'
     };
   }
+  function modelLogistics(model,settings={}){
+    const m=MODELS[model]||{};
+    return {...LOGISTICS_DEFAULTS,...settings,pixelWidth:Number(settings.pixelWidth)||m.pixelWidth||0,pixelHeight:Number(settings.pixelHeight)||m.pixelHeight||0};
+  }
   function signalPlan(calculation,cfg={}){
     if(!calculation)return null;
+    cfg=modelLogistics(calculation.model,cfg);
     const w=Number(cfg.pixelWidth),h=Number(cfg.pixelHeight),capacity=Number(cfg.portCapacity),available=Number(cfg.portCount);
     if(!w||!h)return {ready:false,valid:false,ports:[],message:'Podaj rozdzielczość kabinetu w pikselach, aby policzyć porty DATA.'};
     if(![w,h,capacity,available].every(Number.isInteger)||w<1||h<1||capacity<1||available<1||available>128)return {ready:true,valid:false,ports:[],message:'Niepoprawne parametry portów.'};
@@ -103,5 +108,5 @@
     return {ready:true,valid:true,ports,capacity,available,required,primaryFeeds:ports.length,backupFeeds:cfg.backup?ports.length:0,overloaded,insufficient:required>available,
       message:overloaded?'PRZECIĄŻENIE PORTU':required>available?'ZA MAŁO PORTÓW DLA WYBRANEGO BACKUPU':''};
   }
-  root.MM_LED={signalPlan,MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate,LOGISTICS_DEFAULTS,logistics};
+  root.MM_LED={modelLogistics,signalPlan,MODELS,numeric,inferModel,dimensionsFromItem,initialConfig,isScreen,calculate,LOGISTICS_DEFAULTS,logistics};
 })(typeof window!=='undefined'?window:globalThis);

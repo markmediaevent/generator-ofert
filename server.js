@@ -54,6 +54,20 @@ const GITHUB_DRAFTS_PATH = process.env.GITHUB_DRAFTS_PATH || 'drafts';
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'markmedia123';
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const LOGIN_HISTORY_FILE=path.join(DATA_DIR,'login-history.json');
+function readLoginHistory(){
+  if(!fs.existsSync(LOGIN_HISTORY_FILE))return [];
+  const history=JSON.parse(fs.readFileSync(LOGIN_HISTORY_FILE,'utf8'));
+  if(!Array.isArray(history))throw new Error('Niepoprawna historia logowań.');
+  return history;
+}
+function recordLogin(user){
+  const history=readLoginHistory();
+  history.unshift({id:crypto.randomBytes(12).toString('hex'),userId:user.id,username:String(user.username).slice(0,100),role:normalizedRole(user.role||'realizator'),at:new Date().toISOString()});
+  const tmp=LOGIN_HISTORY_FILE+'.tmp-'+crypto.randomBytes(6).toString('hex');
+  try{fs.writeFileSync(tmp,JSON.stringify(history.slice(0,5000)),'utf8');fs.renameSync(tmp,LOGIN_HISTORY_FILE);}
+  finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
+}
 const sessions = new Map();
 
 // Wrzutka zapisuje materiały bezpośrednio na Google Drive i nie korzysta z bazy magazynu ani szkiców ofert.
@@ -823,6 +837,7 @@ app.post('/api/login', (req, res) => {
   if (!user) {
     return res.status(401).json({ ok: false, message: 'Nieprawidłowy login lub hasło' });
   }
+  try{recordLogin(user);}catch(error){console.error('Nie udało się zapisać historii logowania.');return res.status(503).json({ok:false,message:'Nie można zapisać logowania. Spróbuj ponownie później.'});}
   const token = createToken();
   sessions.set(token, { id: user.id, username: user.username, role: user.role || 'user', createdAt: Date.now() });
   setSessionCookie(res, token);
@@ -836,6 +851,17 @@ app.post('/api/logout', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/admin/login-history',requireAdmin,(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{
+    const offset=Number(req.query.offset||0);
+    if(!Number.isInteger(offset)||offset<0)return res.status(400).json({ok:false,message:'Niepoprawna strona historii.'});
+    const role=String(req.query.role||'');
+    if(role&&!['pracownik','realizator','admin'].includes(role))return res.status(400).json({ok:false,message:'Niepoprawna rola.'});
+    const history=readLoginHistory().filter(row=>!role||row.role===role);
+    res.json({ok:true,entries:history.slice(offset,offset+100),total:history.length,nextOffset:offset+100<history.length?offset+100:null});
+  }catch(error){res.status(500).json({ok:false,message:'Nie można odczytać historii logowań.'});}
+});
 app.get('/api/admin/users', requireAdmin, (req, res) => {
   res.json({ ok: true, users: readUsers().map(publicUser) });
 });

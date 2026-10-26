@@ -184,6 +184,13 @@
       <div class="muted" style="margin-top:10px">Pracownik: checklista i dodawanie pozycji. Realizator: oferty i pack listy. Administrator: pełen dostęp i zarządzanie kontami.</div>
     </div>
 
+    <section class="card" style="margin-bottom:18px">
+      <div class="section-head"><h2>Historia logowań zespołu</h2><button class="btn" id="refreshLogins" type="button">Odśwież</button></div>
+      <p class="muted">Udane logowania od wprowadzenia tej funkcji. Ostatnie 5000 wpisów. Czas polski.</p>
+      <label>Rola <select id="loginRole"><option value="pracownik">Pracownicy</option><option value="realizator">Realizatorzy</option><option value="admin">Administratorzy</option><option value="">Wszystkie konta</option></select></label>
+      <div id="loginHistory" style="overflow-x:auto;margin-top:14px" aria-live="polite"></div>
+      <button id="moreLogins" class="btn" type="button" hidden>Pokaż starsze</button>
+    </section>
     <div class="toolbar">
       <div class="card">
         <div class="section-head"><h2>Wyszukiwarka</h2><span class="pill" id="dbStatus">Ładowanie…</span></div>
@@ -363,6 +370,25 @@
 
 
 
+    let nextLoginOffset=null;
+    async function loadLogins(append=false){
+      const list=document.getElementById('loginHistory'),more=document.getElementById('moreLogins');
+      more.disabled=true;
+      try{
+        const role=document.getElementById('loginRole').value;
+        const data=await api('/api/admin/login-history?role='+encodeURIComponent(role)+'&offset='+(append?nextLoginOffset||0:0));
+        if(!append)list.innerHTML='';
+        const rows=(data.entries||[]).map(row=>'<tr><td style="padding:10px">'+esc(row.username)+'</td><td style="padding:10px">'+esc(row.role)+'</td><td style="padding:10px">'+esc(new Date(row.at).toLocaleString('pl-PL',{timeZone:'Europe/Warsaw'}))+'</td></tr>').join('');
+        if(rows)list.insertAdjacentHTML('beforeend','<table style="width:100%;text-align:left"><thead><tr><th>Login</th><th>Rola w chwili logowania</th><th>Data i godzina</th></tr></thead><tbody>'+rows+'</tbody></table>');
+        else if(!append)list.textContent='Brak zapisanych logowań dla wybranej roli.';
+        nextLoginOffset=data.nextOffset;more.hidden=nextLoginOffset===null;
+      }catch(error){if(!append)list.textContent='Nie udało się pobrać historii logowań.';else alert('Nie udało się pobrać starszych logowań.');}
+      finally{more.disabled=false;}
+    }
+    document.getElementById('refreshLogins').addEventListener('click',()=>loadLogins());
+    document.getElementById('loginRole').addEventListener('change',()=>loadLogins());
+    document.getElementById('moreLogins').addEventListener('click',()=>loadLogins(true));
+    loadLogins();
     async function loadUsers() {
       const status = document.getElementById('usersStatus');
       const list = document.getElementById('usersList');

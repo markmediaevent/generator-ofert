@@ -20,6 +20,16 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   const worker=(await api('/api/admin/users',admin,'POST',{username:'worker',password:'test-password',role:'pracownik'})).user;
   await api('/api/admin/users',admin,'POST',{username:'manager',password:'test-password',role:'realizator'});
   const workerToken=await login('worker'),manager=await login('manager');
+  assert.equal((await api('/api/admin/login-history',null)).status,401);
+  assert.equal((await api('/api/admin/login-history',workerToken)).status,403);
+  assert.equal((await api('/api/admin/login-history',manager)).status,403);
+  let history=await api('/api/admin/login-history?role=pracownik',admin);
+  assert.equal(history.status,200);assert.equal(history.entries.length,1);assert.equal(history.entries[0].username,'worker');
+  assert.ok(history.entries.every(row=>!('password' in row)&&!('token' in row)));
+  const before=history.total;
+  assert.equal((await api('/api/login',null,'POST',{username:'worker',password:'invalid'})).status,401);
+  assert.equal((await api('/api/admin/login-history?role=pracownik',admin)).total,before);
+  assert.equal((await api('/api/admin/login-history?offset=-1',admin)).status,400);
   const endpoint='/api/packlists/test-event';
   fs.mkdirSync(path.join(dir,'drafts'),{recursive:true});
   fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test'}));
@@ -57,6 +67,7 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   const archive=path.join(dir,'drafts','sentinel.json');fs.mkdirSync(path.dirname(archive),{recursive:true});fs.writeFileSync(archive,'{"unchanged":true}');
   const equipment=fs.readFileSync(path.join(dir,'equipment-db.json'));
   await stop();await start();const fresh=await login('testadmin');
+  assert.equal((await api('/api/admin/login-history?role=pracownik',fresh)).entries[0].username,'worker');
   result=await api(endpoint,fresh);assert.equal(result.data.crewAssignments.length,2);assert.equal(result.data.notes.item1,'test');assert.deepEqual(result.data.ledLogistics.screen1,ledPayload.logistics);
   assert.deepEqual(fs.readFileSync(path.join(dir,'equipment-db.json')),equipment);assert.equal(fs.readFileSync(archive,'utf8'),'{"unchanged":true}');
   const own=result.data.crewAssignments.find(a=>a.userId===worker.id);
