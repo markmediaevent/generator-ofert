@@ -10,6 +10,7 @@ app.use(express.json({ limit: '2mb' }));
 
 // Strony weryfikujemy przed express.static — również pliki *.html nie mogą obchodzić ról.
 const pageRoles = new Map([
+  ['/availability',['admin','realizator','pracownik']],['/availability.html',['admin','realizator','pracownik']],
   ['/app',['admin','realizator']],['/app.html',['admin','realizator']],
   ['/admin',['admin']],['/admin.html',['admin']],
   ['/admin-magazyn',['admin']],['/admin-magazyn.html',['admin']],
@@ -31,7 +32,7 @@ app.use((req,res,next)=>{
 });
 
 app.use((req,res,next)=>{
-  if(req.path.endsWith('.html') || ['/app','/admin','/packlist','/packlists','/led-utils.js','/packlist-app.js'].includes(req.path))
+  if(req.path.endsWith('.html') || ['/app','/admin','/packlist','/packlists','/availability','/availability.js','/led-utils.js','/packlist-app.js'].includes(req.path))
     res.setHeader('Cache-Control','no-store');
   next();
 });
@@ -826,7 +827,7 @@ app.use('/api', (req,res,next)=>{
     // Domyślnie tylko realizator i administrator mają dostęp do pozostałego API
     // (w tym ofert, cen, magazynu, szkiców, materiałów klientów).
     if(normalizedRole(req.user.role)==='pracownik' &&
-       !(/^\/packlists(?:\/|$)/.test(req.path) || /^\/packlist-offers$/.test(req.path) || req.path==='/me' || req.path==='/logout'))
+       !(/^\/packlists(?:\/|$)/.test(req.path) || /^\/packlist-offers$/.test(req.path) || req.path==='/me' || req.path==='/logout' || req.path==='/my-availability'))
       return res.status(403).json({ok:false,message:'Konto pracownika ma dostęp tylko do pack list.'});
     next();
   });
@@ -853,6 +854,54 @@ app.post('/api/logout', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+const AVAILABILITY_DIR=path.join(DATA_DIR,'availability');
+function validAvailabilityDate(date){
+  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+  const parsed=new Date(date+'T12:00:00Z');
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===date;
+}
+function availabilityMonth(value){
+  if(typeof value!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)||value<'2000-01'||value>'2100-12')throw new Error('Wybierz miesiąc od 2000 do 2100 roku.');
+  return value;
+}
+function availabilityFile(userId,month){
+  const key=crypto.createHash('sha256').update(String(userId)).digest('hex');
+  return path.join(AVAILABILITY_DIR,availabilityMonth(month),key+'.json');
+}
+function readAvailability(userId,month){
+  const file=availabilityFile(userId,month);
+  if(!fs.existsSync(file))return {};
+  const days=JSON.parse(fs.readFileSync(file,'utf8'));
+  if(!days||typeof days!=='object'||Array.isArray(days))throw new Error('Nie można odczytać dyspozycyjności.');
+  return days;
+}
+app.get('/api/my-availability',requireAuth,(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{const month=availabilityMonth(req.query.month);res.json({ok:true,month,days:readAvailability(req.user.id,month)});}
+  catch(error){res.status(400).json({ok:false,message:'Nie można pobrać kalendarza. Sprawdź miesiąc i spróbuj ponownie.'});}
+});
+app.patch('/api/my-availability',requireAuth,(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{
+    const {date,status}=req.body||{};
+    if(req.body?.userId!==undefined||!validAvailabilityDate(date)||!['available','unavailable','unknown'].includes(status))return res.status(400).json({ok:false,message:'Niepoprawna data lub dyspozycja.'});
+    const month=availabilityMonth(date.slice(0,7)),days=readAvailability(req.user.id,month);
+    if(status==='unknown')delete days[date];else days[date]={status,updatedAt:new Date().toISOString()};
+    const file=availabilityFile(req.user.id,month);fs.mkdirSync(path.dirname(file),{recursive:true});
+    const tmp=file+'.tmp-'+crypto.randomBytes(6).toString('hex');
+    try{fs.writeFileSync(tmp,JSON.stringify(days),'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
+    res.json({ok:true,month,days});
+  }catch(error){res.status(400).json({ok:false,message:'Nie udało się zapisać dyspozycyjności.'});}
+});
+app.get('/api/admin/availability',requireAdmin,(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{
+    const month=availabilityMonth(req.query.month);
+    const users=readUsers().filter(u=>['pracownik','realizator'].includes(normalizedRole(u.role))).map(u=>({id:u.id,username:u.username,role:normalizedRole(u.role),days:readAvailability(u.id,month)}));
+    res.json({ok:true,month,users});
+  }catch(error){res.status(400).json({ok:false,message:'Nie można pobrać dyspozycyjności zespołu.'});}
+});
+app.get('/availability',requireAuth,(req,res)=>res.sendFile(path.join(__dirname,'public','availability.html')));
 app.get('/api/admin/login-history',requireAdmin,(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   try{

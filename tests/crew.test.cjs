@@ -30,6 +30,22 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.equal((await api('/api/login',null,'POST',{username:'worker',password:'invalid'})).status,401);
   assert.equal((await api('/api/admin/login-history?role=pracownik',admin)).total,before);
   assert.equal((await api('/api/admin/login-history?offset=-1',admin)).status,400);
+  assert.equal((await api('/api/my-availability?month=2026-11',null)).status,401);
+  assert.equal((await api('/api/admin/availability?month=2026-11',workerToken)).status,403);
+  assert.equal((await api('/api/admin/availability?month=2026-11',manager)).status,403);
+  assert.equal((await api('/api/my-availability?month=../../',workerToken)).status,400);
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-02-30',status:'available'})).status,400);
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-11-15',status:'bad'})).status,400);
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-11-15',status:'available',userId:'other'})).status,400);
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-11-15',status:'available'})).status,200);
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-11-16',status:'unavailable'})).status,200);
+  let ownDays=(await api('/api/my-availability?month=2026-11',workerToken)).days;
+  assert.equal(ownDays['2026-11-15'].status,'available');assert.equal(ownDays['2026-11-16'].status,'unavailable');
+  assert.deepEqual((await api('/api/my-availability?month=2026-11',manager)).days,{});
+  const overview=await api('/api/admin/availability?month=2026-11',admin);
+  assert.equal(overview.users.find(u=>u.id===worker.id).days['2026-11-16'].status,'unavailable');
+  assert.equal((await api('/api/my-availability',workerToken,'PATCH',{date:'2026-11-15',status:'unknown'})).status,200);
+  assert.ok(!(await api('/api/my-availability?month=2026-11',workerToken)).days['2026-11-15']);
   const endpoint='/api/packlists/test-event';
   fs.mkdirSync(path.join(dir,'drafts'),{recursive:true});
   fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test',eventDate:'2026-11-15'}));
@@ -74,7 +90,7 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.deepEqual(fs.readFileSync(path.join(dir,'equipment-db.json')),equipment);assert.equal(fs.readFileSync(archive,'utf8'),'{"unchanged":true}');
   const own=result.data.crewAssignments.find(a=>a.userId===worker.id);
   assert.equal((await api(endpoint,fresh,'PATCH',{...payload,selected:false,expectedUpdatedAt:own.updatedAt})).data.crewAssignments.length,1);
-  const revoked=await login('worker');assert.equal(await assignedTo(revoked),false);await assertBlocked(revoked);
+  const revoked=await login('worker');assert.equal((await api('/api/my-availability?month=2026-11',revoked)).days['2026-11-16'].status,'unavailable');assert.equal(await assignedTo(revoked),false);await assertBlocked(revoked);
   assert.equal((await api(endpoint,fresh)).status,200);assert.equal((await api('/api/packlist-offers',fresh)).offers.length,2);
   const html=fs.readFileSync('public/app.html','utf8');assert.match(html,/<a href="\$\{escapeHtml\(new URL\('\/wrzutka', window.location.origin\).href\)\}"/);
  }finally{if(child&&child.exitCode===null)await stop();fs.rmSync(dir,{recursive:true,force:true});}
