@@ -32,7 +32,7 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.equal((await api('/api/admin/login-history?offset=-1',admin)).status,400);
   const endpoint='/api/packlists/test-event';
   fs.mkdirSync(path.join(dir,'drafts'),{recursive:true});
-  fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test'}));
+  fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test',eventDate:'2026-11-15'}));
   const assignedTo=async token=>(await api('/api/packlist-offers',token)).offers.find(o=>o.offerNumber==='test-event')?.assignedToMe||false;
   assert.equal(await assignedTo(workerToken),false);
   async function assertBlocked(token){
@@ -55,6 +55,8 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.equal((await api(endpoint,manager,'PATCH',{...payload,returnAt:'2026-10-25T12:00'})).status,400);
   let result=await api(endpoint,manager,'PATCH',payload);assert.equal(result.status,200);assert.equal(result.data.crewAssignments[0].departure,payload.departure);
   assert.equal((await api(endpoint,manager,'PATCH',payload)).status,409);
+  assert.equal((await api('/api/packlist-offers',workerToken)).offers[0].eventDate,'2026-11-15');
+  assert.equal((await api('/api/packlist-offers',admin)).offers[0].eventDate,'2026-11-15');
   assert.equal(await assignedTo(workerToken),true);assert.equal(await assignedTo(manager),false);
   await api(endpoint,admin,'PATCH',{...payload,userId:users.users.find(u=>u.username==='testadmin').id});
   assert.equal((await api(endpoint,workerToken)).data.crewAssignments.length,1);

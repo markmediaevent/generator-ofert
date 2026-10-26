@@ -12,6 +12,9 @@ nav{display:flex;gap:9px;flex-wrap:wrap}a.button,button{display:inline-flex;alig
 .search{display:flex;gap:12px;margin:22px 0}input{min-width:0;flex:1;background:#121f34;color:#fff;border:1px solid var(--line);padding:15px 16px;border-radius:13px;font-size:15px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.job{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:21px;display:grid;gap:14px;min-width:0}.job h2{margin:3px 0 0;font-size:18px;overflow-wrap:anywhere}.job small{color:var(--muted)}.job .topline{display:flex;justify-content:space-between;align-items:center;gap:8px}.job .number{font-weight:900;color:#aad0ff}.job .meta{display:grid;gap:7px;color:#d3e0f2;font-size:13px}.job .button{justify-self:start}.empty{padding:22px;border:1px dashed var(--line);border-radius:14px;background:rgba(255,255,255,.035);color:var(--muted)}
 .job.assigned{background:#123d30;border:2px solid #35d399}.job.assigned .number{color:#a7f3d0}.assignment-badge{color:#bbf7d0;font-weight:800;font-size:13px}
+.event-date{display:inline-flex;align-items:center;gap:8px;justify-self:start;border:1px solid #65b5ff;border-radius:10px;padding:10px 14px;background:#164271;color:#fff;font-size:16px;font-weight:900;line-height:1.4;max-width:100%;overflow-wrap:anywhere;animation:event-date-pulse 2.4s ease-in-out infinite}.event-date.pending{animation:none;border-color:var(--line);background:#253651;color:var(--muted)}
+@keyframes event-date-pulse{0%,100%{box-shadow:0 0 0 0 rgba(101,181,255,.12)}50%{box-shadow:0 0 0 5px rgba(101,181,255,.32)}}
+@media(prefers-reduced-motion:reduce){.event-date{animation:none}}
 .status{margin:16px 0;color:var(--muted);font-size:14px;line-height:1.5}
 @media(max-width:690px){main{padding:14px}.top{padding:18px}h1{font-size:26px}.grid{grid-template-columns:1fr}}
 </style></head>
@@ -23,14 +26,25 @@ nav{display:flex;gap:9px;flex-wrap:wrap}a.button,button{display:inline-flex;alig
 </main><script>
 const el=id=>document.getElementById(id), escapeHtml=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
 let all=[];
+function dateLabel(value){
+ const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''));if(!match)return '';
+ const date=new Date(value+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==value)return '';
+ return match[3]+'.'+match[2]+'.'+match[1];
+}
+function eventDateHtml(event){
+ const start=dateLabel(event.eventDate),end=dateLabel(event.dateTo);
+ if(!start)return '<div class="event-date pending">Data wydarzenia: do ustalenia</div>';
+ return '<div class="event-date"><span aria-hidden="true">📅</span> Data wydarzenia: '+start+(end&&event.dateTo>event.eventDate?' – '+end:'')+'</div>';
+}
 function draw(){
  const q=el('query').value.trim().toLocaleLowerCase('pl');
  const list=all.filter(d=>[d.offerNumber,d.eventName,d.clientName,d.location].join(' ').toLocaleLowerCase('pl').includes(q));
  el('jobs').innerHTML=list.length?list.map(d=>`
   <article class="job${d.assignedToMe===true ? ' assigned' : ''}">
-    <div class="topline"><span class="number">${escapeHtml(d.offerNumber)}</span><small>${escapeHtml(d.updatedAt?.slice(0,10)||'')}</small></div>
+    <div class="topline"><span class="number">${escapeHtml(d.offerNumber)}</span></div>
     ${d.assignedToMe===true ? '<span class="assignment-badge">✓ Przydzielono do Ciebie</span>' : ''}
     <h2>${escapeHtml(d.eventName||'Realizacja bez tytułu')}</h2>
+    ${eventDateHtml(d)}
     <div class="meta"><span>📍 ${escapeHtml(d.location||'Miejsce nieustalone')}</span><span>Klient: ${escapeHtml(d.clientName||'—')}</span></div>
     <a class="button primary" href="/packlist?offer=${encodeURIComponent(d.offerNumber)}">Otwórz pack listę →</a>
   </article>`).join(''):'<div class="empty">Brak wydarzeń do wyświetlenia. Pracownik widzi tylko pack listy przypisane do swojego konta.</div>';
