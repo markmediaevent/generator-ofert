@@ -1112,6 +1112,7 @@ function readPacklistState(offerNumber){
     checkedBy:raw.checkedBy && typeof raw.checkedBy==='object' && !Array.isArray(raw.checkedBy)?raw.checkedBy:{},
     notes:raw.notes && typeof raw.notes==='object' && !Array.isArray(raw.notes)?raw.notes:{},
     extraItems:Array.isArray(raw.extraItems)?raw.extraItems:[],
+    crewAssignments:Array.isArray(raw.crewAssignments)?raw.crewAssignments:[],
     ledConfigs:raw.ledConfigs && typeof raw.ledConfigs==='object' && !Array.isArray(raw.ledConfigs)?raw.ledConfigs:{},
     ledLogistics:raw.ledLogistics && typeof raw.ledLogistics==='object' && !Array.isArray(raw.ledLogistics)?raw.ledLogistics:{},
     revision:Number(raw.revision)||0,
@@ -1129,6 +1130,20 @@ function writePacklistState(offerNumber,state){
   }finally{if(fs.existsSync(temporary))fs.unlinkSync(temporary);}
   return next;
 }
+function crewForViewer(state,user){
+  if(normalizedRole(user.role)!=='pracownik')return state;
+  return {...state,crewAssignments:state.crewAssignments.filter(row=>row.userId===user.id)};
+}
+function crewDate(value){
+  if(value==='')return '';
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))throw new Error('Podaj datę i godzinę.');
+  const date=new Date(value+'Z');
+  if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,16)!==value)throw new Error('Niepoprawna data.');
+  return value;
+}
+app.get('/api/packlists/:offerNumber/crew-users',requireRealizator,(req,res)=>{
+  res.json({ok:true,users:readUsers().map(u=>({id:u.id,username:u.username,role:normalizedRole(u.role)}))});
+});
 function normalizePackExtra(payload,id){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Niepoprawne dane pozycji.');
   const name=packText(payload.name,180);
@@ -1225,7 +1240,7 @@ app.get('/api/packlists/:offerNumber/brief', requireAuth, async(req,res)=>{
   }catch(error){res.status(500).json({ok:false,message:'Nie udało się pobrać zestawienia realizacji.'});}
 });
 app.get('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
-  try{res.json({ok:true,data:readPacklistState(req.params.offerNumber)});}
+  try{res.json({ok:true,data:crewForViewer(readPacklistState(req.params.offerNumber),req.user)});}
   catch(error){res.status(500).json({ok:false,message:'Nie udało się wczytać pack listy.'});}
 });
 // Operacje punktowe nie nadpisują zmian w innych wierszach, również gdy pracuje kilku techników.
@@ -1235,6 +1250,26 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
     const state=readPacklistState(req.params.offerNumber);
     let item=null;
     switch(action){
+      case 'setCrewAssignment': {
+        if(!['admin','realizator'].includes(normalizedRole(req.user.role)))return res.status(403).json({ok:false,message:'Brak uprawnień do obsady.'});
+        const user=readUsers().find(u=>u.id===payload.userId);
+        if(!user){
+          if(payload.selected===false&&state.crewAssignments.some(row=>row.userId===payload.userId)){
+            const old=state.crewAssignments.find(row=>row.userId===payload.userId);
+            if(payload.expectedUpdatedAt!==old.updatedAt)return res.status(409).json({ok:false,message:'Odśwież obsadę.'});
+            state.crewAssignments=state.crewAssignments.filter(row=>row.userId!==payload.userId);break;
+          }
+          throw new Error('Konto pracownika nie istnieje.');
+        }
+        const existing=state.crewAssignments.find(row=>row.userId===user.id);
+        if(payload.expectedUpdatedAt!==(existing?.updatedAt||''))return res.status(409).json({ok:false,message:'Obsada została zmieniona. Odśwież listę.'});
+        if(typeof payload.selected!=='boolean')throw new Error('Niepoprawny przydział.');
+        const departure=crewDate(payload.departure),returnAt=crewDate(payload.returnAt);
+        if(departure&&returnAt&&returnAt<departure)throw new Error('Powrót nie może być wcześniejszy niż wyjazd.');
+        state.crewAssignments=state.crewAssignments.filter(row=>row.userId!==user.id);
+        if(payload.selected)state.crewAssignments.push({userId:user.id,username:user.username,departure,returnAt,updatedAt:new Date().toISOString(),updatedBy:req.user.id});
+        break;
+      }
       case 'addItem': {
         if(state.extraItems.length>=PACKLIST_MAX_EXTRAS)throw new Error('Osiągnięto limit ręcznych pozycji.');
         const id='extra-'+crypto.randomBytes(8).toString('hex');
@@ -1292,7 +1327,7 @@ app.patch('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
         return res.status(400).json({ok:false,message:'Nieznana operacja pack listy.'});
     }
     const data=writePacklistState(req.params.offerNumber,state);
-    res.json({ok:true,data,item});
+    res.json({ok:true,data:crewForViewer(data,req.user),item});
   }catch(error){res.status(400).json({ok:false,message:error.message||'Nie udało się zapisać pack listy.'});}
 });
 // Stary klient używał PUT: zachowujemy kompatybilność bez kasowania nowych pozycji ręcznych.
@@ -1309,7 +1344,7 @@ app.put('/api/packlists/:offerNumber', requireAuth, (req,res)=>{
     for(const [id,value] of Object.entries(input.notes||{}).slice(0,3000)){
       if(/^[a-zA-Z0-9._:-]{1,128}$/.test(id)&&typeof value==='string')state.notes[id]=value.slice(0,500);
     }
-    res.json({ok:true,data:writePacklistState(req.params.offerNumber,state)});
+    res.json({ok:true,data:crewForViewer(writePacklistState(req.params.offerNumber,state),req.user)});
   }catch(error){res.status(500).json({ok:false,message:'Nie udało się zapisać pack listy.'});}
 });
 

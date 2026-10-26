@@ -5,7 +5,7 @@ const apiPath='/api/packlists/'+encodeURIComponent(offer);
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const fmt=value=>Number(value).toLocaleString('pl-PL',{maximumFractionDigits:2});
-let quote=null;
+let quote=null, crewUsers=[], canEditCrew=false;
 let state={checked:{},checkedBy:{},notes:{},extraItems:[],ledConfigs:{},revision:0};
 let items=[],pending=0,queue=Promise.resolve(),noteTimers=new Map(), lastError=false,loading=false;
 const keyFor=(item,index)=>/^[a-zA-Z0-9._:-]{1,125}$/.test(String(item.uid||''))?item.uid:'legacy-'+index;
@@ -149,14 +149,14 @@ function ledHtml(){
 }
 function render(){
  if(!quote)return;
- rebuild();meta();ledHtml();
+ rebuild();meta();ledHtml();renderCrew();
  $('list').innerHTML=grouped().map(groupHtml).join('')||'<section class="group"><p style="padding:15px">Brak pozycji. Dodaj pierwszą poniżej.</p></section>';
  progress();
 }
 function noteValue(el){return (el.innerText||'').slice(0,500);}
 function normalizeState(input){
  return {checked:input?.checked||{},checkedBy:input?.checkedBy||{},notes:input?.notes||{},
-   extraItems:input?.extraItems||[],ledConfigs:input?.ledConfigs||{},ledLogistics:input?.ledLogistics||{},revision:input?.revision||0,updatedAt:input?.updatedAt||''};
+   crewAssignments:input?.crewAssignments||[],extraItems:input?.extraItems||[],ledConfigs:input?.ledConfigs||{},ledLogistics:input?.ledLogistics||{},revision:input?.revision||0,updatedAt:input?.updatedAt||''};
 }
 function requestMutation(payload){
  pending++;
@@ -321,8 +321,9 @@ async function init(){
  if(!offer){setStatus('Brak numeru oferty. Wygeneruj pack listę z generatora ofert.',true);return;}
  const mine=await fetch('/api/me').catch(()=>null);
  if(!mine||mine.status===401){location.href='/login';return;}
- if(mine.ok){const me=await mine.json();$('offerBack').hidden=me.role==='pracownik';}
+ if(mine.ok){const me=await mine.json();$('offerBack').hidden=me.role==='pracownik';canEditCrew=['admin','realizator'].includes(me.role);}
  try{
+   if(canEditCrew){const r=await fetch(apiPath+'/crew-users');if(!r.ok)throw new Error('Nie można pobrać kont personelu.');crewUsers=(await r.json()).users;}
    const [saved,pack]=await Promise.all([fetch(apiPath+'/brief'),fetch(apiPath)]);
    if(!saved.ok)throw new Error('Nie znaleziono zapisanej oferty. Zapisz ją najpierw w generatorze.');
    if(!pack.ok)throw new Error(pack.status===401?'Zaloguj się ponownie.':'Błąd pobierania pack listy.');
@@ -336,7 +337,21 @@ async function printPacklist(){
  window.print();
 }
 setInterval(()=>{
- if(pending||document.activeElement?.isContentEditable||$('extraForm').contains(document.activeElement)||$('ledPanel').contains(document.activeElement))return;
+ if(pending||document.activeElement?.isContentEditable||$('extraForm').contains(document.activeElement)||$('ledPanel').contains(document.activeElement)||$('crewPanel').contains(document.activeElement))return;
  reload();
 },30000);
 init();
+
+function renderCrew(){
+ const assigned=state.crewAssignments||[];
+ const users=canEditCrew?[...crewUsers,...assigned.filter(a=>!crewUsers.some(u=>u.id===a.userId)).map(a=>({id:a.userId,username:a.username,deleted:true}))]:assigned.map(a=>({id:a.userId,username:a.username}));
+ $('crewPanel').innerHTML='<div class="group-head"><h2>Obsada wydarzenia</h2></div><p class="help">Planowany wyjazd i powrót — czas lokalny wydarzenia (Polska).</p>'+users.map(u=>{
+ const a=assigned.find(a=>a.userId===u.id), disabled=!canEditCrew;
+ return '<form class="manual-form" data-crew="'+esc(u.id)+'"><label>Pracownik <span><input name="selected" type="checkbox" '+(a?'checked ':'')+(disabled?'disabled':'')+'>'+esc(u.username)+(u.deleted?' (konto usunięte)':'')+'</span></label>'+['departure','returnAt'].map((key,i)=>'<label>'+['Wyjazd','Powrót'][i]+'<input name="'+key+'" type="datetime-local" value="'+esc(a?.[key]||'')+'" '+(disabled?'disabled':'')+'></label>').join('')+(disabled?'':'<button class="btn primary no-print" type="submit">Zapisz przydział</button>')+'</form>';
+ }).join('')+(users.length?'':'<p class="help">Brak przypisanych pracowników.</p>');
+}
+$('crewPanel').addEventListener('submit',event=>{
+ event.preventDefault();const form=event.target.closest('[data-crew]');if(!form||!canEditCrew)return;
+ const userId=form.dataset.crew,existing=(state.crewAssignments||[]).find(a=>a.userId===userId);
+ requestMutation({action:'setCrewAssignment',userId,selected:form.elements.selected.checked,departure:form.elements.departure.value,returnAt:form.elements.returnAt.value,expectedUpdatedAt:existing?.updatedAt||''}).catch(()=>{});
+});
