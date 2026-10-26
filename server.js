@@ -1227,7 +1227,8 @@ app.get('/api/packlist-offers', requireAuth, async(req,res)=>{
       eventName:String(item.eventName||'').slice(0,200),
       location:String(item.location||'').slice(0,160),
       clientName:String(item.clientName||'').slice(0,200),
-      updatedAt:String(item.updatedAt||'').slice(0,36)
+      updatedAt:String(item.updatedAt||'').slice(0,36),
+      assignedToMe:readPacklistState(item.offerNumber).crewAssignments.some(row=>row.userId===req.user.id)
     })).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
     res.json({ok:true,offers});
   }catch(error){res.status(500).json({ok:false,message:'Nie udało się pobrać listy realizacji.'});}

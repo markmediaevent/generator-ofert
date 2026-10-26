@@ -21,6 +21,10 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   await api('/api/admin/users',admin,'POST',{username:'manager',password:'test-password',role:'realizator'});
   const workerToken=await login('worker'),manager=await login('manager');
   const endpoint='/api/packlists/test-event';
+  fs.mkdirSync(path.join(dir,'drafts'),{recursive:true});
+  fs.writeFileSync(path.join(dir,'drafts','test-event.json'),JSON.stringify({offerNumber:'test-event',eventName:'Test'}));
+  const assignedTo=async token=>(await api('/api/packlist-offers',token)).offers.find(o=>o.offerNumber==='test-event').assignedToMe;
+  assert.equal(await assignedTo(workerToken),false);
   assert.equal((await api(endpoint,null)).status,401);
   assert.equal((await api(endpoint+'/crew-users',workerToken)).status,403);
   const users=await api(endpoint+'/crew-users',manager);
@@ -32,6 +36,7 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.equal((await api(endpoint,manager,'PATCH',{...payload,returnAt:'2026-10-25T12:00'})).status,400);
   let result=await api(endpoint,manager,'PATCH',payload);assert.equal(result.status,200);assert.equal(result.data.crewAssignments[0].departure,payload.departure);
   assert.equal((await api(endpoint,manager,'PATCH',payload)).status,409);
+  assert.equal(await assignedTo(workerToken),true);assert.equal(await assignedTo(manager),false);
   await api(endpoint,admin,'PATCH',{...payload,userId:users.users.find(u=>u.username==='testadmin').id});
   assert.equal((await api(endpoint,workerToken)).data.crewAssignments.length,1);
   result=await api(endpoint,workerToken,'PATCH',{action:'setChecked',id:'item1',value:true});assert.equal(result.data.crewAssignments.length,1);
@@ -44,6 +49,7 @@ test('crew authorization, validation, persistence and legacy packlist compatibil
   assert.deepEqual(fs.readFileSync(path.join(dir,'equipment-db.json')),equipment);assert.equal(fs.readFileSync(archive,'utf8'),'{"unchanged":true}');
   const own=result.data.crewAssignments.find(a=>a.userId===worker.id);
   assert.equal((await api(endpoint,fresh,'PATCH',{...payload,selected:false,expectedUpdatedAt:own.updatedAt})).data.crewAssignments.length,1);
+  assert.equal(await assignedTo(await login('worker')),false);
   const html=fs.readFileSync('public/app.html','utf8');assert.match(html,/<a href="\$\{escapeHtml\(new URL\('\/wrzutka', window.location.origin\).href\)\}"/);
  }finally{if(child&&child.exitCode===null)await stop();fs.rmSync(dir,{recursive:true,force:true});}
 });
