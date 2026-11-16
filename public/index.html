@@ -1,360 +1,209 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mark Media Event Solution</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080e1b">
+  <meta name="description" content="Mark Media Event Solution – kompleksowa obsługa techniczna koncertów, festiwali, konferencji i wydarzeń. Ekrany LED, nagłośnienie, oświetlenie, streaming oraz realizacja wideo.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://markmediaevent.pl/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mark Media Event Solution">
+  <meta property="og:title" content="Mark Media Event Solution | Technologia wydarzeń">
+  <meta property="og:description" content="Emocje. Technologia. Realizacja. Ekrany LED, audio, światło i streaming.">
+  <meta property="og:image" content="https://markmediaevent.pl//assets/strona-01.webp">
+  <link rel="icon" type="image/webp" href="/assets/logo-mark-media.webp">
+  <link rel="preload" as="image" href="/assets/strona-01.webp" fetchpriority="high">
+  <title>Mark Media Event Solution | Emocje. Technologia. Realizacja.</title>
   <style>
-    :root{
-      --bg:#040915;
-      --bg2:#091427;
-      --line:rgba(255,255,255,.10);
-      --text:#eef4ff;
-      --muted:#9cb1d6;
-      --blue:#63b3ff;
-      --blue2:#3b82f6;
-      --glow:rgba(99,179,255,.35);
-      --card:rgba(255,255,255,.04);
+    :root{--navy:#080f1d;--bg:#070e1b;--panel:#101d32;--line:rgba(123,171,237,.24);--text:#f3f7ff;--muted:#a7b9d2;--blue:#49b5fa;--bright:#3679ff}
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-snap-type:y proximity}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;overflow-x:hidden}
+    a{color:inherit}
+    button{font:inherit}
+    .skip-link{position:fixed;z-index:100;top:-100px;left:12px;padding:10px 14px;background:white;color:#030813;border-radius:8px}
+    .skip-link:focus{top:12px}
+    #page-progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:60;background:linear-gradient(90deg,#276dff,#63c9ff);transition:width .2s ease;pointer-events:none}
+    .sheet{height:100svh;min-height:420px;width:100%;scroll-snap-align:start;display:flex;justify-content:center;align-items:center;background:radial-gradient(circle at 50% 50%,#111d32 0%,#070e1b 85%);position:relative}
+    .sheet:nth-child(even){background:radial-gradient(circle at 50% 45%,#172238 0%,#070d1b 85%)}
+    .sheet__image{height:100%;width:100%;max-width:calc(100svh * 1.41421);object-fit:contain;display:block;box-shadow:0 0 100px rgba(0,0,0,.32);user-select:none;-webkit-user-drag:none}
+    .sheet__screen-reader{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+    .sheet.contact-page .click-contact{position:absolute;display:block;z-index:2;opacity:0;outline-offset:4px}
+    .contact-page .click-contact:focus-visible{opacity:1;outline:2px solid #fff;border-radius:5px}
+    .page-dots{position:fixed;right:clamp(8px,1.6vw,30px);top:50%;transform:translateY(-50%);z-index:40;display:flex;flex-direction:column;gap:15px;align-items:center;padding:11px 7px;border-radius:28px;background:rgba(5,13,26,.46);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(13px)}
+    .page-dots a{display:block;width:8px;height:8px;flex:none;border-radius:50%;background:#6c7d9b;border:0;transition:transform .2s,background .2s}
+    .page-dots a.active,.page-dots a:hover{transform:scale(1.5);background:#5dc3ff}
+    .page-dots a:focus-visible{outline:2px solid white;outline-offset:5px}
+    .page-counter{position:fixed;bottom:15px;right:19px;z-index:45;font-size:11px;letter-spacing:.2em;font-weight:800;color:rgba(210,225,245,.75);background:rgba(0,0,0,.35);padding:10px 13px;border-radius:7px;backdrop-filter:blur(10px)}
+    .nav-toggle{position:fixed;top:18px;right:18px;z-index:55;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(5,12,26,.66);backdrop-filter:blur(14px);color:#fff;padding:11px 16px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 5px 20px rgba(0,0,0,.25)}
+    .nav-toggle:hover,.nav-toggle:focus-visible{border-color:#5dc3ff}
+    .nav-toggle svg{width:18px;height:18px}
+    .nav-menu{position:fixed;top:68px;right:18px;z-index:55;min-width:225px;max-width:min(86vw,330px);padding:10px;border:1px solid rgba(155,191,249,.26);border-radius:14px;background:rgba(7,15,29,.96);box-shadow:0 20px 50px rgba(0,0,0,.55);backdrop-filter:blur(20px)}
+    .nav-menu[hidden]{display:none}
+    .nav-menu a{display:block;padding:12px 13px;text-decoration:none;color:#eaf2fc;font-size:14px;font-weight:650;border-radius:8px}
+    .nav-menu a:hover,.nav-menu a:focus-visible{background:#1b3553}
+    .mobile-pages{display:none}
+    @media (max-width:760px){
+      html{scroll-snap-type:none}
+      .desktop-pages{display:none}
+      .mobile-pages{display:block}
+      .mobile-page{min-height:100svh;padding:72px clamp(20px,6vw,36px) 58px;position:relative;overflow:hidden;scroll-snap-align:start;background:radial-gradient(circle at 85% 4%,rgba(30,94,187,.22),transparent 38%),linear-gradient(160deg,#080e19,#101e36 80%,#0a1324);border-bottom:1px solid rgba(255,255,255,.08)}
+      .mobile-page::before{content:"";position:absolute;right:-80px;top:70px;width:220px;height:220px;border:1px solid rgba(49,143,248,.16);border-radius:50%;pointer-events:none}
+      .mobile-page::after{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:linear-gradient(180deg,#2976ff,#42bfff,transparent)}
+      .mobile-inner{max-width:550px;margin:0 auto;position:relative;z-index:1}
+      .mobile-logo{display:block;width:min(240px,68vw);height:auto;margin:8px auto 44px}
+      .mobile-kicker{font-size:11px;letter-spacing:.24em;color:#65c6ff;text-transform:uppercase;font-weight:800;margin:0 0 20px}
+      .mobile-page h1,.mobile-page h2{font-size:clamp(36px,10vw,56px);line-height:1.07;letter-spacing:-.05em;margin:0 0 20px;font-weight:850}
+      .mobile-page h1 span,.mobile-page h2 span{color:#4cbfff}
+      .mobile-page p{line-height:1.65;font-size:16px;color:var(--muted)}
+      .mobile-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:27px}
+      .mobile-pills span{font-size:10px;color:#91d2ff;letter-spacing:.09em;font-weight:800;border:1px solid var(--line);background:#182b45;border-radius:7px;padding:9px 11px}
+      .mobile-scroll{display:flex;align-items:center;gap:10px;margin-top:54px;font-size:12px;color:#9dcdf2;letter-spacing:.09em;text-transform:uppercase}
+      .mobile-scroll b{font-size:23px;font-weight:400;line-height:1}
+      .mobile-cardgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+      .mobile-card{background:linear-gradient(145deg,rgba(46,79,127,.42),rgba(8,19,37,.9));border:1px solid rgba(101,168,241,.2);border-radius:12px;padding:18px 15px;min-height:160px}
+      .mobile-card strong{display:block;color:#f3f8ff;font-size:13px;line-height:1.3;margin-bottom:10px;letter-spacing:.02em}
+      .mobile-card p{font-size:12px;line-height:1.5;margin:0}
+      .mobile-steps{display:grid;gap:12px;margin:32px 0}
+      .mobile-step{display:grid;grid-template-columns:50px 1fr;gap:9px;align-items:start;padding:13px 0;border-bottom:1px solid var(--line)}
+      .mobile-step em{font-size:30px;font-weight:800;font-style:normal;color:#4db4ff}
+      .mobile-step strong{display:block;font-size:15px;margin-bottom:8px}
+      .mobile-step p{margin:0;font-size:13px}
+      .stage-visual{height:180px;margin:32px 0 20px;position:relative;border-radius:14px;background:radial-gradient(ellipse at 50% 0,rgba(35,95,190,.34),transparent 76%),#0b182e;border:1px solid var(--line);overflow:hidden}
+      .stage-visual::before{content:"";position:absolute;left:15%;right:15%;bottom:30px;height:80px;background:linear-gradient(160deg,#215ca3,#142b51);border:2px solid #3d96f4;box-shadow:0 0 25px rgba(48,144,255,.3)}
+      .stage-visual::after{content:"";position:absolute;left:7%;right:7%;bottom:15px;height:12px;background:#1b3353;transform:skew(-25deg)}
+      .stage-visual .beam{position:absolute;top:-10px;width:2px;height:140px;background:linear-gradient(#4ab9ff,transparent);transform-origin:top;filter:drop-shadow(0 0 8px #45b3ff)}
+      .stage-visual .beam:nth-child(1){left:23%;transform:rotate(-24deg)}
+      .stage-visual .beam:nth-child(2){left:50%;transform:rotate(0)}
+      .stage-visual .beam:nth-child(3){left:76%;transform:rotate(24deg)}
+      .stage-visual .screen{position:absolute;width:54%;height:60px;left:23%;bottom:48px;background:linear-gradient(135deg,#123866,#3686eb);border:2px solid #72bfff;display:grid;place-items:center;font-size:12px;letter-spacing:.15em;font-weight:800}
+      .mobile-contact{display:grid;gap:12px;margin-top:28px}
+      .mobile-contact a{display:block;text-decoration:none;padding:16px 18px;background:#152a48;border:1px solid #36669b;border-radius:10px;font-weight:800;overflow-wrap:anywhere}
+      .mobile-contact a.primary{background:linear-gradient(135deg,#2866e2,#42b5ef);color:white}
+      .mobile-bottom-links{margin-top:38px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+      .mobile-bottom-links a{font-size:12px;text-decoration:none;padding:10px;border:1px solid #38577d;border-radius:8px;text-align:center;color:#b8d7ef}
+      .page-dots,.page-counter{display:none}
+      .nav-toggle{top:12px;right:12px;padding:10px 12px}
+      .nav-menu{top:58px;right:12px}
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;width:100%;height:100%;overflow:hidden}
-    body{
-      font-family:Inter,Arial,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(circle at 15% 20%, rgba(98,164,255,.20), transparent 24%),
-        radial-gradient(circle at 80% 15%, rgba(94,190,255,.18), transparent 22%),
-        radial-gradient(circle at 50% 75%, rgba(42,103,255,.12), transparent 30%),
-        linear-gradient(180deg, #030813 0%, #07111e 45%, #050a14 100%);
-    }
-
-    .noise,.grid,.vignette,.flare{position:fixed;inset:0;pointer-events:none}
-    .noise{
-      opacity:.06;
-      background-image:
-        radial-gradient(circle at 25% 25%, rgba(255,255,255,.5) 0 1px, transparent 1px),
-        radial-gradient(circle at 75% 75%, rgba(255,255,255,.45) 0 1px, transparent 1px);
-      background-size: 22px 22px, 26px 26px;
-      mix-blend-mode:soft-light;
-      animation: noiseShift 18s linear infinite;
-    }
-    .grid{
-      background:
-        linear-gradient(rgba(99,179,255,.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,179,255,.06) 1px, transparent 1px);
-      background-size: 54px 54px;
-      mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 30%, transparent 82%);
-      opacity:.28;
-    }
-    .flare{
-      background:
-        radial-gradient(circle at center, rgba(92,171,255,.12), transparent 34%),
-        radial-gradient(circle at center, rgba(255,255,255,.06), transparent 18%);
-      animation: pulse 5.5s ease-in-out infinite;
-    }
-    .vignette{
-      background: radial-gradient(circle at center, transparent 36%, rgba(2,6,12,.55) 100%);
-    }
-
-    .particles{position:fixed;inset:0;overflow:hidden;pointer-events:none}
-    .particle{
-      position:absolute;
-      width:4px;height:4px;border-radius:50%;
-      background:rgba(160,210,255,.8);
-      box-shadow:0 0 14px rgba(116,190,255,.75);
-      animation: floatUp linear infinite;
-      opacity:.0;
-    }
-
-    .wrap{
-      position:relative;
-      z-index:2;
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:28px;
-    }
-
-    .hero{
-      width:min(1180px, 100%);
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:26px;
-      align-items:center;
-    }
-
-    .left{
-      transform: translateY(26px);
-      opacity:0;
-      animation: riseIn .95s cubic-bezier(.2,.8,.2,1) .22s forwards;
-    }
-
-    .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 14px;
-      border-radius:999px;
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.12);
-      color:#d8e8ff;
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      font-weight:800;
-      backdrop-filter: blur(12px);
-      box-shadow:0 10px 30px rgba(0,0,0,.15);
-    }
-
-    h1{
-      margin:18px 0 12px;
-      font-size:clamp(42px, 8vw, 92px);
-      line-height:.95;
-      letter-spacing:-.055em;
-      max-width:720px;
-      text-shadow:0 10px 60px rgba(76,148,255,.20);
-    }
-    h1 .grad{
-      background:linear-gradient(135deg,#ffffff 0%, #e5f1ff 38%, #8fd1ff 72%, #4ea1ff 100%);
-      -webkit-background-clip:text;
-      background-clip:text;
-      color:transparent;
-    }
-    .lead{
-      margin:0;
-      max-width:720px;
-      font-size:18px;
-      line-height:1.8;
-      color:var(--muted);
-    }
-
-    .actions{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:24px;
-    }
-    .btn{
-      min-height:52px;
-      padding:0 20px;
-      border-radius:16px;
-      text-decoration:none;
-      font-weight:800;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      transition:.2s ease;
-      border:1px solid rgba(255,255,255,.14);
-      backdrop-filter: blur(14px);
-    }
-    .btn:hover{transform:translateY(-2px); box-shadow:0 16px 40px rgba(0,0,0,.22)}
-    .btn.primary{
-      color:white;
-      background:linear-gradient(135deg,#1d4ed8,#4ea1ff);
-      border:none;
-      box-shadow:0 12px 40px rgba(29,78,216,.28);
-    }
-    .btn.secondary{
-      color:#e8f2ff;
-      background:rgba(255,255,255,.05);
-    }
-
-    .meta{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:18px;
-    }
-    .chip{
-      padding:10px 14px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.1);
-      background:rgba(255,255,255,.04);
-      color:#d2e4ff;
-      font-size:13px;
-      font-weight:700;
-    }
-
-    .right{
-      display:flex;
-      justify-content:center;
-      transform: scale(.92);
-      opacity:0;
-      animation: zoomIn 1.1s cubic-bezier(.2,.8,.2,1) .08s forwards;
-    }
-
-    .logo-stage{
-      position:relative;
-      width:min(560px, 100%);
-      aspect-ratio:1.08/1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .ring, .ring2, .ring3{
-      position:absolute;
-      border-radius:50%;
-      border:1px solid rgba(117,185,255,.20);
-      filter: blur(.2px);
-    }
-    .ring{width:90%; height:90%; animation: spin 16s linear infinite}
-    .ring2{width:70%; height:70%; animation: spinReverse 12s linear infinite}
-    .ring3{width:108%; height:108%; border-style:dashed; opacity:.45; animation: spin 20s linear infinite}
-    .glow{
-      position:absolute;
-      width:72%;
-      height:72%;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(94,190,255,.36), rgba(59,130,246,.10) 42%, transparent 72%);
-      filter: blur(28px);
-      animation: pulse 6s ease-in-out infinite;
-    }
-    .logo-card{
-      position:relative;
-      width:min(520px, 86%);
-      padding:26px 28px;
-      border-radius:32px;
-      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:
-        0 30px 90px rgba(0,0,0,.35),
-        inset 0 1px 0 rgba(255,255,255,.10),
-        0 0 80px rgba(78,161,255,.12);
-      backdrop-filter: blur(18px);
-      overflow:hidden;
-    }
-    .logo-card::before{
-      content:"";
-      position:absolute;
-      inset:-20% auto auto -20%;
-      width:60%;
-      height:120%;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
-      transform:rotate(18deg);
-      animation: sweep 7s ease-in-out infinite;
-    }
-    .logo-card img{
-      position:relative;
-      z-index:2;
-      width:100%;
-      display:block;
-      object-fit:contain;
-      filter: drop-shadow(0 12px 30px rgba(68,153,255,.18));
-      animation: logoFloat 5s ease-in-out infinite;
-    }
-
-    .footer-note{
-      position:fixed;
-      left:28px;
-      right:28px;
-      bottom:22px;
-      z-index:2;
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      color:rgba(220,232,255,.62);
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      font-weight:800;
-    }
-
-    @keyframes riseIn{to{opacity:1; transform:translateY(0)}}
-    @keyframes zoomIn{to{opacity:1; transform:scale(1)}}
-    @keyframes pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
-    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes spinReverse{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
-    @keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-    @keyframes sweep{0%,100%{transform:translateX(-30%) rotate(18deg)}50%{transform:translateX(180%) rotate(18deg)}}
-    @keyframes noiseShift{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(-1.2%,1.2%,0)}100%{transform:translate3d(0,0,0)}}
-    @keyframes floatUp{
-      0%{transform:translateY(18vh) scale(.6); opacity:0}
-      12%{opacity:.9}
-      85%{opacity:.45}
-      100%{transform:translateY(-110vh) scale(1.15); opacity:0}
-    }
-
-    @media (max-width: 980px){
-      .hero{grid-template-columns:1fr; text-align:center}
-      .left{display:flex; flex-direction:column; align-items:center}
-      .lead{max-width:720px}
-      .actions,.meta{justify-content:center}
-      .footer-note{position:static; margin:14px 28px 18px; flex-direction:column; align-items:center}
-      .wrap{height:auto; min-height:100%}
-    }
+    @media (max-width:370px){.mobile-cardgrid{grid-template-columns:1fr}.mobile-card{min-height:110px}}
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Mark Media Event Solution","url":"https://markmediaevent.pl/","email":"marknet.biuro@gmail.com","telephone":"+48515168560","description":"Kompleksowa obsługa techniczna wydarzeń: LED, audio, światło, transmisje i realizacja wideo."}</script>
 </head>
 <body>
-  <div class="noise"></div>
-  <div class="grid"></div>
-  <div class="flare"></div>
-  <div class="vignette"></div>
-  <div class="particles" id="particles"></div>
-
-  <div class="wrap">
-    <section class="hero">
-      <div class="left">
-        <div class="eyebrow">Mark Media Event Solution </div>
-        <h1><span class="grad">Technologia eventowa</span><br>która robi efekt wow.</h1>
-        <p class="lead">
-          Ekrany LED, nagłośnienie, oświetlenie, streaming i kompleksowa realizacja wydarzeń.
-         
-        </p>
-
-        <div class="actions">
-          <a class="btn primary" href="/wrzutka">Wyślij materiały</a>
-          <a class="btn secondary" href="/live">Oglądaj live</a>
-          <a class="btn secondary" href="/app">Otwórz generator</a>
-          <a class="btn secondary" href="/login">Panel magazynu</a>
-        </div>
-
-        <div class="meta">
-          <div class="chip">LED · Audio · Light · Streaming</div>
-          <div class="chip">markmediaevent.pl</div>
-        </div>
-      </div>
-
-      <div class="right">
-        <div class="logo-stage">
-          <div class="ring3"></div>
-          <div class="ring"></div>
-          <div class="ring2"></div>
-          <div class="glow"></div>
-          <div class="logo-card">
-            <img src="logo.png" alt="Mark Media Event Solution">
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div class="footer-note">
-    <span>Event technology · visual impact · premium presentation</span>
-    <span>Mark Media Event Solution</span>
-  </div>
-
-  <script>
-    const particles = document.getElementById('particles');
-    const count = window.innerWidth < 900 ? 28 : 46;
-
-    for(let i = 0; i < count; i++){
-      const p = document.createElement('span');
-      p.className = 'particle';
-      const left = Math.random() * 100;
-      const delay = Math.random() * 12;
-      const duration = 10 + Math.random() * 16;
-      const size = 2 + Math.random() * 4;
-      p.style.left = left + 'vw';
-      p.style.bottom = (-10 - Math.random()*30) + 'vh';
-      p.style.width = size + 'px';
-      p.style.height = size + 'px';
-      p.style.animationDuration = duration + 's';
-      p.style.animationDelay = delay + 's';
-      p.style.opacity = String(0.25 + Math.random() * 0.45);
-      particles.appendChild(p);
-    }
-  </script>
-</body>
-</html>
+<a class="skip-link" href="#desktop-2" data-mobile="#o-nas">Przejdź do treści</a>
+<div id="page-progress" aria-hidden="true"></div>
+<button class="nav-toggle" id="menu-btn" aria-label="Otwórz menu" aria-expanded="false" aria-controls="nav-menu" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg> MENU
+</button>
+<nav id="nav-menu" class="nav-menu" hidden aria-label="Nawigacja serwisu">
+<a href="#desktop-1" data-mobile="#start">Strona główna</a>
+<a href="#desktop-6" data-mobile="#kontakt">Kontakt</a>
+<a href="/wrzutka">Wyślij materiały</a>
+<a href="/live">Oglądaj live</a>
+<a href="/app">Generator ofert</a>
+<a href="/login">Panel magazynu</a>
+<a href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20o%20ofert%C4%99%20Mark%20Media">Zapytaj o ofertę</a>
+</nav>
+<main>
+<div class="desktop-pages">
+<section class="sheet" id="desktop-1" aria-label="Strona 1: Emocje. Technologia. Realizacja.">
+  <img class="sheet__image" src="/assets/strona-01.webp" alt="Strona 1 prezentacji Mark Media: Emocje. Technologia. Realizacja.. Kompleksowa obsługa techniczna wydarzeń, LED, audio, światło, streaming i wideo." width="2105" height="1488" loading="eager" decoding="async" fetchpriority="high">
+</section>
+<section class="sheet" id="desktop-2" aria-label="Strona 2: Co robimy">
+  <img class="sheet__image" src="/assets/strona-02.webp" alt="Strona 2 prezentacji Mark Media: Co robimy. Jedna ekipa. Pełna obsługa techniczna. Ekrany LED, nagłośnienie, oświetlenie, wizja, streaming i infrastruktura." width="2105" height="1488" loading="lazy" decoding="async">
+</section>
+<section class="sheet" id="desktop-3" aria-label="Strona 3: Od koncepcji do transmisji">
+  <img class="sheet__image" src="/assets/strona-03.webp" alt="Strona 3 prezentacji Mark Media: Od koncepcji do transmisji. Projektowanie wydarzeń, prowadzenie realizacji, transmisje na żywo i materiały po wydarzeniu." width="2105" height="1488" loading="lazy" decoding="async">
+</section>
+<section class="sheet" id="desktop-4" aria-label="Strona 4: Różne formaty wydarzeń">
+  <img class="sheet__image" src="/assets/strona-04.webp" alt="Strona 4 prezentacji Mark Media: Różne formaty wydarzeń. Koncerty, festiwale, konferencje, wydarzenia plenerowe, sport i gale." width="2105" height="1488" loading="lazy" decoding="async">
+</section>
+<section class="sheet" id="desktop-5" aria-label="Strona 5: Przykładowe zakresy usług">
+  <img class="sheet__image" src="/assets/strona-05.webp" alt="Strona 5 prezentacji Mark Media: Przykładowe zakresy usług. Obsługa plenerów, konferencji i kongresów, streaming i wideo, grafika i ekrany LED." width="2105" height="1488" loading="lazy" decoding="async">
+</section>
+<section class="sheet contact-page" id="desktop-6" aria-label="Strona 6: Porozmawiajmy">
+  <img class="sheet__image" src="/assets/strona-06.webp" alt="Strona 6 prezentacji Mark Media: Porozmawiajmy. Kontakt: 515 168 560, marknet.biuro@gmail.com, markmediaevent.pl." width="2105" height="1488" loading="lazy" decoding="async">
+</section></div>
+<div class="mobile-pages">
+<section class="mobile-page" id="start">
+<div class="mobile-inner"><img class="mobile-logo" src="/assets/logo-mark-media.webp" width="520" height="320" alt="Mark Media Event Solution" loading="eager">
+<h1>EMOCJE.<br>TECHNOLOGIA.<br><span>REALIZACJA.</span></h1>
+<p>Kompleksowa technika eventowa, multimedia i produkcja wideo dla wydarzeń, które zostają w pamięci.</p>
+<div class="mobile-pills"><span>LED</span><span>AUDIO</span><span>LIGHT</span><span>LIVE</span><span>STREAMING</span></div>
+<div class="mobile-scroll"><b>↓</b> Przewiń, aby poznać naszą ofertę</div>
+</div></section>
+<section class="mobile-page" id="o-nas"><div class="mobile-inner">
+<p class="mobile-kicker">CO ROBIMY</p><h2>Jedna ekipa.<br><span>Pełna obsługa techniczna.</span></h2>
+<p>Łączymy obraz, dźwięk, światło i realizację transmisji w jeden spójny projekt.</p>
+<div class="mobile-cardgrid"><article class="mobile-card"><strong>EKRANY LED</strong><p>Horyzonty sceniczne, ekrany boczne, totemy, multimedia i treści dla widzów.</p></article><article class="mobile-card"><strong>NAGŁOŚNIENIE</strong><p>Czytelny głos, muzyka, nagłośnienie wydarzeń i obsługa realizatora dźwięku.</p></article><article class="mobile-card"><strong>OŚWIETLENIE</strong><p>Światło sceniczne, efektowne wejścia, dynamika i spójny klimat wydarzenia.</p></article><article class="mobile-card"><strong>REALIZACJA WIZJI</strong><p>Produkcje wielokamerowe, obraz na ekrany, reżyserka i obsługa kamer.</p></article><article class="mobile-card"><strong>STREAMING I NAGRANIA</strong><p>Transmisje na żywo, rejestracja wideo, grafika emisyjna i publikacja online.</p></article><article class="mobile-card"><strong>INFRASTRUKTURA</strong><p>Scena i konstrukcje, sygnały, komunikacja ekipy oraz internet mobilny.</p></article></div></div></section>
+<section class="mobile-page" id="produkcja"><div class="mobile-inner">
+<p class="mobile-kicker">OD KONCEPCJI DO TRANSMISJI</p><h2>Technologia, która <span>łączy cały event.</span></h2>
+<p>Od projektu sceny i materiałów po realizację na żywo: spójna obsługa obrazu, dźwięku, światła i transmisji.</p>
+<div class="mobile-steps">
+<div class="mobile-step"><em>01</em><div><strong>Koncepcja i przygotowanie</strong><p>Dobór technologii, scenografii oraz przygotowanie materiałów ekranowych.</p></div></div>
+<div class="mobile-step"><em>02</em><div><strong>Realizacja na żywo</strong><p>Ekrany LED, nagłośnienie, światło, wielokamera i reżyserka.</p></div></div>
+<div class="mobile-step"><em>03</em><div><strong>Transmisja i materiały</strong><p>Streaming, nagrania i treści do wykorzystania po wydarzeniu.</p></div></div>
+</div>
+<div class="stage-visual" aria-hidden="true"><i class="beam"></i><i class="beam"></i><i class="beam"></i><div class="screen">MARK MEDIA</div></div>
+</div></section>
+<section class="mobile-page" id="wydarzenia"><div class="mobile-inner">
+<p class="mobile-kicker">DLA RÓŻNYCH FORMATÓW WYDARZEŃ</p><h2>Od kameralnego spotkania <span>po wielką scenę.</span></h2>
+<p>Skalujemy zakres ekipy i technologii do charakteru imprezy, miejsca i oczekiwanego efektu.</p>
+<div class="mobile-cardgrid"><article class="mobile-card"><strong>KONCERTY I FESTIWALE</strong><p>Sceny, ekrany LED, nagłośnienie, oświetlenie i wielokamera.</p></article><article class="mobile-card"><strong>KONFERENCJE I DEBATY</strong><p>Mikrofony, prezentacje, realizacja obrazu i transmisja.</p></article><article class="mobile-card"><strong>WYDARZENIA PLENEROWE</strong><p>Scena, multimedia, strefy widowiskowe oraz obsługa techniczna.</p></article><article class="mobile-card"><strong>SPORT I GALE</strong><p>Prezentacje uczestników, grafika, ekrany, światło i streaming.</p></article></div></div></section>
+<section class="mobile-page" id="zakresy"><div class="mobile-inner">
+<p class="mobile-kicker">PRZYKŁADOWE ZAKRESY USŁUG</p><h2>Doświadczenie, które przekłada się <span>na realizację.</span></h2>
+<p>Elementy obsługi dobieramy indywidualnie do charakteru i skali wydarzenia.</p>
+<div class="mobile-steps">
+<div class="mobile-step"><em>01</em><div><strong>Scena i ekrany LED</strong><p>Scenografia, ekrany boczne, realizacja wielokamerowa i transmisje na żywo.</p></div></div>
+<div class="mobile-step"><em>02</em><div><strong>Wizja i transmisja</strong><p>Realizacja obrazu i dźwięku, grafika emisyjna oraz streaming.</p></div></div>
+<div class="mobile-step"><em>03</em><div><strong>Streaming i wideo</strong><p>Rejestracja obrazu i dźwięku, transmisje i kompleksowa obsługa techniczna.</p></div></div>
+<div class="mobile-step"><em>04</em><div><strong>Grafika i ekrany LED</strong><p>Prezentacje, animacje, plansze informacyjne i materiały dla ekranów.</p></div></div>
+</div></div></section>
+<section class="mobile-page" id="kontakt"><div class="mobile-inner">
+<img class="mobile-logo" src="/assets/logo-mark-media.webp" alt="Mark Media Event Solution" width="520" height="320" loading="lazy">
+<p class="mobile-kicker">POROZMAWIAJMY</p><h2>Twoje wydarzenie.<br><span>Nasza realizacja.</span></h2>
+<p>Przedstaw termin, lokalizację i charakter wydarzenia. Przygotujemy koncepcję techniczną oraz indywidualny zakres obsługi.</p>
+<div class="mobile-contact"><a class="primary" href="tel:+48515168560">Zadzwoń: 515 168 560</a><a href="mailto:marknet.biuro@gmail.com">marknet.biuro@gmail.com</a><a href="https://markmediaevent.pl">markmediaevent.pl</a></div>
+<div class="mobile-bottom-links"><a href="/wrzutka">Wyślij materiały</a><a href="/live">Oglądaj live</a><a href="/app">Generator ofert</a><a href="/login">Panel magazynu</a></div>
+</div></section>
+</div>
+</main>
+<nav class="page-dots" aria-label="Przejdź do strony prezentacji">
+  <a href="#desktop-1" class="active" aria-label="Strona 1: Wprowadzenie"></a>
+  <a href="#desktop-2" aria-label="Strona 2: Nasze usługi"></a>
+  <a href="#desktop-3" aria-label="Strona 3: Produkcja"></a>
+  <a href="#desktop-4" aria-label="Strona 4: Rodzaje wydarzeń"></a>
+  <a href="#desktop-5" aria-label="Strona 5: Przykładowe zakresy"></a>
+  <a href="#desktop-6" aria-label="Strona 6: Kontakt"></a>
+</nav>
+<div class="page-counter" aria-live="polite"><span id="counter">01 / 06</span></div>
+<script>
+(function(){
+  const menuButton=document.getElementById('menu-btn');
+  const menu=document.getElementById('nav-menu');
+  function toggleMenu(open){menu.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));menuButton.setAttribute('aria-label',open?'Zamknij menu':'Otwórz menu')}
+  menuButton.addEventListener('click',()=>toggleMenu(menu.hidden));
+  document.addEventListener('click',e=>{if(!menu.hidden&&!menu.contains(e.target)&&!menuButton.contains(e.target))toggleMenu(false)});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleMenu(false)});
+  menu.addEventListener('click',e=>{if(e.target.closest('a'))toggleMenu(false)});
+  document.querySelectorAll('a[data-mobile]').forEach(a=>a.addEventListener('click',e=>{
+    const hash=innerWidth<=760?a.dataset.mobile:a.getAttribute('href');
+    const target=document.querySelector(hash);if(target){e.preventDefault();target.scrollIntoView({behavior:'smooth'});}
+  }));
+  const sheets=[...document.querySelectorAll('.sheet')];const dots=[...document.querySelectorAll('.page-dots a')];
+  const counter=document.getElementById('counter'),bar=document.getElementById('page-progress');
+  function track(){
+    let n=0,mid=innerHeight/2,dist=Infinity;
+    for(let i=0;i<sheets.length;i++){const rect=sheets[i].getBoundingClientRect();const d=Math.abs((rect.top+rect.bottom)/2-mid);if(d<dist){dist=d;n=i}}
+    if(innerWidth>760){counter.textContent=String(n+1).padStart(2,'0')+' / 06';dots.forEach((x,i)=>{x.classList.toggle('active',i===n);i===n?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current')})}
+    const doc=document.documentElement;let max=doc.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,Math.max(0,scrollY/max*100)):0)+'%';
+  }
+  let pending=false;
+  window.addEventListener('scroll',()=>{if(!pending){requestAnimationFrame(()=>{track();pending=false});pending=true}},{passive:true});
+  window.addEventListener('resize',track,{passive:true});track();
+})();
+</script>
+</body></html>
