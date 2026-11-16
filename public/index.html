@@ -1,209 +1,244 @@
 <!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#080e1b">
-  <meta name="description" content="Mark Media Event Solution – kompleksowa obsługa techniczna koncertów, festiwali, konferencji i wydarzeń. Ekrany LED, nagłośnienie, oświetlenie, streaming oraz realizacja wideo.">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://markmediaevent.pl/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Mark Media Event Solution">
-  <meta property="og:title" content="Mark Media Event Solution | Technologia wydarzeń">
-  <meta property="og:description" content="Emocje. Technologia. Realizacja. Ekrany LED, audio, światło i streaming.">
-  <meta property="og:image" content="https://markmediaevent.pl//assets/strona-01.webp">
-  <link rel="icon" type="image/webp" href="/assets/logo-mark-media.webp">
-  <link rel="preload" as="image" href="/assets/strona-01.webp" fetchpriority="high">
-  <title>Mark Media Event Solution | Emocje. Technologia. Realizacja.</title>
-  <style>
-    :root{--navy:#080f1d;--bg:#070e1b;--panel:#101d32;--line:rgba(123,171,237,.24);--text:#f3f7ff;--muted:#a7b9d2;--blue:#49b5fa;--bright:#3679ff}
-    *,*::before,*::after{box-sizing:border-box}
-    html{scroll-behavior:smooth;scroll-snap-type:y proximity}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;overflow-x:hidden}
-    a{color:inherit}
-    button{font:inherit}
-    .skip-link{position:fixed;z-index:100;top:-100px;left:12px;padding:10px 14px;background:white;color:#030813;border-radius:8px}
-    .skip-link:focus{top:12px}
-    #page-progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:60;background:linear-gradient(90deg,#276dff,#63c9ff);transition:width .2s ease;pointer-events:none}
-    .sheet{height:100svh;min-height:420px;width:100%;scroll-snap-align:start;display:flex;justify-content:center;align-items:center;background:radial-gradient(circle at 50% 50%,#111d32 0%,#070e1b 85%);position:relative}
-    .sheet:nth-child(even){background:radial-gradient(circle at 50% 45%,#172238 0%,#070d1b 85%)}
-    .sheet__image{height:100%;width:100%;max-width:calc(100svh * 1.41421);object-fit:contain;display:block;box-shadow:0 0 100px rgba(0,0,0,.32);user-select:none;-webkit-user-drag:none}
-    .sheet__screen-reader{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
-    .sheet.contact-page .click-contact{position:absolute;display:block;z-index:2;opacity:0;outline-offset:4px}
-    .contact-page .click-contact:focus-visible{opacity:1;outline:2px solid #fff;border-radius:5px}
-    .page-dots{position:fixed;right:clamp(8px,1.6vw,30px);top:50%;transform:translateY(-50%);z-index:40;display:flex;flex-direction:column;gap:15px;align-items:center;padding:11px 7px;border-radius:28px;background:rgba(5,13,26,.46);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(13px)}
-    .page-dots a{display:block;width:8px;height:8px;flex:none;border-radius:50%;background:#6c7d9b;border:0;transition:transform .2s,background .2s}
-    .page-dots a.active,.page-dots a:hover{transform:scale(1.5);background:#5dc3ff}
-    .page-dots a:focus-visible{outline:2px solid white;outline-offset:5px}
-    .page-counter{position:fixed;bottom:15px;right:19px;z-index:45;font-size:11px;letter-spacing:.2em;font-weight:800;color:rgba(210,225,245,.75);background:rgba(0,0,0,.35);padding:10px 13px;border-radius:7px;backdrop-filter:blur(10px)}
-    .nav-toggle{position:fixed;top:18px;right:18px;z-index:55;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(5,12,26,.66);backdrop-filter:blur(14px);color:#fff;padding:11px 16px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 5px 20px rgba(0,0,0,.25)}
-    .nav-toggle:hover,.nav-toggle:focus-visible{border-color:#5dc3ff}
-    .nav-toggle svg{width:18px;height:18px}
-    .nav-menu{position:fixed;top:68px;right:18px;z-index:55;min-width:225px;max-width:min(86vw,330px);padding:10px;border:1px solid rgba(155,191,249,.26);border-radius:14px;background:rgba(7,15,29,.96);box-shadow:0 20px 50px rgba(0,0,0,.55);backdrop-filter:blur(20px)}
-    .nav-menu[hidden]{display:none}
-    .nav-menu a{display:block;padding:12px 13px;text-decoration:none;color:#eaf2fc;font-size:14px;font-weight:650;border-radius:8px}
-    .nav-menu a:hover,.nav-menu a:focus-visible{background:#1b3553}
-    .mobile-pages{display:none}
-    @media (max-width:760px){
-      html{scroll-snap-type:none}
-      .desktop-pages{display:none}
-      .mobile-pages{display:block}
-      .mobile-page{min-height:100svh;padding:72px clamp(20px,6vw,36px) 58px;position:relative;overflow:hidden;scroll-snap-align:start;background:radial-gradient(circle at 85% 4%,rgba(30,94,187,.22),transparent 38%),linear-gradient(160deg,#080e19,#101e36 80%,#0a1324);border-bottom:1px solid rgba(255,255,255,.08)}
-      .mobile-page::before{content:"";position:absolute;right:-80px;top:70px;width:220px;height:220px;border:1px solid rgba(49,143,248,.16);border-radius:50%;pointer-events:none}
-      .mobile-page::after{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:linear-gradient(180deg,#2976ff,#42bfff,transparent)}
-      .mobile-inner{max-width:550px;margin:0 auto;position:relative;z-index:1}
-      .mobile-logo{display:block;width:min(240px,68vw);height:auto;margin:8px auto 44px}
-      .mobile-kicker{font-size:11px;letter-spacing:.24em;color:#65c6ff;text-transform:uppercase;font-weight:800;margin:0 0 20px}
-      .mobile-page h1,.mobile-page h2{font-size:clamp(36px,10vw,56px);line-height:1.07;letter-spacing:-.05em;margin:0 0 20px;font-weight:850}
-      .mobile-page h1 span,.mobile-page h2 span{color:#4cbfff}
-      .mobile-page p{line-height:1.65;font-size:16px;color:var(--muted)}
-      .mobile-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:27px}
-      .mobile-pills span{font-size:10px;color:#91d2ff;letter-spacing:.09em;font-weight:800;border:1px solid var(--line);background:#182b45;border-radius:7px;padding:9px 11px}
-      .mobile-scroll{display:flex;align-items:center;gap:10px;margin-top:54px;font-size:12px;color:#9dcdf2;letter-spacing:.09em;text-transform:uppercase}
-      .mobile-scroll b{font-size:23px;font-weight:400;line-height:1}
-      .mobile-cardgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
-      .mobile-card{background:linear-gradient(145deg,rgba(46,79,127,.42),rgba(8,19,37,.9));border:1px solid rgba(101,168,241,.2);border-radius:12px;padding:18px 15px;min-height:160px}
-      .mobile-card strong{display:block;color:#f3f8ff;font-size:13px;line-height:1.3;margin-bottom:10px;letter-spacing:.02em}
-      .mobile-card p{font-size:12px;line-height:1.5;margin:0}
-      .mobile-steps{display:grid;gap:12px;margin:32px 0}
-      .mobile-step{display:grid;grid-template-columns:50px 1fr;gap:9px;align-items:start;padding:13px 0;border-bottom:1px solid var(--line)}
-      .mobile-step em{font-size:30px;font-weight:800;font-style:normal;color:#4db4ff}
-      .mobile-step strong{display:block;font-size:15px;margin-bottom:8px}
-      .mobile-step p{margin:0;font-size:13px}
-      .stage-visual{height:180px;margin:32px 0 20px;position:relative;border-radius:14px;background:radial-gradient(ellipse at 50% 0,rgba(35,95,190,.34),transparent 76%),#0b182e;border:1px solid var(--line);overflow:hidden}
-      .stage-visual::before{content:"";position:absolute;left:15%;right:15%;bottom:30px;height:80px;background:linear-gradient(160deg,#215ca3,#142b51);border:2px solid #3d96f4;box-shadow:0 0 25px rgba(48,144,255,.3)}
-      .stage-visual::after{content:"";position:absolute;left:7%;right:7%;bottom:15px;height:12px;background:#1b3353;transform:skew(-25deg)}
-      .stage-visual .beam{position:absolute;top:-10px;width:2px;height:140px;background:linear-gradient(#4ab9ff,transparent);transform-origin:top;filter:drop-shadow(0 0 8px #45b3ff)}
-      .stage-visual .beam:nth-child(1){left:23%;transform:rotate(-24deg)}
-      .stage-visual .beam:nth-child(2){left:50%;transform:rotate(0)}
-      .stage-visual .beam:nth-child(3){left:76%;transform:rotate(24deg)}
-      .stage-visual .screen{position:absolute;width:54%;height:60px;left:23%;bottom:48px;background:linear-gradient(135deg,#123866,#3686eb);border:2px solid #72bfff;display:grid;place-items:center;font-size:12px;letter-spacing:.15em;font-weight:800}
-      .mobile-contact{display:grid;gap:12px;margin-top:28px}
-      .mobile-contact a{display:block;text-decoration:none;padding:16px 18px;background:#152a48;border:1px solid #36669b;border-radius:10px;font-weight:800;overflow-wrap:anywhere}
-      .mobile-contact a.primary{background:linear-gradient(135deg,#2866e2,#42b5ef);color:white}
-      .mobile-bottom-links{margin-top:38px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
-      .mobile-bottom-links a{font-size:12px;text-decoration:none;padding:10px;border:1px solid #38577d;border-radius:8px;text-align:center;color:#b8d7ef}
-      .page-dots,.page-counter{display:none}
-      .nav-toggle{top:12px;right:12px;padding:10px 12px}
-      .nav-menu{top:58px;right:12px}
-    }
-    @media (max-width:370px){.mobile-cardgrid{grid-template-columns:1fr}.mobile-card{min-height:110px}}
-    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
-  </style>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Mark Media Event Solution","url":"https://markmediaevent.pl/","email":"marknet.biuro@gmail.com","telephone":"+48515168560","description":"Kompleksowa obsługa techniczna wydarzeń: LED, audio, światło, transmisje i realizacja wideo."}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070d18">
+<meta name="description" content="Mark Media Event Solution – kompleksowa technika wydarzeń. Ekrany LED, nagłośnienie, oświetlenie, realizacja wideo, streaming i obsługa eventów.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://markmediaevent.pl/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mark Media Event Solution | Emocje. Technologia. Realizacja.">
+<meta property="og:description" content="Kompleksowa obsługa techniczna koncertów, konferencji, festiwali, gal i wydarzeń plenerowych.">
+<link rel="icon" type="image/webp" href="/assets/logo-mark-media.webp">
+<link rel="preload" href="/assets/logo-mark-media.webp" as="image" fetchpriority="high">
+<title>Mark Media Event Solution – Emocje. Technologia. Realizacja.</title>
+<style>
+:root{color-scheme:dark;--bg:#070d18;--ice:#f4f7ff;--muted:#a8bdd7;--accent:#55c8fa;--blue:#2e72ff;--line:rgba(139,184,242,.16);--shell:min(1200px,calc(100% - 78px))}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-width:320px;color:var(--ice);background:#070d18;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}img{max-width:100%}button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid #8cddff;outline-offset:4px}
+::selection{background:#246ef7;color:white}
+.skip{position:fixed;z-index:200;top:-80px;left:12px;background:white;color:#081325;padding:12px;border-radius:8px}.skip:focus{top:12px}
+.progress{position:fixed;z-index:98;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,#2364ff,#77e2ff);box-shadow:0 0 18px #3a9bff}
+.intro{position:fixed;z-index:150;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,#13294b 0%,#081526 48%,#040811 100%);pointer-events:none;animation:intro-exit .7s 1.2s cubic-bezier(.45,.1,.25,1) forwards}
+.intro:before{content:"";position:absolute;width:min(75vw,610px);aspect-ratio:1;border-radius:50%;border:1px solid rgba(80,165,255,.15);box-shadow:0 0 0 60px rgba(80,165,255,.023),0 0 0 120px rgba(80,165,255,.01);animation:intro-circle 1.8s both}
+.intro-inside{position:relative;width:min(420px,72vw);text-align:center;animation:intro-in .8s both}
+.intro-inside img{width:100%;height:auto;max-height:230px;object-fit:contain;filter:drop-shadow(0 20px 44px rgba(37,134,255,.22))}
+.intro-caption{display:block;letter-spacing:.31em;color:#c4dbf6;font-size:10px;font-weight:850;margin:10px 0 23px}
+.intro-bar{height:2px;background:rgba(134,198,255,.17);overflow:hidden}.intro-bar:after{display:block;content:"";height:100%;background:linear-gradient(90deg,#2262ed,#7bdcff);transform-origin:left;animation:bar-fill 1.35s forwards}
+.header{position:fixed;top:0;left:0;right:0;z-index:100;background:linear-gradient(180deg,rgba(4,9,17,.85),transparent);transition:background .3s,border .3s;border-bottom:1px solid transparent}
+.header.is-scrolled{background:rgba(6,13,25,.86);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-color:var(--line)}
+.header-inner{height:84px;width:var(--shell);margin:auto;display:flex;align-items:center;gap:30px}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand img{width:79px;height:53px;object-fit:contain}
+.brand-title{display:block;font-weight:950;letter-spacing:.07em;font-size:17px;line-height:1}.brand-title b{color:var(--accent)}
+.brand-sub{font-size:8px;display:block;margin-top:6px;letter-spacing:.27em;font-weight:850;color:#8398b4}
+.nav{display:flex;align-items:center;gap:24px;margin-left:auto}
+.nav a{font-size:12px;font-weight:700;color:#b9cae0;transition:color .2s}.nav a:hover,.nav a.active{color:#fff}
+.nav-cta{padding:13px 17px;border-radius:11px;color:#fff;background:linear-gradient(115deg,#2267ee,#229de7);font-size:12px;font-weight:850;white-space:nowrap}
+.nav-cta:hover,.btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.menu-button{display:none;margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:white;width:45px;height:44px;align-items:center;justify-content:center;font-size:23px}
+.mobile-nav[hidden]{display:none!important}
+.mobile-nav{display:none}
+main{overflow:hidden;background:radial-gradient(ellipse 75% 700px at 90% 9%,rgba(20,107,237,.12),transparent),radial-gradient(ellipse 70% 750px at -18% 43%,rgba(22,126,235,.11),transparent),radial-gradient(ellipse 65% 700px at 109% 80%,rgba(33,96,220,.12),transparent),linear-gradient(180deg,#050a13 0%,#0a182b 34%,#091627 58%,#071120 82%,#060b14 100%)}
+.shell{width:var(--shell);margin:auto}
+.hero{min-height:100svh;min-height:max(700px,100svh);padding:130px 0 105px;display:flex;align-items:center;position:relative}
+.hero:before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(80,144,232,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(80,144,232,.045) 1px,transparent 1px);background-size:70px 70px;mask-image:linear-gradient(90deg,transparent 22%,#000);-webkit-mask-image:linear-gradient(90deg,transparent 22%,#000)}
+.hero:after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:200px;pointer-events:none;background:linear-gradient(0deg,#091627,transparent)}
+.hero-layout{width:var(--shell);margin:auto;position:relative;z-index:2;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:36px}
+.eyebrow{font-size:11px;font-weight:850;letter-spacing:.22em;color:#82ceff;text-transform:uppercase;display:inline-flex;gap:12px;align-items:center}
+.eyebrow:before{content:"";height:2px;width:29px;background:linear-gradient(90deg,#2766f5,#69d6ff)}
+.hero .eyebrow{animation:rise .7s .75s both}
+h1,h2,h3,p{overflow-wrap:break-word}
+.hero h1{font-size:clamp(54px,5.9vw,92px);font-weight:950;line-height:1.01;letter-spacing:-.07em;margin:25px 0 24px}
+.hero h1 span{display:block;animation:rise .8s both}
+.hero h1 span:nth-child(1){animation-delay:.84s}.hero h1 span:nth-child(2){animation-delay:.96s}
+.hero h1 span:nth-child(3){animation-delay:1.08s;color:#5acbff;background:linear-gradient(105deg,#b3f0ff,#54c6fe 55%,#4d8aff);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-copy>p{color:#b6c8df;font-size:clamp(15px,1.4vw,18px);line-height:1.75;max-width:590px;margin:0 0 25px;animation:rise .8s 1.18s both}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;animation:rise .7s 1.3s both}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 22px;border-radius:12px;font-size:13px;font-weight:850;transition:transform .25s,filter .25s;background:rgba(255,255,255,.04);border:1px solid rgba(156,196,251,.22)}
+.btn.primary{background:linear-gradient(120deg,#2769f8,#30adf5);border-color:transparent;box-shadow:0 13px 35px rgba(31,105,246,.25)}
+.hero-tags{display:flex;flex-wrap:wrap;gap:17px;margin-top:31px;font-size:10px;letter-spacing:.12em;color:#8fa3c0;font-weight:850;animation:rise .8s 1.42s both}
+.hero-tags span:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#42bafa;margin-right:8px;box-shadow:0 0 10px #42bafa}
+.illustration{position:relative;width:min(100%,540px);aspect-ratio:1/1;margin-left:auto;animation:scene-in 1.25s .85s both}
+.illustration:before{content:"";position:absolute;inset:4%;border-radius:50%;background:radial-gradient(circle,rgba(37,125,237,.23),rgba(15,65,140,.09) 50%,transparent 68%);filter:blur(30px);animation:breathe 7s infinite}
+.orbit{position:absolute;inset:4%;border:1px solid rgba(98,172,255,.15);border-radius:50%;animation:rotate 27s linear infinite}.orbit:after{content:"";position:absolute;top:16%;left:15%;width:8px;height:8px;border-radius:50%;background:#6cd4ff;box-shadow:0 0 26px #5bbfff}
+.orbit.inner{inset:14%;border-style:dashed;opacity:.52;animation-duration:38s;animation-direction:reverse}
+.truss{position:absolute;top:22%;left:4%;right:4%;height:33px;border-top:2px solid rgba(144,189,247,.55);border-bottom:2px solid rgba(144,189,247,.35);background:repeating-linear-gradient(120deg,transparent 0 17px,rgba(146,199,255,.3) 18px 20px,transparent 21px 40px),repeating-linear-gradient(60deg,transparent 0 17px,rgba(146,199,255,.24) 18px 20px,transparent 21px 40px)}
+.beam{position:absolute;top:25%;width:37%;height:62%;background:linear-gradient(180deg,rgba(72,178,255,.28),transparent);clip-path:polygon(49% 0,51% 0,100% 100%,0 100%);filter:blur(5px);transform-origin:50% 0;animation:sway 8s ease-in-out infinite}.beam.left{left:0}.beam.right{right:0;animation-delay:-3s;background:linear-gradient(180deg,rgba(66,141,255,.30),transparent)}
+.lamp{position:absolute;z-index:2;top:24%;width:18px;height:18px;background:#d8f5ff;border-radius:50%;box-shadow:0 0 8px #fff,0 0 35px #55bdff,0 0 75px #2d75fa}.lamp.left{left:22%}.lamp.right{right:24%}
+.led{position:absolute;z-index:2;top:35%;left:15%;width:70%;height:36%;border:7px solid #234872;border-top-color:#4d82c7;border-left-color:#3471ae;border-radius:4px;background:radial-gradient(ellipse at center,#17457b,#091c38 64%,#07152c);box-shadow:0 0 0 1px rgba(137,201,255,.3),0 0 60px rgba(30,112,242,.25),inset 0 0 40px rgba(39,125,241,.18);display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
+.led:before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(132,215,255,.3) .7px,transparent 1.5px);background-size:7px 7px}
+.led:after{content:"";position:absolute;top:-25%;left:-80%;height:160%;width:30%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,rgba(155,225,255,.18),transparent);animation:sweep 6s ease-in-out infinite}
+.led-title,.led-sub{position:relative;z-index:2}.led-title{font-weight:950;font-size:clamp(15px,2vw,28px);letter-spacing:.08em}.led-title b{color:#56c7ff}.led-sub{margin-top:13px;font-size:9px;font-weight:900;letter-spacing:.24em;color:#9cccf0}
+.stage{position:absolute;top:71%;left:8%;right:8%;height:20%;background:linear-gradient(#1b3d62,#0a182c);clip-path:polygon(11% 0,89% 0,100% 92%,0 92%);border-top:2px solid #3a98ff;filter:drop-shadow(0 24px 18px rgba(0,0,0,.5))}
+.illustration-caption{position:absolute;bottom:6%;right:0;z-index:3;padding:14px 17px;background:rgba(11,29,56,.88);border:1px solid rgba(100,185,255,.28);border-radius:13px;box-shadow:0 22px 40px rgba(0,0,0,.25);font-size:9px;letter-spacing:.14em;color:#8dc8f8;font-weight:800;animation:bob 5s ease-in-out infinite}
+.illustration-caption b{display:block;color:white;letter-spacing:.07em;font-size:13px;margin-top:6px}
+.scroll-cue{position:absolute;bottom:35px;left:50%;z-index:3;transform:translateX(-50%);display:flex;align-items:center;gap:10px;color:#8ca1bb;white-space:nowrap;letter-spacing:.19em;font-weight:850;font-size:10px;animation:rise 1s 1.7s both}
+.mouse{width:20px;height:32px;border:1px solid #668bb5;border-radius:13px;display:inline-flex;align-items:flex-start;justify-content:center;padding-top:7px}
+.mouse:after{content:"";width:3px;height:7px;border-radius:2px;background:#68d1ff;animation:wheel 1.7s infinite}
+.ticker{overflow:hidden;white-space:nowrap;color:rgba(172,203,237,.35);font-size:clamp(17px,2.3vw,26px);font-weight:900;letter-spacing:.17em;mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);padding:22px 0}
+.ticker>div{display:flex;width:max-content;animation:ticker 34s linear infinite}.ticker span{padding-right:50px}.ticker b{font-size:13px;padding:0 24px;color:#3384c2}
+.section{position:relative;padding:125px 0}
+.section h2{font-size:clamp(37px,4.8vw,65px);line-height:1.08;letter-spacing:-.055em;font-weight:950;margin:18px 0 25px}
+.section h2 em,.contact h2 em{font-style:normal;color:#63caff;background:linear-gradient(105deg,#9eeaff,#58bdff,#4b86ff);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.section-intro{font-size:16px;line-height:1.88;color:#aabfd7;margin:0;max-width:665px}
+.services{padding-top:110px}
+.service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;margin-top:55px}
+.service{padding:29px 28px 30px;min-height:245px;display:flex;flex-direction:column;position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(120,170,235,.16);background:linear-gradient(145deg,rgba(24,46,73,.75),rgba(9,23,42,.55));transition:transform .3s,border-color .3s,box-shadow .3s}
+.service:hover{transform:translateY(-5px);border-color:rgba(89,176,255,.44);box-shadow:0 25px 50px rgba(0,0,0,.17)}
+.service:before{content:"";position:absolute;right:-100px;top:-100px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(50,145,242,.17),transparent 70%);pointer-events:none}
+.icon{display:grid;place-items:center;position:relative;height:48px;width:48px;border-radius:12px;color:#77d7ff;background:rgba(43,123,236,.13);border:1px solid rgba(75,165,255,.23);font-size:29px;font-weight:500}
+.service h3{font-size:19px;letter-spacing:-.025em;margin:auto 0 10px;padding-top:30px;font-weight:850}
+.service p{margin:0;color:#a0b5cf;line-height:1.75;font-size:13px}
+.story{padding:150px 0 120px}
+.story-grid{display:grid;grid-template-columns:.94fr 1.06fr;gap:clamp(45px,8vw,110px)}
+.story-copy{position:sticky;top:140px;align-self:start}
+.story-aside{display:flex;gap:17px;align-items:center;border-top:1px solid var(--line);padding-top:22px;margin-top:30px;color:#b8c9df;font-size:14px;line-height:1.7}
+.story-aside strong{font-size:38px;font-weight:950;color:#65c6ff}
+.timeline{display:grid;gap:16px;position:relative}
+.timeline:before{content:"";position:absolute;top:40px;bottom:40px;left:29px;width:1px;background:linear-gradient(180deg,#3d98ff,transparent)}
+.step{position:relative;padding:28px 30px 30px 81px;border-radius:19px;border:1px solid rgba(126,175,226,.15);background:linear-gradient(140deg,rgba(23,47,78,.62),rgba(12,28,45,.35))}
+.step-number{position:absolute;top:23px;left:12px;width:35px;height:35px;display:grid;place-items:center;border-radius:10px;color:#8bd5ff;border:1px solid rgba(103,169,246,.3);background:#142c4b;font-size:12px;font-weight:900;z-index:1}
+.step h3{font-size:22px;letter-spacing:-.03em;margin:0 0 10px}
+.step p{color:#a9bdd3;font-size:14px;line-height:1.8;margin:0}
+.formats{padding-top:105px}
+.formats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin-top:48px}
+.format{min-height:235px;position:relative;overflow:hidden;padding:30px 33px;border-radius:22px;border:1px solid rgba(131,180,236,.15);background:radial-gradient(ellipse at 94% -12%,rgba(38,129,248,.2),transparent 62%),linear-gradient(140deg,#142844,#0b192d);display:flex;flex-direction:column;justify-content:flex-end;transition:transform .3s,border-color .3s}
+.format:nth-child(2){background:radial-gradient(ellipse at 94% -12%,rgba(23,174,221,.18),transparent 62%),linear-gradient(140deg,#14283f,#0b1a2d)}
+.format:nth-child(3){background:radial-gradient(ellipse at 94% -12%,rgba(74,103,250,.17),transparent 62%),linear-gradient(140deg,#122543,#0b192c)}
+.format:hover{transform:translateY(-4px);border-color:rgba(112,196,255,.48)}
+.format:before{content:"";position:absolute;width:200px;height:200px;right:-75px;top:-85px;border:1px solid rgba(119,201,253,.15);border-radius:50%;box-shadow:0 0 0 30px rgba(119,201,253,.024),0 0 0 63px rgba(119,201,253,.013)}
+.format small{position:absolute;top:29px;left:33px;color:#79c7ff;font-size:10px;letter-spacing:.16em;font-weight:850}
+.format h3{font-size:clamp(22px,2.3vw,29px);margin:0 0 11px;letter-spacing:-.04em}
+.format p{font-size:14px;line-height:1.75;color:#afc2d9;margin:0;max-width:440px}
+.formats-foot{color:#9bafc9;font-size:14px;line-height:1.7;margin:30px 0 0}
+.contact{padding:155px 0 135px}
+.contact-card{position:relative;overflow:hidden;padding:clamp(38px,6vw,80px);border-radius:31px;border:1px solid rgba(105,184,253,.28);background:radial-gradient(ellipse at 95% 0,rgba(42,122,250,.25),transparent 56%),linear-gradient(125deg,#142a49,#111f36 65%,#0b1c32);box-shadow:0 35px 100px rgba(0,0,0,.17)}
+.contact-card:after{position:absolute;content:"";top:-140px;right:-135px;width:470px;height:470px;border-radius:50%;border:1px solid rgba(123,198,255,.15);box-shadow:0 0 0 60px rgba(123,198,255,.026),0 0 0 115px rgba(123,198,255,.012);pointer-events:none}
+.contact-card>div,.contact-card>h2,.contact-card>p{position:relative;z-index:1}
+.contact h2{font-size:clamp(38px,5.2vw,70px);letter-spacing:-.055em;line-height:1.05;font-weight:950;margin:22px 0}
+.contact p{max-width:590px;color:#bdd0e4;line-height:1.84;font-size:16px}
+.contact-buttons{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.contact-links{display:flex;gap:23px;flex-wrap:wrap;margin-top:31px;color:#b6c9e0;font-size:13px}.contact-links a:hover{color:white}
+.footer{border-top:1px solid rgba(137,183,240,.12);padding:36px 0 45px;background:#050b14}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:25px;flex-wrap:wrap}
+.footer-title{font-size:15px;font-weight:950;letter-spacing:.09em}.footer-title b{color:#51c3ff}
+.footer-sub{font-size:10px;color:#7e92ac;letter-spacing:.13em;margin-top:6px}
+.footer nav{display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#a7b9d2}.footer nav a:hover{color:#fff}
+.footer-copy{font-size:11px;color:#788ba2}
+html.js .reveal{opacity:0;transform:translateY(34px);filter:blur(4px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.68,.15,1),filter .8s ease;transition-delay:var(--delay,0s)}
+html.js .reveal.visible{opacity:1;transform:none;filter:blur(0)}
+@keyframes intro-in{from{opacity:0;transform:scale(.93) translateY(12px)}to{opacity:1;transform:none}}
+@keyframes intro-circle{from{opacity:0;transform:scale(.65)}to{opacity:1;transform:scale(1.06)}}
+@keyframes intro-exit{to{opacity:0;visibility:hidden}}
+@keyframes bar-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes rise{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:none}}
+@keyframes scene-in{from{opacity:0;transform:translateY(30px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes rotate{to{transform:rotate(360deg)}}
+@keyframes breathe{50%{transform:scale(1.12)}}
+@keyframes sweep{5%,15%{left:-80%}58%,100%{left:140%}}
+@keyframes sway{50%{transform:rotate(9deg)}}
+@keyframes bob{50%{transform:translateY(-10px)}}
+@keyframes wheel{0%{opacity:0;transform:translateY(0)}30%{opacity:1}85%,100%{opacity:0;transform:translateY(11px)}}
+@keyframes ticker{to{transform:translateX(-50%)}}
+@media(max-width:1140px){:root{--shell:calc(100% - 58px)}.nav{gap:15px}.nav a{font-size:11px}.hero h1{font-size:clamp(48px,5.7vw,74px)}}
+@media(max-width:980px){.nav,.nav-cta{display:none}.menu-button{display:flex}.header-inner{height:76px}.mobile-nav:not([hidden]){display:grid;position:absolute;top:76px;left:20px;right:20px;z-index:105;padding:10px;border-radius:16px;background:rgba(10,24,43,.97);border:1px solid rgba(117,190,255,.23);box-shadow:0 20px 60px rgba(0,0,0,.4);backdrop-filter:blur(18px)}.mobile-nav a{padding:13px 15px;border-radius:9px;font-size:14px;color:#e7f3ff}.mobile-nav a:hover{background:rgba(83,163,255,.11)}.hero-layout{gap:12px}.hero h1{font-size:clamp(48px,6vw,69px)}.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.story-grid{gap:40px}}
+@media(max-width:740px){:root{--shell:calc(100% - 40px)}.header-inner{height:70px}.mobile-nav:not([hidden]){top:70px}.brand img{width:69px;height:47px}.brand-title{font-size:14px}.brand-sub{font-size:7px}.hero{min-height:810px;padding:113px 0 78px;align-items:flex-start}.hero-layout{display:flex;flex-direction:column;align-items:stretch;gap:0}.hero h1{font-size:clamp(44px,11.6vw,70px);margin:22px 0 18px}.hero-copy>p{max-width:580px;line-height:1.65;margin-bottom:21px}.illustration{margin:12px auto 0;width:min(405px,100%);aspect-ratio:1.1/.84;min-height:310px}.truss{top:17%}.lamp{top:19%}.beam{top:21%}.led{top:28%;height:39%}.stage{top:67%}.illustration-caption{bottom:1%}.scroll-cue{bottom:23px;font-size:9px}.section{padding:88px 0}.service-grid{margin-top:37px;gap:12px}.service{padding:23px;min-height:235px}.story{padding:92px 0}.story-grid{grid-template-columns:1fr}.story-copy{position:static}.formats-grid{margin-top:35px;gap:13px}.format{padding:25px;min-height:210px}.contact{padding:100px 0}.contact-card{padding:36px 27px;border-radius:23px}.footer-inner{align-items:flex-start;flex-direction:column}}
+@media(max-width:520px){.service-grid,.formats-grid{grid-template-columns:1fr}.service{min-height:198px}.format{min-height:195px}.story{padding:75px 0}.step{padding:27px 20px 28px 69px}.step-number{left:12px}.timeline:before{left:29px}.contact-buttons{flex-direction:column}.contact-buttons .btn{width:100%}.contact-links{flex-direction:column;gap:11px}.hero h1{font-size:clamp(40px,11.4vw,59px)}.hero-tags{gap:10px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.intro{display:none}.hero h1 span,.hero .eyebrow,.hero-copy>p,.hero-actions,.hero-tags,.illustration,.scroll-cue{animation:none!important}.illustration *,.ticker>div,.mouse:after{animation:none!important}html.js .reveal{opacity:1!important;transform:none!important;filter:none!important;transition:none!important}}
+</style>
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
-<a class="skip-link" href="#desktop-2" data-mobile="#o-nas">Przejdź do treści</a>
-<div id="page-progress" aria-hidden="true"></div>
-<button class="nav-toggle" id="menu-btn" aria-label="Otwórz menu" aria-expanded="false" aria-controls="nav-menu" type="button">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg> MENU
-</button>
-<nav id="nav-menu" class="nav-menu" hidden aria-label="Nawigacja serwisu">
-<a href="#desktop-1" data-mobile="#start">Strona główna</a>
-<a href="#desktop-6" data-mobile="#kontakt">Kontakt</a>
-<a href="/wrzutka">Wyślij materiały</a>
-<a href="/live">Oglądaj live</a>
-<a href="/app">Generator ofert</a>
-<a href="/login">Panel magazynu</a>
-<a href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20o%20ofert%C4%99%20Mark%20Media">Zapytaj o ofertę</a>
-</nav>
-<main>
-<div class="desktop-pages">
-<section class="sheet" id="desktop-1" aria-label="Strona 1: Emocje. Technologia. Realizacja.">
-  <img class="sheet__image" src="/assets/strona-01.webp" alt="Strona 1 prezentacji Mark Media: Emocje. Technologia. Realizacja.. Kompleksowa obsługa techniczna wydarzeń, LED, audio, światło, streaming i wideo." width="2105" height="1488" loading="eager" decoding="async" fetchpriority="high">
-</section>
-<section class="sheet" id="desktop-2" aria-label="Strona 2: Co robimy">
-  <img class="sheet__image" src="/assets/strona-02.webp" alt="Strona 2 prezentacji Mark Media: Co robimy. Jedna ekipa. Pełna obsługa techniczna. Ekrany LED, nagłośnienie, oświetlenie, wizja, streaming i infrastruktura." width="2105" height="1488" loading="lazy" decoding="async">
-</section>
-<section class="sheet" id="desktop-3" aria-label="Strona 3: Od koncepcji do transmisji">
-  <img class="sheet__image" src="/assets/strona-03.webp" alt="Strona 3 prezentacji Mark Media: Od koncepcji do transmisji. Projektowanie wydarzeń, prowadzenie realizacji, transmisje na żywo i materiały po wydarzeniu." width="2105" height="1488" loading="lazy" decoding="async">
-</section>
-<section class="sheet" id="desktop-4" aria-label="Strona 4: Różne formaty wydarzeń">
-  <img class="sheet__image" src="/assets/strona-04.webp" alt="Strona 4 prezentacji Mark Media: Różne formaty wydarzeń. Koncerty, festiwale, konferencje, wydarzenia plenerowe, sport i gale." width="2105" height="1488" loading="lazy" decoding="async">
-</section>
-<section class="sheet" id="desktop-5" aria-label="Strona 5: Przykładowe zakresy usług">
-  <img class="sheet__image" src="/assets/strona-05.webp" alt="Strona 5 prezentacji Mark Media: Przykładowe zakresy usług. Obsługa plenerów, konferencji i kongresów, streaming i wideo, grafika i ekrany LED." width="2105" height="1488" loading="lazy" decoding="async">
-</section>
-<section class="sheet contact-page" id="desktop-6" aria-label="Strona 6: Porozmawiajmy">
-  <img class="sheet__image" src="/assets/strona-06.webp" alt="Strona 6 prezentacji Mark Media: Porozmawiajmy. Kontakt: 515 168 560, marknet.biuro@gmail.com, markmediaevent.pl." width="2105" height="1488" loading="lazy" decoding="async">
-</section></div>
-<div class="mobile-pages">
-<section class="mobile-page" id="start">
-<div class="mobile-inner"><img class="mobile-logo" src="/assets/logo-mark-media.webp" width="520" height="320" alt="Mark Media Event Solution" loading="eager">
-<h1>EMOCJE.<br>TECHNOLOGIA.<br><span>REALIZACJA.</span></h1>
-<p>Kompleksowa technika eventowa, multimedia i produkcja wideo dla wydarzeń, które zostają w pamięci.</p>
-<div class="mobile-pills"><span>LED</span><span>AUDIO</span><span>LIGHT</span><span>LIVE</span><span>STREAMING</span></div>
-<div class="mobile-scroll"><b>↓</b> Przewiń, aby poznać naszą ofertę</div>
-</div></section>
-<section class="mobile-page" id="o-nas"><div class="mobile-inner">
-<p class="mobile-kicker">CO ROBIMY</p><h2>Jedna ekipa.<br><span>Pełna obsługa techniczna.</span></h2>
-<p>Łączymy obraz, dźwięk, światło i realizację transmisji w jeden spójny projekt.</p>
-<div class="mobile-cardgrid"><article class="mobile-card"><strong>EKRANY LED</strong><p>Horyzonty sceniczne, ekrany boczne, totemy, multimedia i treści dla widzów.</p></article><article class="mobile-card"><strong>NAGŁOŚNIENIE</strong><p>Czytelny głos, muzyka, nagłośnienie wydarzeń i obsługa realizatora dźwięku.</p></article><article class="mobile-card"><strong>OŚWIETLENIE</strong><p>Światło sceniczne, efektowne wejścia, dynamika i spójny klimat wydarzenia.</p></article><article class="mobile-card"><strong>REALIZACJA WIZJI</strong><p>Produkcje wielokamerowe, obraz na ekrany, reżyserka i obsługa kamer.</p></article><article class="mobile-card"><strong>STREAMING I NAGRANIA</strong><p>Transmisje na żywo, rejestracja wideo, grafika emisyjna i publikacja online.</p></article><article class="mobile-card"><strong>INFRASTRUKTURA</strong><p>Scena i konstrukcje, sygnały, komunikacja ekipy oraz internet mobilny.</p></article></div></div></section>
-<section class="mobile-page" id="produkcja"><div class="mobile-inner">
-<p class="mobile-kicker">OD KONCEPCJI DO TRANSMISJI</p><h2>Technologia, która <span>łączy cały event.</span></h2>
-<p>Od projektu sceny i materiałów po realizację na żywo: spójna obsługa obrazu, dźwięku, światła i transmisji.</p>
-<div class="mobile-steps">
-<div class="mobile-step"><em>01</em><div><strong>Koncepcja i przygotowanie</strong><p>Dobór technologii, scenografii oraz przygotowanie materiałów ekranowych.</p></div></div>
-<div class="mobile-step"><em>02</em><div><strong>Realizacja na żywo</strong><p>Ekrany LED, nagłośnienie, światło, wielokamera i reżyserka.</p></div></div>
-<div class="mobile-step"><em>03</em><div><strong>Transmisja i materiały</strong><p>Streaming, nagrania i treści do wykorzystania po wydarzeniu.</p></div></div>
+<a href="#main" class="skip">Przejdź do treści</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<div class="intro" aria-hidden="true"><div class="intro-inside"><img src="/assets/logo-mark-media.webp" alt=""><span class="intro-caption">EMOCJE · TECHNOLOGIA · REALIZACJA</span><div class="intro-bar"></div></div></div>
+<header class="header" id="header">
+<div class="header-inner">
+<a href="#start" class="brand" aria-label="Mark Media – strona główna"><img src="/assets/logo-mark-media.webp" alt="" width="79" height="53"><span><span class="brand-title">MARK <b>MEDIA</b></span><span class="brand-sub">EVENT SOLUTION</span></span></a>
+<nav class="nav" aria-label="Nawigacja główna"><a href="#uslugi">Usługi</a><a href="#realizacja">Realizacja</a><a href="#wydarzenia">Wydarzenia</a><a href="#kontakt">Kontakt</a><a href="/wrzutka">Wrzutka</a><a href="/live">Live</a><a href="/app">Generator</a></nav>
+<a class="nav-cta" href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20o%20obs%C5%82ug%C4%99%20wydarzenia">Zapytaj o ofertę ↗</a>
+<button class="menu-button" type="button" id="menu-button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Otwórz menu">☰</button>
 </div>
-<div class="stage-visual" aria-hidden="true"><i class="beam"></i><i class="beam"></i><i class="beam"></i><div class="screen">MARK MEDIA</div></div>
-</div></section>
-<section class="mobile-page" id="wydarzenia"><div class="mobile-inner">
-<p class="mobile-kicker">DLA RÓŻNYCH FORMATÓW WYDARZEŃ</p><h2>Od kameralnego spotkania <span>po wielką scenę.</span></h2>
-<p>Skalujemy zakres ekipy i technologii do charakteru imprezy, miejsca i oczekiwanego efektu.</p>
-<div class="mobile-cardgrid"><article class="mobile-card"><strong>KONCERTY I FESTIWALE</strong><p>Sceny, ekrany LED, nagłośnienie, oświetlenie i wielokamera.</p></article><article class="mobile-card"><strong>KONFERENCJE I DEBATY</strong><p>Mikrofony, prezentacje, realizacja obrazu i transmisja.</p></article><article class="mobile-card"><strong>WYDARZENIA PLENEROWE</strong><p>Scena, multimedia, strefy widowiskowe oraz obsługa techniczna.</p></article><article class="mobile-card"><strong>SPORT I GALE</strong><p>Prezentacje uczestników, grafika, ekrany, światło i streaming.</p></article></div></div></section>
-<section class="mobile-page" id="zakresy"><div class="mobile-inner">
-<p class="mobile-kicker">PRZYKŁADOWE ZAKRESY USŁUG</p><h2>Doświadczenie, które przekłada się <span>na realizację.</span></h2>
-<p>Elementy obsługi dobieramy indywidualnie do charakteru i skali wydarzenia.</p>
-<div class="mobile-steps">
-<div class="mobile-step"><em>01</em><div><strong>Scena i ekrany LED</strong><p>Scenografia, ekrany boczne, realizacja wielokamerowa i transmisje na żywo.</p></div></div>
-<div class="mobile-step"><em>02</em><div><strong>Wizja i transmisja</strong><p>Realizacja obrazu i dźwięku, grafika emisyjna oraz streaming.</p></div></div>
-<div class="mobile-step"><em>03</em><div><strong>Streaming i wideo</strong><p>Rejestracja obrazu i dźwięku, transmisje i kompleksowa obsługa techniczna.</p></div></div>
-<div class="mobile-step"><em>04</em><div><strong>Grafika i ekrany LED</strong><p>Prezentacje, animacje, plansze informacyjne i materiały dla ekranów.</p></div></div>
+<nav class="mobile-nav" id="mobile-nav" aria-label="Menu mobilne" hidden><a href="#uslugi">Usługi</a><a href="#realizacja">Realizacja</a><a href="#wydarzenia">Wydarzenia</a><a href="#kontakt">Kontakt</a><a href="/wrzutka">Wyślij materiały</a><a href="/live">Oglądaj live</a><a href="/app">Generator ofert</a><a href="/login">Panel magazynu</a></nav>
+</header>
+<main id="main">
+<section class="hero" id="start">
+<div class="hero-layout">
+<div class="hero-copy"><div class="eyebrow">MARK MEDIA EVENT SOLUTION</div><h1><span>EMOCJE.</span><span>TECHNOLOGIA.</span><span>REALIZACJA.</span></h1>
+<p>Projektujemy i realizujemy techniczną stronę wydarzeń. Łączymy obraz, dźwięk, światło i produkcję na żywo w jedno spójne doświadczenie dla publiczności.</p>
+<div class="hero-actions"><a class="btn primary" href="#uslugi">Odkryj nasze możliwości ↘</a><a class="btn" href="#kontakt">Porozmawiajmy ↗</a></div>
+<div class="hero-tags"><span>LED I MULTIMEDIA</span><span>LIVE PRODUCTION</span><span>EVENT TECHNOLOGY</span></div>
+</div>
+<div class="illustration" aria-hidden="true"><div class="orbit"></div><div class="orbit inner"></div><div class="truss"></div><div class="beam left"></div><div class="beam right"></div><div class="lamp left"></div><div class="lamp right"></div><div class="led"><div class="led-title">MARK <b>MEDIA</b></div><div class="led-sub">EVENT SOLUTION / LIVE</div></div><div class="stage"></div><div class="illustration-caption">PRODUKCJA NA ŻYWO<b>OBRAZ · DŹWIĘK · ŚWIATŁO</b></div></div>
+</div>
+<a href="#uslugi" class="scroll-cue"><span class="mouse" aria-hidden="true"></span> PRZEWIŃ, BY POZNAĆ WIĘCEJ</a>
+</section>
+<div class="ticker" aria-hidden="true"><div><span>LED <b>✦</b> AUDIO <b>✦</b> LIGHT <b>✦</b> LIVE VIDEO <b>✦</b> STREAMING <b>✦</b> EVENT SOLUTION <b>✦</b></span><span>LED <b>✦</b> AUDIO <b>✦</b> LIGHT <b>✦</b> LIVE VIDEO <b>✦</b> STREAMING <b>✦</b> EVENT SOLUTION <b>✦</b></span></div></div>
+<section class="section services" id="uslugi"><div class="shell">
+<div class="reveal"><div class="eyebrow">CO ROBIMY</div><h2>Jedna ekipa.<br><em>Wszystkie technologie.</em></h2><p class="section-intro">Od kameralnych konferencji po duże widowiska. Dobieramy technikę do charakteru wydarzenia, dbając o niezawodność, estetykę i spójny efekt.</p></div>
+<div class="service-grid">
+<article class="service reveal"><div class="icon" aria-hidden="true">▣</div><h3>Ekrany LED</h3><p>Ekrany sceniczne, horyzonty, ekrany boczne i totemy. Projektowanie układów i realizacja treści.</p></article>
+<article class="service reveal" style="--delay:.06s"><div class="icon" aria-hidden="true">≋</div><h3>Nagłośnienie</h3><p>Systemy audio dopasowane do przestrzeni, mikrofony, realizacja dźwięku i obsługa techniczna.</p></article>
+<article class="service reveal" style="--delay:.12s"><div class="icon" aria-hidden="true">✺</div><h3>Oświetlenie</h3><p>Oprawa sceniczna, ruchome głowy, efekty świetlne i sterowanie światłem podczas wydarzeń.</p></article>
+<article class="service reveal"><div class="icon" aria-hidden="true">◉</div><h3>Realizacja wizji</h3><p>Produkcja wielokamerowa, kamery operatorskie, realizacja na ekrany i profesjonalna reżyserka.</p></article>
+<article class="service reveal" style="--delay:.06s"><div class="icon" aria-hidden="true">⌁</div><h3>Streaming i nagrania</h3><p>Transmisje na żywo, rejestracja wydarzeń, grafika emisyjna i publikacja w internecie.</p></article>
+<article class="service reveal" style="--delay:.12s"><div class="icon" aria-hidden="true">◇</div><h3>Scena i infrastruktura</h3><p>Podesty, konstrukcje, okablowanie, komunikacja ekipy i mobilny dostęp do internetu.</p></article>
 </div></div></section>
-<section class="mobile-page" id="kontakt"><div class="mobile-inner">
-<img class="mobile-logo" src="/assets/logo-mark-media.webp" alt="Mark Media Event Solution" width="520" height="320" loading="lazy">
-<p class="mobile-kicker">POROZMAWIAJMY</p><h2>Twoje wydarzenie.<br><span>Nasza realizacja.</span></h2>
-<p>Przedstaw termin, lokalizację i charakter wydarzenia. Przygotujemy koncepcję techniczną oraz indywidualny zakres obsługi.</p>
-<div class="mobile-contact"><a class="primary" href="tel:+48515168560">Zadzwoń: 515 168 560</a><a href="mailto:marknet.biuro@gmail.com">marknet.biuro@gmail.com</a><a href="https://markmediaevent.pl">markmediaevent.pl</a></div>
-<div class="mobile-bottom-links"><a href="/wrzutka">Wyślij materiały</a><a href="/live">Oglądaj live</a><a href="/app">Generator ofert</a><a href="/login">Panel magazynu</a></div>
+<section class="section story" id="realizacja"><div class="shell story-grid">
+<div class="story-copy reveal"><div class="eyebrow">OD POMYSŁU DO EFEKTU</div><h2>Technologia, która <em>pracuje na emocje.</em></h2><p class="section-intro">Dobra realizacja nie zaczyna się w dniu montażu. Łączymy przygotowanie sprzętu, spójną koncepcję i pracę zespołu podczas wydarzenia.</p><div class="story-aside"><strong>360°</strong><span>Kompleksowa obsługa – od przygotowań po zakończenie wydarzenia.</span></div></div>
+<div class="timeline">
+<article class="step reveal"><span class="step-number">01</span><h3>Koncepcja i przygotowanie</h3><p>Analizujemy przestrzeń i scenariusz. Dobieramy ekrany, nagłośnienie, oświetlenie, konstrukcje i rozwiązania wideo.</p></article>
+<article class="step reveal"><span class="step-number">02</span><h3>Montaż i próby</h3><p>Instalujemy systemy, testujemy sygnały i przygotowujemy wszystkie stanowiska oraz urządzenia do pracy.</p></article>
+<article class="step reveal"><span class="step-number">03</span><h3>Realizacja na żywo</h3><p>Koordynujemy pracę zespołu. Prowadzimy wizję, dźwięk, światło i emisję multimediów zgodnie ze scenariuszem.</p></article>
+<article class="step reveal"><span class="step-number">04</span><h3>Materiały po wydarzeniu</h3><p>W zależności od zakresu współpracy przekazujemy nagrania, archiwum transmisji i materiały do publikacji.</p></article>
+</div></div></section>
+<section class="section formats" id="wydarzenia"><div class="shell">
+<div class="reveal"><div class="eyebrow">DLA KOGO PRACUJEMY</div><h2>Każde wydarzenie ma <em>swoją energię.</em></h2><p class="section-intro">Dopasowujemy technologię do formatu i skali wydarzenia – bez sztywnych, gotowych schematów.</p></div>
+<div class="formats-grid">
+<article class="format reveal"><small>01 / LIVE EXPERIENCE</small><h3>Koncerty i festiwale</h3><p>Scenografia LED, nagłośnienie, oświetlenie, obraz dla publiczności i wielokamera.</p></article>
+<article class="format reveal" style="--delay:.08s"><small>02 / BUSINESS</small><h3>Konferencje i kongresy</h3><p>Mikrofony, prezentacje, transmisje, realizacja wizji i obsługa wystąpień.</p></article>
+<article class="format reveal"><small>03 / LIVE SPORT</small><h3>Sport i gale</h3><p>Prezentacje zawodników, oprawa multimedialna, grafika, oświetlenie i streaming.</p></article>
+<article class="format reveal" style="--delay:.08s"><small>04 / OPEN AIR</small><h3>Wydarzenia plenerowe</h3><p>Scena, ekrany, infrastruktura multimedialna, łączność i obsługa techniczna.</p></article>
+</div><p class="formats-foot reveal">Obsługujemy również uroczystości, debaty, wydarzenia miejskie, wydarzenia firmowe i produkcje specjalne.</p>
 </div></section>
-</div>
+<section class="section contact" id="kontakt"><div class="shell"><div class="contact-card reveal">
+<div class="eyebrow">POROZMAWIAJMY</div><h2>Twoje wydarzenie.<br><em>Nasza realizacja.</em></h2>
+<p>Podaj termin, lokalizację i charakter wydarzenia. Przygotujemy dopasowaną koncepcję techniczną oraz indywidualny zakres obsługi.</p>
+<div class="contact-buttons"><a class="btn primary" href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20o%20obs%C5%82ug%C4%99%20wydarzenia">Wyślij zapytanie ↗</a><a class="btn" href="tel:+48515168560">Zadzwoń ↗</a></div>
+<div class="contact-links"><a href="tel:+48515168560">+48 515 168 560</a><a href="mailto:marknet.biuro@gmail.com">marknet.biuro@gmail.com</a><span>markmediaevent.pl</span></div>
+</div></div></section>
 </main>
-<nav class="page-dots" aria-label="Przejdź do strony prezentacji">
-  <a href="#desktop-1" class="active" aria-label="Strona 1: Wprowadzenie"></a>
-  <a href="#desktop-2" aria-label="Strona 2: Nasze usługi"></a>
-  <a href="#desktop-3" aria-label="Strona 3: Produkcja"></a>
-  <a href="#desktop-4" aria-label="Strona 4: Rodzaje wydarzeń"></a>
-  <a href="#desktop-5" aria-label="Strona 5: Przykładowe zakresy"></a>
-  <a href="#desktop-6" aria-label="Strona 6: Kontakt"></a>
-</nav>
-<div class="page-counter" aria-live="polite"><span id="counter">01 / 06</span></div>
+<footer class="footer"><div class="shell footer-inner">
+<div><div class="footer-title">MARK <b>MEDIA</b></div><div class="footer-sub">EVENT SOLUTION · TECHNICZNA STRONA EMOCJI</div></div>
+<nav aria-label="Linki dodatkowe"><a href="/wrzutka">Wrzutka</a><a href="/live">Live</a><a href="/app">Generator ofert</a><a href="/login">Panel magazynu</a><a href="/polityka-prywatnosci.html">Prywatność</a></nav>
+<div class="footer-copy">© <span id="year">2026</span> MARK MEDIA</div></div></footer>
 <script>
 (function(){
-  const menuButton=document.getElementById('menu-btn');
-  const menu=document.getElementById('nav-menu');
-  function toggleMenu(open){menu.hidden=!open;menuButton.setAttribute('aria-expanded',String(open));menuButton.setAttribute('aria-label',open?'Zamknij menu':'Otwórz menu')}
-  menuButton.addEventListener('click',()=>toggleMenu(menu.hidden));
-  document.addEventListener('click',e=>{if(!menu.hidden&&!menu.contains(e.target)&&!menuButton.contains(e.target))toggleMenu(false)});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleMenu(false)});
-  menu.addEventListener('click',e=>{if(e.target.closest('a'))toggleMenu(false)});
-  document.querySelectorAll('a[data-mobile]').forEach(a=>a.addEventListener('click',e=>{
-    const hash=innerWidth<=760?a.dataset.mobile:a.getAttribute('href');
-    const target=document.querySelector(hash);if(target){e.preventDefault();target.scrollIntoView({behavior:'smooth'});}
-  }));
-  const sheets=[...document.querySelectorAll('.sheet')];const dots=[...document.querySelectorAll('.page-dots a')];
-  const counter=document.getElementById('counter'),bar=document.getElementById('page-progress');
-  function track(){
-    let n=0,mid=innerHeight/2,dist=Infinity;
-    for(let i=0;i<sheets.length;i++){const rect=sheets[i].getBoundingClientRect();const d=Math.abs((rect.top+rect.bottom)/2-mid);if(d<dist){dist=d;n=i}}
-    if(innerWidth>760){counter.textContent=String(n+1).padStart(2,'0')+' / 06';dots.forEach((x,i)=>{x.classList.toggle('active',i===n);i===n?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current')})}
-    const doc=document.documentElement;let max=doc.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,Math.max(0,scrollY/max*100)):0)+'%';
-  }
-  let pending=false;
-  window.addEventListener('scroll',()=>{if(!pending){requestAnimationFrame(()=>{track();pending=false});pending=true}},{passive:true});
-  window.addEventListener('resize',track,{passive:true});track();
+'use strict';
+const header=document.getElementById('header'),progress=document.getElementById('progress');
+const menu=document.getElementById('mobile-nav'),toggle=document.getElementById('menu-button');
+function setMenu(open){menu.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'Zamknij menu':'Otwórz menu');toggle.textContent=open?'×':'☰'}
+toggle.addEventListener('click',function(){setMenu(menu.hidden)});
+menu.addEventListener('click',function(e){if(e.target.closest('a'))setMenu(false)});
+document.addEventListener('click',function(e){if(!menu.hidden&&!menu.contains(e.target)&&!toggle.contains(e.target))setMenu(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')setMenu(false)});
+document.getElementById('year').textContent=new Date().getFullYear();
+let pending=false;
+function onScroll(){const max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);progress.style.width=(window.scrollY/max*100).toFixed(2)+'%';header.classList.toggle('is-scrolled',window.scrollY>24);pending=false}
+window.addEventListener('scroll',function(){if(!pending){pending=true;requestAnimationFrame(onScroll)}},{passive:true});
+window.addEventListener('resize',onScroll,{passive:true});onScroll();
+const reveals=document.querySelectorAll('.reveal');
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduced||!('IntersectionObserver' in window)){reveals.forEach(function(x){x.classList.add('visible')})}
+else{const io=new IntersectionObserver(function(entries,observer){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}})},{threshold:.07,rootMargin:'0px 0px -35px 0px'});reveals.forEach(function(x){io.observe(x)})}
+const links=document.querySelectorAll('.nav a[href^="#"]');
+if('IntersectionObserver' in window){const navObserver=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)})}})},{rootMargin:'-32% 0px -54% 0px'});
+['uslugi','realizacja','wydarzenia','kontakt'].forEach(function(id){navObserver.observe(document.getElementById(id))})}
 })();
 </script>
 </body></html>
