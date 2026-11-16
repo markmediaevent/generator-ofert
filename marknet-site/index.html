@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08131e">
+  <meta name="description" content="MarkNet — projektowanie i wdrażanie sieci LAN i Wi-Fi, infrastruktury IT, monitoringu IP i bezpiecznego dostępu zdalnego. Rozwiązania technologiczne dla firm i obiektów.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pl_PL">
+  <meta property="og:site_name" content="MarkNet">
+  <meta property="og:title" content="MarkNet — technologia, która działa">
+  <meta property="og:description" content="Sieci, infrastruktura IT, monitoring i automatyzacja. Projektujemy rozwiązania, na których możesz polegać.">
+  <meta property="og:url" content="https://marknet.com.pl/">
+  <title>MarkNet — sieci, IT, monitoring i automatyzacja</title>
+  <style>
+    :root{color-scheme:dark;--bg:#08131e;--bg2:#0c1c29;--panel:#112433;--ink:#eff8fb;--muted:#a2b6c2;--line:rgba(155,213,226,.14);--mint:#60e8dc;--blue:#68b9ff;--radius:22px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:88px}body{margin:0;background:var(--bg);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button{font:inherit}::selection{background:#55e9dd;color:#09202c}
+    .layout{width:min(1180px,calc(100% - 44px));margin-inline:auto}.overline{display:inline-flex;align-items:center;gap:10px;color:var(--mint);font-size:.77rem;font-weight:750;letter-spacing:.18em;text-transform:uppercase}.overline::before{content:"";width:24px;height:1px;background:currentColor}
+    .skip{position:absolute;top:-100px;left:10px;z-index:20;padding:12px;background:#fff;color:#000}.skip:focus{top:10px}
+    .nav{height:79px;position:sticky;top:0;z-index:15;background:rgba(8,19,30,.87);border-bottom:1px solid rgba(255,255,255,.06);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.nav .layout{height:100%;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:inline-flex;align-items:center;gap:12px;font-size:1.23rem;font-weight:860;letter-spacing:.03em;white-space:nowrap}.brand-icon{height:35px;width:35px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(97,231,221,.17),rgba(104,185,255,.07));border:1px solid rgba(97,231,221,.38);border-radius:11px}.brand-icon svg{width:22px;height:22px;fill:none;stroke:var(--mint);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.brand b{color:var(--mint)}.nav-links{display:flex;align-items:center;gap:32px}.nav-links a{color:#cad8df;font-size:.87rem;font-weight:600;transition:color .2s}.nav-links a:hover,.nav-links a:focus-visible{color:var(--mint)}.nav-links .nav-cta{color:#06181e;background:var(--mint);padding:11px 18px;border-radius:999px;font-weight:750}.nav-links .nav-cta:hover{color:#06181e;background:#9cf7ec}.menu-btn{display:none;appearance:none;background:none;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 11px;cursor:pointer}
+    .hero{position:relative;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line)}.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(ellipse 57% 60% at 75% 32%,rgba(21,93,121,.30),transparent 75%),radial-gradient(ellipse 45% 56% at 4% 70%,rgba(20,74,97,.15),transparent 80%)}.hero::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.35;background-image:linear-gradient(rgba(104,184,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(104,184,255,.06) 1px,transparent 1px);background-size:52px 52px;mask-image:linear-gradient(to right,transparent 20%,black 100%)}.hero-grid{display:grid;grid-template-columns:1.14fr .86fr;min-height:690px;align-items:center;gap:42px;padding-block:92px 105px}.hero-copy{position:relative;z-index:2}.eyebrow-pill{display:inline-flex;gap:10px;align-items:center;border:1px solid rgba(96,232,220,.24);background:rgba(96,232,220,.055);border-radius:999px;padding:10px 14px;color:#c7efed;font-weight:700;letter-spacing:.095em;text-transform:uppercase;font-size:.68rem}.led{height:7px;width:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 5px rgba(96,232,220,.12),0 0 16px var(--mint)}
+    h1,h2,h3,p{margin-top:0}h1{font-size:clamp(3rem,5.8vw,5.5rem);line-height:1.03;letter-spacing:-.06em;margin:28px 0 23px;font-weight:850}h1 .accent{color:var(--mint)}.hero-lead{color:#b9cbd5;font-size:clamp(1rem,1.55vw,1.14rem);line-height:1.85;max-width:590px;margin-bottom:35px}.actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.btn{display:inline-flex;justify-content:center;align-items:center;gap:12px;border-radius:12px;min-height:50px;padding:14px 21px;font-weight:750;font-size:.92rem;transition:transform .2s,background .2s,border-color .2s;white-space:nowrap}.btn:hover{transform:translateY(-2px)}.btn-primary{background:var(--mint);color:#071c22}.btn-primary:hover{background:#a0f8ec}.btn-ghost{border:1px solid rgba(193,226,233,.26);background:rgba(255,255,255,.025);color:#eaf5f8}.btn-ghost:hover{border-color:rgba(96,232,220,.6)}
+    .capabilities{display:flex;flex-wrap:wrap;gap:10px;margin-top:45px}.capabilities span{padding:9px 12px;border:1px solid var(--line);background:rgba(13,38,53,.5);font-size:.75rem;color:#abc1cd;border-radius:8px}
+    .visual{position:relative;min-height:440px;display:grid;place-items:center}.visual::before{content:"";width:95%;aspect-ratio:1;position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(68,211,209,.11),transparent 67%);filter:blur(8px)}.orbital{position:relative;width:min(100%,455px);aspect-ratio:1;border:1px solid rgba(114,218,226,.1);border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 42px rgba(81,173,189,.025),0 0 0 84px rgba(81,173,189,.018)}.orbital::before,.orbital::after{content:"";position:absolute;border:1px dashed rgba(119,218,229,.18);inset:13%;border-radius:50%}.orbital::after{inset:28%;border-style:solid;opacity:.55}.diagram{width:100%;height:100%;position:absolute;inset:0;overflow:visible}.diagram .link{stroke:#5bdacf;stroke-width:1.1;stroke-opacity:.33}.diagram .line-strong{stroke:#6edee1;stroke-width:1.8;stroke-opacity:.8}.diagram .dot{fill:#91f7ee}.diagram .ring{stroke:#65d8d6;stroke-opacity:.5;fill:#0c2531;stroke-width:1.5}.diagram .halo{fill:#4de5d2;opacity:.1}.diagram text{fill:#bbd2dc;font:600 10px Inter,ui-sans-serif,sans-serif;letter-spacing:1px}.center-chip{position:absolute;width:118px;height:118px;border-radius:28px;background:linear-gradient(150deg,#163a48,#0b202c);border:1px solid rgba(96,232,220,.48);box-shadow:0 16px 60px rgba(0,0,0,.25),0 0 60px rgba(53,230,207,.09);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px}.center-chip svg{width:36px;height:36px;stroke:var(--mint);stroke-width:1.7;fill:none;stroke-linecap:round}.center-chip span{font-size:.65rem;letter-spacing:.18em;font-weight:750}.floatlabel{position:absolute;border:1px solid rgba(120,205,214,.21);background:rgba(9,26,37,.87);backdrop-filter:blur(12px);border-radius:10px;padding:11px 13px;box-shadow:0 10px 30px rgba(0,0,0,.17)}.floatlabel b{display:block;color:#eaf8fb;font-size:.7rem}.floatlabel small{color:var(--mint);font-size:.6rem}.fl1{top:11%;right:-3%}.fl2{bottom:12%;left:-6%}.fl3{bottom:16%;right:-7%}
+    section{scroll-margin-top:90px}.section-space{padding-block:110px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:44px}.section-head h2{font-size:clamp(2.2rem,3.8vw,3.35rem);letter-spacing:-.048em;line-height:1.12;margin:16px 0 0}.section-head p{max-width:370px;color:var(--muted);line-height:1.8;margin:0;font-size:.95rem}
+    .services{background:linear-gradient(180deg,#08131e,#0a1824)}.service-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.service{position:relative;min-height:288px;padding:26px 24px 24px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(20,48,63,.75),rgba(10,29,43,.75));overflow:hidden;transition:border-color .25s,transform .25s}.service::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:2px;background:linear-gradient(90deg,var(--mint),transparent);transform:scaleX(0);transform-origin:left;transition:transform .25s}.service:hover{border-color:rgba(96,232,220,.43);transform:translateY(-5px)}.service:hover::after{transform:scaleX(1)}.service-icon{height:51px;width:51px;display:grid;place-items:center;border-radius:14px;background:rgba(96,232,220,.08);border:1px solid rgba(96,232,220,.16);margin-bottom:30px}.service-icon svg{width:26px;height:26px;fill:none;stroke:var(--mint);stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}.service h3{font-size:1.1rem;line-height:1.35;letter-spacing:-.02em;margin-bottom:13px}.service p{color:#a3bac6;line-height:1.68;font-size:.86rem;margin:0}
+    .approach{border-top:1px solid var(--line);background:#0c1a27}.split{display:grid;grid-template-columns:.9fr 1.1fr;gap:90px;align-items:start}.split h2{font-size:clamp(2.25rem,3.6vw,3.55rem);line-height:1.1;letter-spacing:-.05em;margin:18px 0 22px}.split .intro{color:var(--muted);line-height:1.85;max-width:400px}.mini-rule{width:76px;height:3px;margin-top:36px;background:var(--mint);border-radius:9px}.steps{border-top:1px solid var(--line)}.step{display:grid;grid-template-columns:55px 1fr;gap:20px;padding:25px 0;border-bottom:1px solid var(--line)}.step-num{color:var(--mint);font-weight:800;font-size:1.03rem;letter-spacing:.04em;padding-top:2px}.step h3{font-size:1.05rem;margin-bottom:8px;letter-spacing:-.025em}.step p{font-size:.9rem;color:var(--muted);line-height:1.75;margin:0}
+    .areas{padding-block:67px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.area-wrap{display:flex;align-items:center;justify-content:space-between;gap:24px}.area-title{font-size:1.03rem;letter-spacing:-.02em;font-weight:750}.pills{display:flex;gap:9px;flex-wrap:wrap}.pills span{border-radius:999px;padding:11px 16px;background:#122a38;border:1px solid var(--line);color:#c7dbe2;font-size:.8rem}
+    .contact{padding-block:105px}.contact-panel{display:grid;grid-template-columns:1fr auto;align-items:center;gap:25px;border:1px solid rgba(96,232,220,.27);background:radial-gradient(circle at 90% 20%,rgba(94,229,214,.12),transparent 38%),linear-gradient(120deg,#123441,#0c202e);border-radius:27px;padding:clamp(30px,5vw,66px);overflow:hidden}.contact-panel h2{font-size:clamp(2.2rem,4vw,3.6rem);letter-spacing:-.05em;line-height:1.1;margin:16px 0}.contact-panel p{font-size:.98rem;color:#b5ced5;line-height:1.8;max-width:600px;margin:0}.contact-panel .btn{min-width:235px}
+    footer{border-top:1px solid var(--line);padding-block:33px}.footer-row{display:flex;justify-content:space-between;align-items:center;gap:20px}.footer-row .brand{font-size:1.07rem}.footer-row small{font-size:.8rem;color:#90a8b5}.footer-right{display:flex;gap:22px;align-items:center}.footer-right a{font-size:.8rem;color:#a7c4ce}.footer-right a:hover{color:var(--mint)}
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:none}
+    @media(max-width:1024px){.hero-grid{gap:10px;min-height:650px}.service-grid{grid-template-columns:repeat(2,1fr)}.service{min-height:255px}.visual{transform:scale(.88)}.split{gap:45px}.area-wrap{align-items:start;flex-direction:column}}
+    @media(max-width:760px){.layout{width:min(100% - 36px,1180px)}.nav{height:70px}.menu-btn{display:block}.nav-links{position:absolute;top:70px;left:0;right:0;display:none;background:#0b1b27;border-bottom:1px solid var(--line);padding:23px 18px 29px;align-items:stretch;flex-direction:column;gap:22px}.nav-links.open{display:flex}.nav-links a{font-size:1rem}.nav-links .nav-cta{text-align:center}.hero-grid{grid-template-columns:1fr;min-height:auto;padding-block:72px 52px;gap:18px}.hero h1{font-size:clamp(3rem,11vw,4.5rem)}.hero-lead{font-size:1rem}.capabilities{margin-top:35px}.visual{min-height:340px;transform:none;max-width:370px;width:95%;margin-inline:auto}.orbital{max-width:340px}.floatlabel{padding:9px 10px}.fl1{right:-5%}.fl2{left:-4%}.fl3{right:-8%}.section-space{padding-block:76px}.section-head{display:block}.section-head p{margin-top:22px}.service-grid{grid-template-columns:1fr}.service{min-height:215px}.service-icon{margin-bottom:20px}.split{grid-template-columns:1fr;gap:25px}.areas{padding-block:50px}.contact{padding-block:72px}.contact-panel{grid-template-columns:1fr}.contact-panel .btn{width:100%;margin-top:12px}.footer-row{flex-direction:column;align-items:flex-start}.footer-right{width:100%;justify-content:space-between}}
+    @media(max-width:370px){.actions{align-items:stretch;flex-direction:column}.actions .btn{width:100%}.floatlabel{display:none}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Przejdź do treści</a>
+<header class="nav">
+  <div class="layout">
+    <a class="brand" href="#top" aria-label="MarkNet, strona główna"><span class="brand-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="m7 11 10-5M7 13l10 5M19 7v10"/></svg></span><span>MARK<b>NET</b></span></a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu ☰</button>
+    <nav class="nav-links" id="menu" aria-label="Nawigacja główna">
+      <a href="#rozwiazania">Rozwiązania</a><a href="#o-nas">Jak działamy</a><a href="#zastosowania">Zastosowania</a><a class="nav-cta" href="#kontakt">Kontakt ↗</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<section class="hero" id="top">
+  <div class="layout hero-grid">
+    <div class="hero-copy">
+      <div class="eyebrow-pill"><span class="led"></span> Infrastruktura, która łączy</div>
+      <h1>Technologia,<br>na której możesz <span class="accent">polegać.</span></h1>
+      <p class="hero-lead">Projektujemy i wdrażamy nowoczesne sieci komputerowe, niezawodne Wi‑Fi, infrastrukturę IT i systemy bezpieczeństwa. Przemyślane rozwiązania, sprawna realizacja, realne wsparcie.</p>
+      <div class="actions"><a class="btn btn-primary" href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20ofertowe%20%E2%80%93%20MarkNet">Porozmawiajmy o projekcie <span aria-hidden="true">↗</span></a><a class="btn btn-ghost" href="#rozwiazania">Poznaj rozwiązania ↓</a></div>
+      <div class="capabilities"><span>LAN / Wi‑Fi</span><span>Serwery i IT</span><span>Monitoring IP</span><span>Automatyzacja</span></div>
+    </div>
+    <div class="visual" aria-hidden="true">
+      <div class="orbital">
+        <svg class="diagram" viewBox="0 0 455 455" xmlns="http://www.w3.org/2000/svg">
+          <g class="link"><path d="M227 227 112 92 352 115 389 294 267 386 83 304 112 92M227 227 352 115M227 227 389 294M227 227 267 386M227 227 83 304M112 92 83 304M352 115 389 294M83 304 267 386"/></g>
+          <g class="line-strong"><path d="M227 227 352 115M227 227 267 386M227 227 83 304"/></g>
+          <g><circle class="halo" cx="112" cy="92" r="23"/><circle class="ring" cx="112" cy="92" r="10"/><circle class="dot" cx="112" cy="92" r="3"/><circle class="halo" cx="352" cy="115" r="23"/><circle class="ring" cx="352" cy="115" r="10"/><circle class="dot" cx="352" cy="115" r="3"/><circle class="halo" cx="389" cy="294" r="23"/><circle class="ring" cx="389" cy="294" r="10"/><circle class="dot" cx="389" cy="294" r="3"/><circle class="halo" cx="267" cy="386" r="23"/><circle class="ring" cx="267" cy="386" r="10"/><circle class="dot" cx="267" cy="386" r="3"/><circle class="halo" cx="83" cy="304" r="23"/><circle class="ring" cx="83" cy="304" r="10"/><circle class="dot" cx="83" cy="304" r="3"/></g>
+          <g><text x="70" y="67">NETWORK</text><text x="346" y="86">SECURE</text><text x="354" y="333">SYSTEM</text><text x="224" y="426">CLOUD</text><text x="25" y="337">ACCESS</text></g>
+        </svg>
+        <div class="center-chip"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="12" y="12" width="12" height="12" rx="3"/><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="25" y="3" width="8" height="8" rx="2"/><rect x="3" y="25" width="8" height="8" rx="2"/><rect x="25" y="25" width="8" height="8" rx="2"/><path d="M11 7h7v5M25 7h-7M7 11v7h5M29 11v7h-5M7 25v-7M11 29h7v-5M25 29h-7M29 25v-7"/></svg><span>MARKNET</span></div>
+      </div>
+      <div class="floatlabel fl1"><b>Sieci LAN / WLAN</b><small>Stabilne połączenie</small></div>
+      <div class="floatlabel fl2"><b>Infrastruktura IT</b><small>Spójne środowisko</small></div>
+      <div class="floatlabel fl3"><b>Dostęp zdalny</b><small>Kontrolowany dostęp</small></div>
+    </div>
+  </div>
+</section>
+<section class="services section-space" id="rozwiazania">
+  <div class="layout">
+    <div class="section-head reveal"><div><span class="overline">Nasze kompetencje</span><h2>Technologia dopasowana<br>do Twoich potrzeb.</h2></div><p>Od projektu i doboru urządzeń po konfigurację i uruchomienie. Jedno spójne podejście do infrastruktury.</p></div>
+    <div class="service-grid">
+      <article class="service reveal"><div class="service-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="6" rx="2"/><path d="M7 6h.01M11 6h.01M6 15h12M12 9v6M6 15v6M18 15v6M3 21h6M15 21h6"/></svg></div><h3>Sieci LAN i Wi‑Fi</h3><p>Projektowanie, rozbudowa i konfiguracja sieci przewodowych oraz bezprzewodowych dla biur, obiektów i wydarzeń.</p></article>
+      <article class="service reveal"><div class="service-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/></svg></div><h3>Serwery i infrastruktura IT</h3><p>Dobór sprzętu, konfiguracja środowisk serwerowych, przechowywanie danych i uporządkowanie infrastruktury.</p></article>
+      <article class="service reveal"><div class="service-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-6 9 6v5c0 5-3.3 7-9 8-5.7-1-9-3-9-8V9Z"/><path d="m8 12 3 3 5-6"/></svg></div><h3>Monitoring IP</h3><p>Rozwiązania wizyjne i sieciowe: kamery, rejestracja obrazu, segmentacja ruchu i bezpieczny dostęp do systemów.</p></article>
+      <article class="service reveal"><div class="service-icon"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg></div><h3>Automatyzacja i dostęp zdalny</h3><p>Integracje urządzeń, kontrola infrastruktury, rozwiązania VPN i narzędzia ułatwiające codzienną administrację.</p></article>
+    </div>
+  </div>
+</section>
+<section class="approach section-space" id="o-nas">
+  <div class="layout split">
+    <div class="reveal"><span class="overline">Praktyczne podejście</span><h2>Najpierw rozumiemy problem. Potem dobieramy technologię.</h2><p class="intro">Nie chodzi o jak największą liczbę urządzeń. Liczą się przejrzysta architektura, bezpieczeństwo i rozwiązania, które rzeczywiście spełniają swoją funkcję.</p><div class="mini-rule"></div></div>
+    <div class="steps">
+      <div class="step reveal"><span class="step-num">01</span><div><h3>Analiza potrzeb</h3><p>Poznanie obiektu, warunków pracy, oczekiwań i istniejącej infrastruktury.</p></div></div>
+      <div class="step reveal"><span class="step-num">02</span><div><h3>Projekt i dobór rozwiązań</h3><p>Plan sprzętu, adresacji, połączeń, zabezpieczeń i możliwości dalszej rozbudowy.</p></div></div>
+      <div class="step reveal"><span class="step-num">03</span><div><h3>Wdrożenie i konfiguracja</h3><p>Uruchomienie, testy działania oraz przekazanie czytelnej konfiguracji.</p></div></div>
+      <div class="step reveal"><span class="step-num">04</span><div><h3>Wsparcie i rozwój</h3><p>Pomoc w utrzymaniu, aktualizacjach i kolejnych etapach rozbudowy infrastruktury.</p></div></div>
+    </div>
+  </div>
+</section>
+<section class="areas" id="zastosowania"><div class="layout area-wrap"><span class="area-title">Rozwiązania dla różnych środowisk</span><div class="pills"><span>Firmy i biura</span><span>Obiekty i instalacje</span><span>Wydarzenia i realizacje</span><span>Inteligentne budynki</span></div></div></section>
+<section class="contact" id="kontakt"><div class="layout"><div class="contact-panel reveal"><div><span class="overline">Skontaktuj się z nami</span><h2>Masz projekt?<br>Porozmawiajmy.</h2><p>Opowiedz nam, czego potrzebujesz — pomożemy dobrać technologię do skali, budżetu i charakteru instalacji.</p></div><a class="btn btn-primary" href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20%E2%80%93%20MarkNet">Napisz do MarkNet ↗</a></div></div></section>
+</main>
+<footer><div class="layout footer-row"><a class="brand" href="#top"><span class="brand-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="m7 11 10-5M7 13l10 5M19 7v10"/></svg></span><span>MARK<b>NET</b></span></a><div class="footer-right"><a href="mailto:marknet.biuro@gmail.com">Kontakt e-mail</a><small>© <span id="year">2026</span> MarkNet</small></div></div></footer>
+<script>
+  document.getElementById("year").textContent = String(new Date().getFullYear());
+  const menuButton = document.getElementById("menu-btn");
+  const menu = document.getElementById("menu");
+  menuButton.addEventListener("click", function () {
+    const open = menu.classList.toggle("open");
+    menuButton.setAttribute("aria-expanded", String(open));
+  });
+  menu.querySelectorAll("a").forEach(function (link) {
+    link.addEventListener("click", function () {
+      menu.classList.remove("open");
+      menuButton.setAttribute("aria-expanded", "false");
+    });
+  });
+  if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .08 });
+    document.querySelectorAll(".reveal").forEach(function (el) { observer.observe(el); });
+  } else {
+    document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("visible"); });
+  }
+</script>
+</body>
+</html>
