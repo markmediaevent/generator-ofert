@@ -423,8 +423,11 @@ app.post('/api/admin/notifications/test-email',auth,adminOnly,async(req,res,next
  }catch(e){console.warn('SMTP test failed',e.message);return problem(res,503,'Test wysyłki e-mail nie powiódł się. Sprawdź hasło aplikacji i ustawienia konta.');}
 });
 app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
- try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:pushConfigured||notifications.phoneReady()}});}
- catch(e){next(e);}
+ try{
+  const jobs=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");
+  const phone=(await db.query("SELECT count(*)::int AS subscribed FROM push_subscriptions p JOIN users u ON u.id=p.user_id WHERE u.role='admin' AND u.is_active=true")).rows[0];
+  res.json({jobs:jobs.rows,configured:{email:notifications.smtpReady(),phone:(pushConfigured&&phone.subscribed>0)||notifications.phoneReady(),push_subscriptions:phone.subscribed}});
+ }catch(e){next(e);}
 });
 setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
