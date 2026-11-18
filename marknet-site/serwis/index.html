@@ -4,10 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-12">
-<link rel="stylesheet" href="brand.css?v=20261118-12">
-<script src="management.js?v=20261118-12" defer></script>
-<script src="app.js?v=20261118-12" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261118-13">
+<link rel="stylesheet" href="brand.css?v=20261118-13">
+<script src="management.js?v=20261118-13" defer></script>
+<script src="app.js?v=20261118-13" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -43,6 +43,14 @@
       <div><div class="eyebrow">Centrum obsługi technicznej</div><h1 id="page-title">Zgłoszenia serwisowe</h1>
       <p class="subtle" id="page-subtitle">Rejestr usterek, awarii i prowadzonych interwencji</p></div>
       <button id="add-button" class="btn main">+ Nowe zgłoszenie</button>
+    </div>
+    <div id="submission-success" class="submission-success hide" role="status" aria-live="polite">
+      <div class="submission-symbol" aria-hidden="true">✓</div>
+      <div class="submission-copy">
+        <strong id="submission-title">Zgłoszenie zostało przekazane do serwisu MarkNet.</strong>
+        <p id="submission-info">Zgłoszenie zapisano w systemie. Potwierdzenie PDF jest dostępne na liście poniżej.</p>
+      </div>
+      <button class="submission-dismiss" id="submission-dismiss" type="button" aria-label="Zamknij potwierdzenie">×</button>
     </div>
     <div class="safety-note" role="note"><strong>Awaria krytyczna?</strong> Po wysłaniu zgłoszenia skontaktuj się również z MarkNet telefonicznie, korzystając z numeru wskazanego w uzgodnionych procedurach zakładu. Panel nie zastępuje zgłoszenia alarmowego.</div>
     <div id="summary" class="summary"></div>
