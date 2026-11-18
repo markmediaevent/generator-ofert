@@ -83,8 +83,11 @@ async function migrateTenancy(db,categories){
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   const paprec=(await db.query("INSERT INTO organizations(name) VALUES('PAPREC Energies Gdańsk') ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id")).rows[0];
-  for(const category of categories)
-    await db.query('INSERT INTO organization_systems(organization_id,category) VALUES($1,$2) ON CONFLICT DO NOTHING',[paprec.id,category]);
+  const serviceCount=(await db.query('SELECT count(*)::int AS n FROM organization_systems WHERE organization_id=$1',[paprec.id])).rows[0].n;
+  if(serviceCount===0){
+    for(const category of categories)
+      await db.query('INSERT INTO organization_systems(organization_id,category) VALUES($1,$2) ON CONFLICT DO NOTHING',[paprec.id,category]);
+  }
   await db.query("UPDATE users SET organization_id=$1 WHERE role='client' AND username='paprec' AND organization_id IS NULL",[paprec.id]);
   await db.query("UPDATE tickets t SET organization_id=u.organization_id FROM users u WHERE t.created_by=u.id AND t.organization_id IS NULL AND u.organization_id IS NOT NULL");
   await db.query("UPDATE tickets SET organization_id=$1 WHERE organization_id IS NULL AND organization='client'",[paprec.id]);
