@@ -8,10 +8,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-if (!process.env.DATABASE_URL || !process.env.INIT_ADMIN_PASSWORD || !process.env.INIT_CLIENT_PASSWORD) {
-  console.error('Missing DATABASE_URL, INIT_ADMIN_PASSWORD or INIT_CLIENT_PASSWORD');
-  process.exit(1);
-}
+const CONFIGURED = Boolean(process.env.DATABASE_URL && process.env.INIT_ADMIN_PASSWORD && process.env.INIT_CLIENT_PASSWORD);
+if (!CONFIGURED) console.warn('Waiting for secure database connection in Render configuration.');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -30,7 +28,8 @@ app.use((req,res,next) => {
   }
   next();
 });
-const db = new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DB_SSL==='true'?{rejectUnauthorized:true}:false,max:8});
+app.use('/api',(req,res,next)=>{if(!CONFIGURED && req.path!=='/health')return res.status(503).json({error:'Panel oczekuje na konfigurację bazy danych.'});next();});
+const db = new Pool({connectionString:process.env.DATABASE_URL||'postgres://localhost/unconfigured',ssl:process.env.DB_SSL==='true'?{rejectUnauthorized:true}:false,max:8});
 const categories = ['CCTV','Kontrola dostępu (SKD)','Alarmy (SSWiN)','Telefonia','Sieć LAN / Wi-Fi','Światłowody','Połączenia GPEC','Inne'];
 const statuses = ['Nowe','Weryfikacja','W realizacji','Oczekiwanie na klienta','Rozwiązane','Zamknięte'];
 const kinds = ['Usterka','Awaria'];
@@ -261,7 +260,7 @@ app.get('/api/reports/month.csv',auth,adminOnly,async(req,res,next)=>{
     res.send('\ufeff'+[columns,...data].map(r=>r.map(val).join(';')).join('\r\n'));
   }catch(e){next(e);}
 });
-app.get('/api/health',async(req,res)=>{try{await db.query('SELECT 1');res.json({status:'ok'});}catch{res.status(503).json({status:'unavailable'});}});
+app.get('/api/health',async(req,res)=>{if(!CONFIGURED)return res.status(503).json({status:'setup_required'});try{await db.query('SELECT 1');res.json({status:'ok'});}catch{res.status(503).json({status:'unavailable'});}});
 app.use(express.static(path.join(__dirname,'public'),{index:'index.html',setHeaders(res){res.set('Cache-Control','no-store');}}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 app.use((err,req,res,next)=>{
@@ -270,4 +269,6 @@ app.use((err,req,res,next)=>{
   if(res.headersSent)return next(err);
   problem(res,500,'Nie udało się wykonać operacji. Spróbuj ponownie.');
 });
-init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal ready'))).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
+if(CONFIGURED) init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal ready'))).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
+else app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal in setup mode'));
+
