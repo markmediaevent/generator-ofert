@@ -105,3 +105,20 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 .safety-note strong{color:#674d00}.safety-note a{color:#036d9f;font-weight:800;text-decoration:underline;text-underline-offset:3px}
 
 .push-actions{display:flex;flex-wrap:wrap;gap:10px}.push-actions .btn{flex:0 0 auto}#admin-push{border-left:4px solid #ffcd00}#push-status{font-weight:700;color:#096b98}@media(max-width:600px){.push-actions .btn{width:100%}}
+
+/* Nawigacja i zarządzanie klientami */
+.home-link{display:block;text-align:center;margin-top:18px;color:#007ba9;font-weight:750;text-decoration:none;font-size:.87rem}
+.home-link:hover{text-decoration:underline}.home-top-link{text-decoration:none!important}
+.field-title{font-size:.82rem;font-weight:750;color:#36586e;display:block;margin-bottom:9px}
+.service-checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px 13px;margin:4px 0 14px}
+.service-choice{display:flex!important;align-items:center;gap:9px;padding:11px;background:#f5fbff;border:1px solid #d9ebf4;border-radius:10px;font-size:.8rem;font-weight:650;color:#315b75;cursor:pointer}
+.service-choice input,.inline-check input{appearance:auto;min-width:17px;min-height:17px;width:17px;height:17px;accent-color:#079bd3;margin:0}
+.management-list{display:grid;gap:10px;margin-top:20px}
+.management-item{border:1px solid #d4e9f2;border-radius:13px;background:#f9fcfe;overflow:hidden}
+.manager-heading{cursor:pointer;padding:15px 17px;color:#164e6e;font-size:.88rem;font-weight:780;overflow-wrap:anywhere}
+.manager-heading:hover{background:#eaf8ff}
+.manager-form{padding:17px;border-top:1px solid #dce9ef;gap:12px!important}
+.manager-form+.manager-form{border-top:1px solid #dce9ef}
+.inline-check{display:flex!important;align-items:center;gap:12px!important;justify-content:flex-start;font-weight:730}
+.manager-form button{justify-self:start}
+@media(max-width:650px){.service-checklist{grid-template-columns:1fr}.topbar-inner{flex-wrap:wrap}.home-top-link{padding-inline:8px!important;font-size:.69rem!important}.top-actions{flex-wrap:wrap;justify-content:flex-end}}
