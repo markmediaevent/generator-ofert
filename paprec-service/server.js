@@ -8,6 +8,9 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const notifications=require('./notifications');
+const webpush=require('web-push');
+const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
+if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
 
 const CONFIGURED = Boolean(process.env.DATABASE_URL && process.env.INIT_ADMIN_PASSWORD && process.env.INIT_CLIENT_PASSWORD);
 if (!CONFIGURED) console.warn('Waiting for secure database connection in Render configuration.');
@@ -63,6 +66,7 @@ async function init(){
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_email TEXT');
   await db.query("CREATE TABLE IF NOT EXISTS notification_jobs (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK (kind IN ('confirmation','admin_email','phone')), status TEXT NOT NULL DEFAULT 'pending', attempt_count INT NOT NULL DEFAULT 0, retry_at TIMESTAMPTZ NOT NULL DEFAULT now(), delivered_at TIMESTAMPTZ, last_error TEXT, UNIQUE(ticket_id,kind))");
   await db.query("CREATE INDEX IF NOT EXISTS notification_jobs_due ON notification_jobs(retry_at,id) WHERE status='pending'");
+  await db.query("CREATE TABLE IF NOT EXISTS push_subscriptions (id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   const row=(await db.query('SELECT count(*)::int AS n FROM users')).rows[0];
   if(row.n===0){
     const admin=hashPassword(process.env.INIT_ADMIN_PASSWORD);
@@ -288,13 +292,63 @@ app.get('/api/reports/month.csv',auth,adminOnly,async(req,res,next)=>{
     res.send('\ufeff'+[columns,...data].map(r=>r.map(val).join(';')).join('\r\n'));
   }catch(e){next(e);}
 });
+async function sendWebPush(userId,payload){
+  if(!pushConfigured)throw new Error('Push requires VAPID configuration');
+  const items=(await db.query('SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=$1',[userId])).rows;
+  if(!items.length)throw new Error('Brak aktywnej subskrypcji powiadomień na telefonie');
+  let successes=0;
+  for(const item of items){
+    try {
+      await webpush.sendNotification({endpoint:item.endpoint,keys:{p256dh:item.p256dh,auth:item.auth}},JSON.stringify(payload),{TTL:3600,urgency:payload.critical?'high':'normal'});
+      successes++;
+    }catch(e) {
+      if(e.statusCode===404||e.statusCode===410)await db.query('DELETE FROM push_subscriptions WHERE id=$1',[item.id]);
+      else console.warn('Web push delivery failed',e.statusCode||'unknown');
+    }
+  }
+  if(!successes)throw new Error('Nie udało się dostarczyć powiadomienia web push');
+  return successes;
+}
+app.get('/api/push/public-key',auth,adminOnly,(req,res)=>{
+  if(!pushConfigured)return problem(res,503,'Powiadomienia web push nie są skonfigurowane.');
+  res.json({publicKey:process.env.VAPID_PUBLIC_KEY});
+});
+app.post('/api/push/subscribe',auth,adminOnly,async(req,res,next)=>{
+ try{
+  const sub=req.body?.subscription||req.body;
+  const endpoint=sub?.endpoint, p256dh=sub?.keys?.p256dh, authKey=sub?.keys?.auth;
+  if(typeof endpoint!=='string'||endpoint.length>2048||!endpoint.startsWith('https://')||
+    typeof p256dh!=='string'||p256dh.length<40||p256dh.length>512||typeof authKey!=='string'||authKey.length<8||authKey.length>512)
+    return problem(res,400,'Nieprawidłowa subskrypcja.');
+  await db.query('INSERT INTO push_subscriptions(user_id,endpoint,p256dh,auth) VALUES($1,$2,$3,$4) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,p256dh=EXCLUDED.p256dh,auth=EXCLUDED.auth,updated_at=now()',[req.user.id,endpoint,p256dh,authKey]);
+  res.status(201).json({ok:true});
+ }catch(e){next(e);}
+});
+app.post('/api/push/test',auth,adminOnly,async(req,res,next)=>{
+ try{
+  const count=await sendWebPush(req.user.id,{title:'MarkNet Serwis',body:'Powiadomienia na telefonie działają.',url:'/serwis/',critical:false,tag:'marknet-push-test'});
+  res.json({ok:true,delivered:count});
+ }catch(e){return problem(res,503,'Nie udało się wysłać próbnego powiadomienia. Sprawdź instalację aplikacji i zgodę na powiadomienia.');}
+});
+async function phoneAlertForTicket(t){
+  const title=t.priority==='Krytyczny'?'PILNE: nowe zgłoszenie MarkNet':'Nowe zgłoszenie MarkNet';
+  const payload={title,body:ticketNumber(t)+' • '+t.category,url:'/serwis/',critical:t.priority==='Krytyczny',tag:'ticket-'+t.id};
+  try{
+    const admins=(await db.query("SELECT id FROM users WHERE role='admin'")).rows;
+    let successful=0;
+    for(const admin of admins)try{successful+=await sendWebPush(admin.id,payload);}catch{}
+    if(successful)return successful;
+  }catch(e){console.warn('Web push query failed:',e.message);}
+  if(notifications.phoneReady())return notifications.mobileAlert(t);
+  throw new Error('Brak aktywnej subskrypcji web push lub Telegram');
+}
 async function deliverNotifications(){
   const result=await db.query("SELECT j.id,j.kind,j.attempt_count,t.*,u.username AS author FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
   for(const job of result.rows){
     try{
       if(job.kind==='confirmation')await notifications.emailConfirmation(job);
       if(job.kind==='admin_email')await notifications.adminEmail(job);
-      if(job.kind==='phone')await notifications.mobileAlert(job);
+      if(job.kind==='phone')await phoneAlertForTicket(job);
       await db.query("UPDATE notification_jobs SET status='delivered',delivered_at=now(),last_error=NULL WHERE id=$1",[job.id]);
     }catch(e){
       const delay=Math.min(3600,Math.pow(2,Math.min(8,job.attempt_count))*30);
@@ -306,7 +360,7 @@ async function deliverNotifications(){
 let delivering=false;
 async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
 app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
- try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:notifications.phoneReady()}});}
+ try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:pushConfigured||notifications.phoneReady()}});}
  catch(e){next(e);}
 });
 app.get('/api/health',async(req,res)=>{if(!CONFIGURED)return res.status(503).json({status:'setup_required'});try{await db.query('SELECT 1');res.json({status:'ok'});}catch{res.status(503).json({status:'unavailable'});}});
