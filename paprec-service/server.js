@@ -240,6 +240,16 @@ function head(doc,title,subtitle){
  doc.fontSize(10).fillColor('#6c8799').text(subtitle,45,154);
  doc.moveTo(45,174).lineTo(550,174).strokeColor('#c9e3ee').stroke();doc.y=190;
 }
+app.get('/api/tickets/:id/confirmation.pdf',auth,longId,async(req,res,next)=>{
+ try{
+  const t=await getTicket(req.params.id);
+  if(!t||(req.user.role!=='admin'&&t.organization!=='client'))return problem(res,404,'Nie znaleziono zgłoszenia.');
+  const pdf=await notifications.confirmation({
+   ...t,requester_name:t.requester_name||t.author,requester_email:t.requester_email||'Nie podano'
+  });
+  res.type('application/pdf');res.set('Content-Disposition','attachment; filename="MarkNet-'+ticketNumber(t)+'.pdf"');res.send(pdf);
+ }catch(e){next(e);}
+});
 app.get('/api/reports/tickets/:id.pdf',auth,adminOnly,async(req,res,next)=>{
   try{
     if(!/^[1-9]\d*$/.test(req.params.id))return problem(res,400,'Niepoprawny identyfikator.');
