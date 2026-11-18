@@ -79,10 +79,11 @@
     </div>
     <div id="admin-users" class="panel reports hide">
       <div><span class="eyebrow">Konta i uprawnienia</span><h2>Użytkownicy klientów</h2>
-      <p class="subtle">Samodzielnie twórz loginy i hasła, przypisuj użytkowników do firm i w razie potrzeby blokuj dostęp. Minimum hasła: 8 znaków.</p></div>
+      <p class="subtle">Przypisz każdemu użytkownikowi adres e-mail, na który będzie wysyłane potwierdzenie zgłoszenia i protokół PDF. Zarządzaj loginami, hasłami i dostępem do firm.</p></div>
       <form id="user-create-form" class="form">
         <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
-        <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label></div>
+        <label>E-mail użytkownika<input name="email" type="email" maxlength="254" autocomplete="off" required placeholder="np. pracownik@firma.pl"></label></div>
+        <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label>
         <label>Przypisz użytkownika do klienta<select name="organization_id" id="new-user-organization" required></select></label>
         <button type="submit" class="btn main">+ Utwórz użytkownika</button>
       </form>
@@ -108,13 +109,13 @@
       <label id="new-org-wrap" class="hide">Klient<select name="organization_id" id="new-organization"></select></label>
       <label>System / obszar<select name="category" id="new-category" required></select></label>
       <div class="two"><label>Osoba zgłaszająca<input name="requester_name" minlength="3" maxlength="120" autocomplete="name" placeholder="Imię i nazwisko" required></label>
-      <label>E-mail do potwierdzenia PDF<input name="requester_email" type="email" maxlength="254" autocomplete="email" placeholder="imie.nazwisko@firma.pl" required></label></div>
+      <label>E-mail do potwierdzenia PDF<input id="requester-email" name="requester_email" type="email" maxlength="254" autocomplete="off" placeholder="Adres przypisany do konta" required></label></div>
       <label>Krótki tytuł<input name="title" minlength="5" maxlength="180" placeholder="Np. brak łączności z urządzeniem" required></label>
       <div class="two"><label>Lokalizacja<input name="area" maxlength="150" placeholder="Budynek, poziom, pomieszczenie"></label>
       <label>Urządzenie / identyfikator<input name="device" maxlength="150" placeholder="Nazwa urządzenia, punkt"></label></div>
       <label>Opis usterki lub awarii<textarea name="description" rows="5" minlength="10" maxlength="5000" placeholder="Co się dzieje? Od kiedy? Jakie instalacje są dotknięte?" required></textarea></label>
       <label>Zdjęcia lub dokumenty (opcjonalnie)<input id="new-ticket-files" type="file" name="photos" accept="image/*,.heic,.heif,.pdf" multiple></label>
-      <p class="hint" id="photos-hint">Możesz dodać maksymalnie 10 plików, do 5 MB każdy. Obsługiwane: zdjęcia JPG, PNG, WebP, HEIC i PDF.</p>
+      <p class="hint" id="photos-hint">Możesz dodać maksymalnie 10 plików, do 5 MB każdy. Obsługiwane: zdjęcia JPG, PNG, WebP, HEIC i PDF. Potwierdzenie zgłoszenia i PDF zostaną wysłane na adres e-mail przypisany do konta.</p>
       <p class="hint">Po wysłaniu zgłoszenia pobierzesz potwierdzenie PDF ze szczegółów sprawy. Awarie krytyczne wymagają także kontaktu zgodnego z procedurami serwisowymi.</p>
       <div class="form-actions"><button type="button" class="btn outline" data-close="new-ticket-modal">Anuluj</button><button class="btn main" type="submit">Wyślij zgłoszenie</button></div>
     </form>
