@@ -144,3 +144,12 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 .archive-item strong{font-size:.87rem;color:#184b66;overflow-wrap:anywhere}
 .archive-item small{font-size:.75rem;color:#7890a0}
 @media(max-width:550px){.archive-item{flex-direction:column;align-items:stretch}.archive-item button{align-self:flex-start}}
+
+/* Formularz zakończenia prac serwisowych */
+#completion-modal .modal{max-width:760px;max-height:92vh;overflow-y:auto}
+#completion-form textarea{min-height:145px}
+#service-protocol-pdf{background:#ffda00;color:#173b54}
+#service-protocol-pdf.hide{display:none!important}
+#complete-ticket{margin-top:9px}
+#completion-form .form-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end;margin-top:10px}
+@media(max-width:640px){#completion-form .form-actions>.btn{width:100%}}
