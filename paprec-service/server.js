@@ -429,7 +429,7 @@ app.get('/api/tickets/:id/service-protocol.pdf',auth,longId,async(req,res,next)=
     if(!completion||t.status!=='Zamknięte')return problem(res,409,'Protokół można pobrać po zakończeniu prac i uzupełnieniu formularza.');
     const pdf=await renderProtocol(t,completion,{
       name:process.env.PROTOCOL_COMPANY_NAME||'Marek Wyganowski MarkNet',
-      address:process.env.PROTOCOL_COMPANY_ADDRESS||'',
+      address:process.env.PROTOCOL_COMPANY_ADDRESS||'Jaroszewy 7a, 83-236 Jaroszewy',
       phone:process.env.PROTOCOL_COMPANY_PHONE||'',
       email:process.env.PROTOCOL_COMPANY_EMAIL||process.env.SMTP_USERNAME||'marknet.biuro@gmail.com'
     });
