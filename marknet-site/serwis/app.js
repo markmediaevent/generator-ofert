@@ -82,7 +82,7 @@ async function openTicket(id){
   $('detail-title').textContent=t.title;
   const infoBox=$('detail-information');clear(infoBox);
   const grid=node('div','detail-grid');
-  info(grid,'Status',t.status);info(grid,'System',t.category);info(grid,'Zgłoszono',date(t.created_at));info(grid,'Zgłaszający',t.author);
+  info(grid,'Status',t.status);info(grid,'System',t.category);info(grid,'Zgłoszono',date(t.created_at));info(grid,'Zgłaszający',t.requester_name||t.author);info(grid,'E-mail zgłaszającego',t.requester_email);
   info(grid,'Lokalizacja',t.area);info(grid,'Urządzenie',t.device);info(grid,'Weryfikacja',date(t.acknowledged_at));info(grid,'Na obiekcie',date(t.on_site_at));
   info(grid,'Rozwiązanie',date(t.resolved_at));
   infoBox.append(grid,node('div','description-box',t.description));
