@@ -183,7 +183,7 @@ function wireEvents(){
       try{await api('/api/tickets/'+r.ticket.id+'/attachments',{method:'POST',body:item});}catch(err){errors++;console.warn('Załącznik nie został dodany:',file.name);}
     }
     form.reset();closeModal('new-ticket-modal');await refresh();
-    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+(r.notification?.email==='configuration_required'?' Potwierdzenie e-mail oczekuje na aktywację poczty.':''));
+    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+' Potwierdzenie PDF znajdziesz w szczegółach.');
     await openTicket(r.ticket.id);
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
