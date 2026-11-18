@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { strict as assert } from 'node:assert';
 import { randomBytes } from 'node:crypto';
+import webpush from 'web-push';
 
 const port = 18182;
 const base = 'http://127.0.0.1:'+port;
@@ -9,8 +10,9 @@ const db = process.env.TEST_DATABASE_URL;
 if(!db) throw new Error('TEST_DATABASE_URL missing');
 const adminPass='S-'+randomBytes(24).toString('hex');
 const clientPass='S-'+randomBytes(24).toString('hex');
+const vapid=webpush.generateVAPIDKeys();
 const child=spawn(process.execPath,['server.js'],{cwd:new URL('../',import.meta.url).pathname,
- env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test'}, stdio:'inherit'});
+ env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
 const tryHttp=async(path,opts={})=>fetch(base+path,opts);
 async function ready(){
  for(let i=0;i<40;i++){
@@ -81,6 +83,24 @@ try{
  const csv=await tryHttp('/api/reports/month.csv?month='+month,{headers:{Cookie:admin}});
  assert.equal(csv.status,200);
  assert.match(await csv.text(),/MN-/);
+ const key=await api('/api/push/public-key',undefined,'GET',admin);
+ assert.equal(key.r.status,200);assert.equal(key.json.publicKey,vapid.publicKey);
+ const clientPush=await api('/api/push/public-key',undefined,'GET',client);
+ assert.equal(clientPush.r.status,403);
+ const subscribe=await api('/api/push/subscribe',{subscription:{
+  endpoint:'https://fcm.googleapis.com/fcm/send/ci-test-endpoint',
+  keys:{p256dh:randomBytes(65).toString('base64url'),auth:randomBytes(16).toString('base64url')}
+ }},'POST',admin);
+ assert.equal(subscribe.r.status,201);
+ const users=await api('/api/admin/users',undefined,'GET',admin);
+ assert.equal(users.r.status,200);
+ const clientUser=users.json.users.find(u=>u.username==='paprec');
+ assert.ok(clientUser);
+ const newPassword='New-'+randomBytes(24).toString('hex');
+ const reset=await api('/api/admin/users/'+clientUser.id+'/reset-password',{newPassword},'POST',admin);
+ assert.equal(reset.r.status,200);
+ const newClient=await login('paprec',newPassword);
+ assert.ok(newClient);
  const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(origins.status,403);
  console.log('SMOKE TEST PASSED: auth, RBAC, ticket, events, PDF, CSV, CSRF guard');
