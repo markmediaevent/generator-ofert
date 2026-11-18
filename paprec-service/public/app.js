@@ -162,7 +162,7 @@ function openCompletionForm(){
  if(state.me?.role!=='admin'||!state.detail?.ticket)return;
  const form=$('completion-form'),r=state.detail.completion;
  form.reset();
- const src=r?.work_date ? String(r.work_date).slice(0,10) : new Date().toLocaleDateString('en-CA');
+ const src=r?.work_date ? String(r.work_date).slice(0,10) : new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
  form.elements.work_date.value=src;
  form.elements.technicians.value=r?.technicians||([state.me.first_name,state.me.last_name].filter(Boolean).join(' ')||'Marek Wyganowski');
  form.elements.hours.value=r?.hours||'';
