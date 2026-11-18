@@ -2,7 +2,7 @@ services:
   - type: web
     name: marknet-serwis-test
     runtime: node
-    plan: free
+    plan: 0.5c-512mb
     region: frankfurt
     repo: https://github.com/markmediaevent/generator-ofert
     branch: paprec-service-2026
@@ -20,3 +20,12 @@ services:
         fromDatabase:
           name: marknet-serwis-staging-db
           property: connectionString
+
+databases:
+  - name: marknet-serwis-staging-db
+    plan: 0.1c-256mb
+    region: frankfurt
+    diskSizeGB: 1
+    postgresMajorVersion: '18'
+    databaseName: marknet_serwis_staging_db
+    user: marknet_serwis_staging_db_user
