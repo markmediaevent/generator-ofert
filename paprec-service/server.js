@@ -20,10 +20,21 @@ app.use(helmet({ contentSecurityPolicy: { directives: {
   frameAncestors: ["'none'"], formAction: ["'self'"]
 }} }));
 app.use(express.json({ limit: '64kb' }));
+const TRUSTED_FRONTENDS = new Set(['https://marknet.com.pl','https://www.marknet.com.pl']);
 app.use((req,res,next) => {
   res.set('Cache-Control', 'no-store');
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method) && req.headers.origin) {
-    try { if (new URL(req.headers.origin).host !== req.headers.host) return res.status(403).json({error:'Niedozwolone żądanie.'}); }
+  const origin=req.headers.origin;
+  const isTrusted=origin && TRUSTED_FRONTENDS.has(origin);
+  if(isTrusted) {
+    res.set('Access-Control-Allow-Origin',origin);
+    res.set('Vary','Origin');
+    res.set('Access-Control-Allow-Headers','Authorization, Content-Type');
+    res.set('Access-Control-Allow-Methods','GET, POST, PATCH, OPTIONS');
+    res.set('Access-Control-Max-Age','600');
+  }
+  if(req.method==='OPTIONS')return isTrusted?res.sendStatus(204):res.sendStatus(403);
+  if(['POST','PUT','PATCH','DELETE'].includes(req.method) && origin) {
+    try { if(new URL(origin).host!==req.headers.host && !isTrusted) return res.status(403).json({error:'Niedozwolone żądanie.'}); }
     catch { return res.status(403).json({error:'Nieprawidłowe pochodzenie żądania.'}); }
   }
   next();
@@ -59,7 +70,8 @@ function sessionCookie(token,age){return 'mn_session='+token+'; Path=/; HttpOnly
 async function auth(req,res,next){
   try{
     const cookie=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('mn_session='));
-    const token=cookie?cookie.slice('mn_session='.length):'';
+    const bearer=String(req.headers.authorization||'').match(/^Bearer ([a-f0-9]{64})$/);
+    const token=bearer?bearer[1]:(cookie?cookie.slice('mn_session='.length):'');
     if(!/^[a-f0-9]{64}$/.test(token))return problem(res,401,'Zaloguj się.');
     const hashed=crypto.createHash('sha256').update(token).digest('hex');
     const rows=await db.query('SELECT u.id,u.username,u.role,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()', [hashed]);
@@ -86,12 +98,16 @@ app.post('/api/login',async(req,res,next)=>{
     attempts.delete(ip);
     const token=crypto.randomBytes(32).toString('hex');
     await db.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'7 days\')',[crypto.createHash('sha256').update(token).digest('hex'),u.id]);
-    res.set('Set-Cookie',sessionCookie(token,7*24*3600));
-    res.json({ok:true,role:u.role,username:u.username});
+    if(req.headers.origin && TRUSTED_FRONTENDS.has(req.headers.origin)) {
+      res.json({ok:true,role:u.role,username:u.username,accessToken:token});
+    } else {
+      res.set('Set-Cookie',sessionCookie(token,7*24*3600));
+      res.json({ok:true,role:u.role,username:u.username});
+    }
   }catch(e){next(e);}
 });
 app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,role:req.user.role,clientName:process.env.CLIENT_NAME||'Klient'}));
-app.post('/api/logout',auth,async(req,res,next)=>{try{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);res.set('Set-Cookie',sessionCookie('',0));res.json({ok:true});}catch(e){next(e);}});
+app.post('/api/logout',auth,async(req,res,next)=>{try{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);if(!req.headers.authorization)res.set('Set-Cookie',sessionCookie('',0));res.json({ok:true});}catch(e){next(e);}});
 app.post('/api/change-password',auth,async(req,res,next)=>{
   try{
     const old=String(req.body.oldPassword||''),fresh=String(req.body.newPassword||'');
