@@ -41,7 +41,7 @@ async function setupPortal(){
  $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
- show('admin-reports',state.me.role==='admin');
+ show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');
  const category=$('new-category'),filter=$('filter-category'),status=$('filter-status');
  clear(category);clear(filter);clear(status);
  option(filter,'Wszystkie systemy','');option(status,'Wszystkie statusy','');
@@ -112,6 +112,21 @@ async function updateTicket(payload){
   await refresh();await openTicket(state.selectedId);pop('Zaktualizowano zgłoszenie.');
  }catch(e){pop(e.message,true);}
 }
+async function enablePhoneAlerts(){
+ if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw Error('Przeglądarka nie obsługuje powiadomień PWA. Na iPhonie dodaj stronę do ekranu początkowego.');
+ const permission=await Notification.requestPermission();
+ if(permission!=='granted')throw Error('Nie przyznano zgody na powiadomienia. Sprawdź ustawienia Safari/iOS.');
+ const registration=await navigator.serviceWorker.register('/serwis/sw.js',{scope:'/serwis/'});
+ await navigator.serviceWorker.ready;
+ const {publicKey}=await api('/api/push/public-key');
+ const base64=publicKey.replace(/-/g,'+').replace(/_/g,'/');
+ const bytes=Uint8Array.from(atob(base64.padEnd(Math.ceil(base64.length/4)*4,'=')),c=>c.charCodeAt(0));
+ let sub=await registration.pushManager.getSubscription();
+ if(!sub)sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
+ await api('/api/push/subscribe',{method:'POST',body:JSON.stringify({subscription:sub.toJSON()})});
+ $('push-status').textContent='Powiadomienia aktywne na tym urządzeniu.';
+}
+
 function wireEvents(){
  $('login-form').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;
@@ -121,6 +136,18 @@ function wireEvents(){
  $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}sessionStorage.removeItem(AUTH_KEY);state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
  $('add-button').addEventListener('click',()=>modal('new-ticket-modal'));
  $('password-button').addEventListener('click',()=>modal('password-modal'));
+ $('enable-push').addEventListener('click',async()=>{
+  const b=$('enable-push');b.disabled=true;
+  try{await enablePhoneAlerts();pop('Powiadomienia na telefon zostały włączone.');}
+  catch(e){$('push-status').textContent=e.message;pop(e.message,true);}
+  finally{b.disabled=false;}
+ });
+ $('test-push').addEventListener('click',async()=>{
+  const b=$('test-push');b.disabled=true;
+  try{await api('/api/push/test',{method:'POST'});pop('Wysłano próbny alert na telefon.');}
+  catch(e){pop(e.message,true);}
+  finally{b.disabled=false;}
+ });
  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
  for(const id of ['filter-status','filter-category'])$(id).addEventListener('change',renderTickets);
  $('filter-search').addEventListener('input',renderTickets);
