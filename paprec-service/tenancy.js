@@ -8,6 +8,15 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   function usernameValid(s){return /^[a-z0-9][a-z0-9._-]{2,49}$/.test(s);}
   function validServices(items){return Array.isArray(items)&&items.length>0&&items.length<=categories.length&&items.every(x=>categories.includes(x))&&new Set(items).size===items.length;}
   function orgId(v){return /^[1-9]\d*$/.test(String(v||''))?String(v):null;}
+  const profileKeys=['address','nip','regon','krs','contact_name','contact_role','contact_email','contact_phone','contact_mobile'];
+  function profileFrom(body){
+    if(body?.profile===undefined)return null;
+    if(!body.profile||typeof body.profile!=='object'||Array.isArray(body.profile))return false;
+    const x={};
+    for(const k of profileKeys)x[k]=name(body.profile[k],k==='address'?250:120);
+    if(x.contact_email&&!validEmail(x.contact_email))return false;
+    return x;
+  }
   function err(res,e,kind){
     if(e.code==='23505')return problem(res,409,kind==='user'?'Ten login jest już zajęty.':'Klient o tej nazwie już istnieje.');
     return null;
@@ -19,25 +28,25 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
     }catch(e){next(e);}
   });
   app.post('/api/admin/organizations',auth,adminOnly,async(req,res,next)=>{
-    const label=name(req.body?.name),systems=req.body?.systems;
-    if(label.length<3||!validServices(systems))return problem(res,400,'Podaj nazwę klienta oraz co najmniej jeden obsługiwany system.');
+    const label=name(req.body?.name),systems=req.body?.systems,profile=profileFrom(req.body);
+    if(label.length<3||!validServices(systems)||profile===false)return problem(res,400,'Podaj nazwę klienta, obsługiwane systemy i poprawne dane kontaktowe.');
     const c=await db.connect();
     try{
       await c.query('BEGIN');
-      const o=(await c.query('INSERT INTO organizations(name) VALUES($1) RETURNING *',[label])).rows[0];
+      const o=(await c.query('INSERT INTO organizations(name,profile) VALUES($1,$2::jsonb) RETURNING *',[label,JSON.stringify(profile||{})])).rows[0];
       for(const sys of systems)await c.query('INSERT INTO organization_systems(organization_id,category) VALUES($1,$2)',[o.id,sys]);
       await c.query('COMMIT');res.status(201).json({organization:o});
     }catch(e){await c.query('ROLLBACK');if(!err(res,e,'organization'))next(e);}
     finally{c.release();}
   });
   app.patch('/api/admin/organizations/:id',auth,adminOnly,longId,async(req,res,next)=>{
-    const label=name(req.body?.name),systems=req.body?.systems;
+    const label=name(req.body?.name),systems=req.body?.systems,profile=profileFrom(req.body);
     const enabled=req.body?.is_active;
-    if(label.length<3||!validServices(systems)||typeof enabled!=='boolean')return problem(res,400,'Podaj nazwę klienta, systemy i stan aktywności.');
+    if(label.length<3||!validServices(systems)||typeof enabled!=='boolean'||profile===false)return problem(res,400,'Podaj nazwę klienta, systemy, poprawne dane kontaktowe i stan aktywności.');
     const c=await db.connect();
     try{
       await c.query('BEGIN');
-      const o=(await c.query('UPDATE organizations SET name=$1,is_active=$2 WHERE id=$3 RETURNING *',[label,enabled,req.params.id])).rows[0];
+      const o=(await c.query('UPDATE organizations SET name=$1,is_active=$2,profile=COALESCE($3::jsonb,profile) WHERE id=$4 RETURNING *',[label,enabled,profile?JSON.stringify(profile):null,req.params.id])).rows[0];
       if(!o){await c.query('ROLLBACK');return problem(res,404,'Nie znaleziono klienta.');}
       await c.query('DELETE FROM organization_systems WHERE organization_id=$1',[o.id]);
       for(const sys of systems)await c.query('INSERT INTO organization_systems(organization_id,category) VALUES($1,$2)',[o.id,sys]);
@@ -93,6 +102,7 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
 async function migrateTenancy(db,categories){
   await db.query("CREATE TABLE IF NOT EXISTS organizations (id BIGSERIAL PRIMARY KEY,name TEXT NOT NULL UNIQUE,is_active BOOLEAN NOT NULL DEFAULT true,created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await db.query("CREATE TABLE IF NOT EXISTS organization_systems (organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,category TEXT NOT NULL,PRIMARY KEY(organization_id,category))");
+  await db.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS profile JSONB NOT NULL DEFAULT '{}'::jsonb");
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT');
