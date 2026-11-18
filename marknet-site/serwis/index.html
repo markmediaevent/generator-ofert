@@ -4,10 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-13">
-<link rel="stylesheet" href="brand.css?v=20261118-13">
-<script src="management.js?v=20261118-13" defer></script>
-<script src="app.js?v=20261118-13" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261118-14">
+<link rel="stylesheet" href="brand.css?v=20261118-14">
+<script src="management.js?v=20261118-14" defer></script>
+<script src="app.js?v=20261118-14" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -61,6 +61,12 @@
         <input id="filter-search" type="search" placeholder="Szukaj zgłoszenia..." aria-label="Szukaj zgłoszenia"></div>
       </div>
       <div id="ticket-list" class="ticket-list"></div>
+    </div>
+    <div id="admin-archive" class="panel reports hide">
+      <div><span class="eyebrow">Porządkowanie rejestru</span><h2>Archiwum usuniętych zgłoszeń</h2>
+      <p class="subtle">Zgłoszenia usunięte przez administratora nie są widoczne klientom ani w raportach. Możesz je przywrócić, jeśli zostały usunięte przypadkowo.</p></div>
+      <div class="push-actions"><button id="refresh-archive" class="btn outline small" type="button">Odśwież archiwum</button></div>
+      <div id="archive-list" class="management-list"><p class="subtle">Brak usuniętych zgłoszeń.</p></div>
     </div>
     <div id="admin-push" class="panel reports hide">
       <div><span class="eyebrow">Alerty na iPhone</span><h2>Powiadomienia o nowych awariach</h2>
@@ -141,6 +147,7 @@
       <div class="two"><label>Aktualny status<select id="detail-status"></select></label><label>Opis wykonanych czynności / decyzji<textarea id="admin-note" rows="3" placeholder="Np. diagnostyka, ustalenia, wykonane działania..."></textarea></label></div>
       <button id="save-status" class="btn main">Zapisz zmianę / notatkę</button>
       <button id="ticket-pdf" class="btn outline">Pobierz protokół PDF</button>
+      <div class="ticket-danger-actions"><button id="delete-ticket" type="button" class="btn danger-outline">Usuń zgłoszenie z rejestru</button><p class="hint">Zgłoszenie zniknie z list klientów i raportów. Historię będzie można przywrócić w archiwum administratora.</p></div>
    </div>
    <section class="log"><h3>Historia zdarzeń</h3><div id="detail-events"></div></section>
    <form id="comment-form" class="form comment-form"><label>Dodaj komentarz / informację<textarea name="body" rows="3" minlength="2" maxlength="3000" placeholder="Wpisz wiadomość..." required></textarea></label><button class="btn main" type="submit">Dodaj wpis</button></form>
