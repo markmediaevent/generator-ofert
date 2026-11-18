@@ -122,3 +122,13 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 .inline-check{display:flex!important;align-items:center;gap:12px!important;justify-content:flex-start;font-weight:730}
 .manager-form button{justify-self:start}
 @media(max-width:650px){.service-checklist{grid-template-columns:1fr}.topbar-inner{flex-wrap:wrap}.home-top-link{padding-inline:8px!important;font-size:.69rem!important}.top-actions{flex-wrap:wrap;justify-content:flex-end}}
+
+.submission-success{display:flex;align-items:flex-start;gap:14px;background:#fff;border:2px solid #0a9bcf;border-left:7px solid #ffcf00;border-radius:16px;padding:18px 20px;box-shadow:0 13px 38px rgba(0,129,180,.10);margin:4px 0 23px;color:#124e70}
+.submission-success.hide{display:none}
+.submission-symbol{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:50%;background:#e8f9fd;color:#008dbb;font-weight:900;font-size:1.2rem}
+.submission-copy{flex:1;min-width:0}
+.submission-copy strong{display:block;font-size:1.04rem;font-weight:850;line-height:1.45;color:#07587d}
+.submission-copy p{margin:6px 0 0;font-size:.86rem;color:#557f95;line-height:1.55}
+.submission-dismiss{background:#fff;border:1px solid #cbe5ef;border-radius:9px;color:#4b768e;font-size:1.3rem;min-width:34px;min-height:34px;cursor:pointer}
+.ticket-row.ticket-highlight{border-color:#009bce;box-shadow:0 0 0 3px rgba(5,155,206,.15),0 8px 22px rgba(0,137,182,.07)}
+@media(max-width:600px){.submission-success{padding:14px 12px;gap:10px}.submission-symbol{flex-basis:30px;height:30px}.submission-copy strong{font-size:.94rem}}
