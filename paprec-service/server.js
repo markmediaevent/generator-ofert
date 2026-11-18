@@ -405,7 +405,7 @@ app.post('/api/tickets/:id/service-completion',auth,adminOnly,longId,async(req,r
   const workDate=String(req.body.work_date||'');
   const technicians=clean(req.body.technicians,300),workDone=clean(req.body.work_done,12000);
   const hours=Number(req.body.hours),operational=clean(req.body.system_operational,30),fit=clean(req.body.fit_for_use,30);
-  const validDate=/^\d{4}-\d{2}-\d{2}$/.test(workDate)&&new Date(workDate+'T12:00:00Z').toISOString().startsWith(workDate);
+  const validDate=/^\d{4}-\d{2}-\d{2}$/.test(workDate)&&!Number.isNaN(Date.parse(workDate+'T12:00:00Z'))&&new Date(workDate+'T12:00:00Z').toISOString().startsWith(workDate);
   if(!validDate||technicians.length<3||workDone.length<10||!Number.isFinite(hours)||hours<=0||hours>500||
      !['tak','nie','nie_oceniono'].includes(operational)||!['tak','nie','nie_oceniono'].includes(fit))
     return problem(res,400,'Uzupełnij datę, serwisanta, liczbę godzin, wykaz wykonanych prac i ocenę stanu systemu.');
