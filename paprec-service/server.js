@@ -197,16 +197,20 @@ function datePL(v){return v?new Intl.DateTimeFormat('pl-PL',{dateStyle:'medium',
 function pdfStart(res,file){res.set('Content-Type','application/pdf');res.set('Content-Disposition','attachment; filename="'+file+'"');const doc=new PDFDocument({size:'A4',margin:44,info:{Title:'MarkNet - raport serwisowy'}});doc.pipe(res);font(doc);return doc;}
 function p(doc,label,value){
   if(doc.y>718)doc.addPage();
-  doc.fontSize(9).fillColor('#6a7e89').text(label,{continued:false});
-  doc.fontSize(11).fillColor('#122938').text(String(value??'—'),{width:500});
+  doc.fontSize(9).fillColor('#6b899b').text(label,{continued:false});
+  doc.fontSize(11).fillColor('#13455f').text(String(value??'—'),{width:500});
   doc.moveDown(.65);
 }
 function head(doc,title,subtitle){
- doc.rect(0,0,595,95).fill('#0b1d2b');doc.fillColor('#6ce6d7').fontSize(18).text('MARKNET',45,27);font(doc);
- doc.fillColor('#eaf5fa').fontSize(12).text('SERWIS • RAPORT',45,53);
- doc.fillColor('#122938').fontSize(18).text(title,45,123);
- doc.fontSize(10).fillColor('#566e7a').text(subtitle,45,154);
- doc.moveTo(45,174).lineTo(550,174).strokeColor('#cddde4').stroke();doc.y=190;
+ doc.rect(0,0,595,98).fill('#ffffff');
+ doc.rect(0,93,595,5).fill('#ffd500');
+ doc.fillColor('#009bd2').fontSize(24).text('MARK',45,24);
+ doc.fillColor('#f2c900').fontSize(24).text('NET',116,24);
+ doc.fillColor('#59809a').fontSize(9).text('SYSTEMY ZABEZPIECZEŃ',45,58);
+ doc.fillColor('#137eae').fontSize(10).text('PANEL SERWISOWY / RAPORT',380,38,{width:175,align:'right'});
+ doc.fillColor('#12425e').fontSize(17).text(title,45,123);
+ doc.fontSize(10).fillColor('#6c8799').text(subtitle,45,154);
+ doc.moveTo(45,174).lineTo(550,174).strokeColor('#c9e3ee').stroke();doc.y=190;
 }
 app.get('/api/reports/tickets/:id.pdf',auth,adminOnly,async(req,res,next)=>{
   try{
@@ -221,7 +225,7 @@ app.get('/api/reports/tickets/:id.pdf',auth,adminOnly,async(req,res,next)=>{
     p(doc,'Rozwiązano',datePL(t.resolved_at));p(doc,'Zamknięto',datePL(t.closed_at));
     p(doc,'Opis zgłoszenia',t.description);
     if(doc.y>645)doc.addPage();
-    doc.fontSize(14).fillColor('#122938').text('Historia zgłoszenia').moveDown(.4);
+    doc.fontSize(14).fillColor('#13455f').text('Historia zgłoszenia').moveDown(.4);
     for(const e of ev){p(doc,datePL(e.created_at)+' • '+(e.username||'system')+' • '+e.action,e.details||'—');}
     doc.moveDown();doc.fontSize(8).fillColor('#74838a').text('Raport wygenerowany automatycznie na podstawie danych zgłoszenia. Nie stanowi potwierdzenia wykonania prac, których nie odnotowano w historii.',{width:500});
     doc.end();
@@ -241,7 +245,7 @@ app.get('/api/reports/month.pdf',auth,adminOnly,async(req,res,next)=>{
     const response=rows.filter(x=>x.acknowledged_at).map(x=>(new Date(x.acknowledged_at)-new Date(x.created_at))/60000);
     p(doc,'Średni czas do odnotowanej weryfikacji',response.length?(response.reduce((a,b)=>a+b,0)/response.length).toFixed(0)+' minut ('+response.length+' zgłoszeń)':'brak danych');
     if(doc.y>630)doc.addPage();
-    doc.fontSize(14).fillColor('#122938').text('Rejestr zgłoszeń').moveDown(.3);
+    doc.fontSize(14).fillColor('#13455f').text('Rejestr zgłoszeń').moveDown(.3);
     for(const t of rows){p(doc,ticketNumber(t)+' • '+datePL(t.created_at),t.category+' • '+t.priority+' • '+t.status+' • '+t.title);}
     if(!rows.length)p(doc,'Rejestr','Brak zgłoszeń w wybranym miesiącu');
     doc.fontSize(8).fillColor('#74838a').text('Wyniki obejmują zgłoszenia utworzone w danym miesiącu. Czasy są obliczane wyłącznie na podstawie zarejestrowanych zdarzeń.');
