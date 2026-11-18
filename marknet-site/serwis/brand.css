@@ -132,3 +132,15 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 .submission-dismiss{background:#fff;border:1px solid #cbe5ef;border-radius:9px;color:#4b768e;font-size:1.3rem;min-width:34px;min-height:34px;cursor:pointer}
 .ticket-row.ticket-highlight{border-color:#009bce;box-shadow:0 0 0 3px rgba(5,155,206,.15),0 8px 22px rgba(0,137,182,.07)}
 @media(max-width:600px){.submission-success{padding:14px 12px;gap:10px}.submission-symbol{flex-basis:30px;height:30px}.submission-copy strong{font-size:.94rem}}
+
+/* Operacje administracyjne: blokada firm, archiwizacja zgłoszeń i usuwanie kont */
+.btn.danger-outline{border:1px solid #d69aa1!important;background:#fff7f7!important;color:#a02e3c!important;font-weight:750}
+.btn.danger-outline:hover{border-color:#aa3346!important;background:#ffebee!important}
+.manager-danger-zone,.ticket-danger-actions{border-top:1px solid #f1d2d7;margin-top:15px;padding:14px 0 2px}
+.manager-danger-zone{padding:14px 17px 17px;background:#fffafa}
+.ticket-danger-actions .hint{max-width:540px;margin-top:8px}
+.archive-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border:1px solid #d5e6ef;border-radius:12px;background:#f8fcff}
+.archive-item>div{display:grid;gap:4px;min-width:0}
+.archive-item strong{font-size:.87rem;color:#184b66;overflow-wrap:anywhere}
+.archive-item small{font-size:.75rem;color:#7890a0}
+@media(max-width:550px){.archive-item{flex-direction:column;align-items:stretch}.archive-item button{align-self:flex-start}}
