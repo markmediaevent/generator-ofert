@@ -48,6 +48,7 @@ async function renderProtocol(ticket,record,config={}){
  doc.registerFont('Regular',fs.existsSync(FONT_REGULAR)?FONT_REGULAR:'Helvetica');
  doc.registerFont('Bold',fs.existsSync(FONT_BOLD)?FONT_BOLD:'Helvetica-Bold');
  const chunks=[];
+ let footerLogo=null;
  const promise=new Promise((resolve,reject)=>{
    doc.on('data',chunk=>chunks.push(chunk));
    doc.on('end',()=>resolve(Buffer.concat(chunks)));
@@ -61,6 +62,7 @@ async function renderProtocol(ticket,record,config={}){
  try{
   if(fs.existsSync(logoPath)){
    const jpeg=await sharp(logoPath).flatten({background:'#ffffff'}).jpeg({quality:92}).toBuffer();
+   footerLogo=jpeg;
    doc.image(jpeg,LEFT,28,{fit:[157,76]});
   }else{
    title(doc,'MARKNET',LEFT,43,165,21);
@@ -101,45 +103,60 @@ async function renderProtocol(ticket,record,config={}){
  const bodyY=row+51;
  doc.y=bodyY;
  const workText=value(record.work_done);
- // Reserve the assessment and signature section. Long descriptions continue on later pages.
- const usableBodyHeight=625-bodyY;
- const needed=doc.font('Regular').fontSize(9.5).heightOfString(workText,{width:472,lineGap:3});
- if(needed<=usableBodyHeight){
-  doc.text(workText,LEFT+24,bodyY,{width:463,fontSize:9.5,lineGap:3});
- }else{
-  // Allow long text to paginate, without overlapping the formal closing section.
-  const originalBottom=doc.page.margins.bottom;
-  doc.page.margins.bottom=190;
-  doc.text(workText,LEFT+24,bodyY,{width:463,fontSize:9.5,lineGap:3});
-  doc.page.margins.bottom=originalBottom;
+ const lines=[];
+ doc.font('Regular').fontSize(9.5);
+ for(const paragraph of workText.replace(/\r/g,'').split('\n')){
+  if(!paragraph.trim()){lines.push('');continue;}
+  let row='';
+  for(const word of paragraph.trim().split(/\s+/)){
+   if(!row){row=word;continue;}
+   if(doc.widthOfString(row+' '+word)<=462)row+=' '+word;
+   else{lines.push(row);row=word;}
+  }
+  if(row)lines.push(row);
  }
- const signatureMinimum=146;
- let assessY=Math.max(doc.y+26,645);
- if(assessY+signatureMinimum>PAGE_H-58){
+ let bodyLineY=bodyY;
+ for(const line of lines){
+  const firstPage=doc.bufferedPageRange().count===1;
+  if(bodyLineY+15>(firstPage?623:724)){
+   newContinuation(doc,ticket);
+   bodyLineY=85;
+  }
+  doc.font('Regular').fontSize(9.5).fillColor(INK).text(line||' ',LEFT+24,bodyLineY,
+    {width:462,lineGap:0,breakLine:false});
+  bodyLineY+=14.7;
+ }
+ doc.y=bodyLineY;
+ const signatureMinimum=131;
+ let assessY=Math.max(doc.y+17,606);
+ if(assessY+signatureMinimum>PAGE_H-82){
   newContinuation(doc,ticket);
-  assessY=140;
+  assessY=130;
  }
  doc.font('Bold').fontSize(9.2).fillColor(INK).text(
    'Na podstawie wykonanych prac serwisowych stwierdza się: '+verdict(record.system_operational,'working')+' działania zainstalowanego systemu.',
    LEFT+5,assessY,{width:485,lineGap:2});
  const fitY=doc.y+9;
  doc.font('Bold').fontSize(9.6).text('System '+verdict(record.fit_for_use,'use')+'.',LEFT+5,fitY,{width:485});
- const sigY=doc.y+20;
+ const sigY=doc.y+15;
  doc.font('Regular').fontSize(9.2).text('Prace serwisowe wykonał:',LEFT+5,sigY,{width:230});
  doc.text('Potwierdzenie wykonanych prac:',321,sigY,{width:220});
- const lineY=sigY+62;
+ const lineY=sigY+49;
  doc.lineWidth(.6).strokeColor(GREY).moveTo(LEFT+10,lineY).lineTo(LEFT+228,lineY).stroke();
  doc.moveTo(325,lineY).lineTo(RIGHT-9,lineY).stroke();
  doc.font('Regular').fontSize(8.2).fillColor(GREY).text('(podpis przedstawiciela wykonawcy)',LEFT+11,lineY+7,{width:215,align:'center'});
  doc.text('(podpis przedstawiciela użytkownika)',326,lineY+7,{width:209,align:'center'});
- const footerBottom=PAGE_H-43;
+ const footerBottom=PAGE_H-67;
  const {start,count}=doc.bufferedPageRange();
  for(let i=start;i<start+count;i++){
   doc.switchToPage(i);
+  const prevBottom=doc.page.margins.bottom;doc.page.margins.bottom=0;
   doc.lineWidth(1.3).strokeColor(YELLOW).moveTo(LEFT,footerBottom-19).lineTo(RIGHT,footerBottom-19).stroke();
-  doc.font('Bold').fontSize(9.5).fillColor(INK).text(companyName,LEFT,footerBottom-10,{width:220});
+  doc.font('Bold').fontSize(9.2).fillColor(INK).text(companyName,LEFT,footerBottom-9,{width:290});
   doc.font('Regular').fontSize(7.7).fillColor(GREY).text('www.marknet.com.pl',LEFT,footerBottom+4,{width:220});
-  doc.font('Regular').fontSize(8).fillColor(INK).text('Strona '+(i-start+1)+' z '+count,RIGHT-98,footerBottom,{width:98,align:'right'});
+  if(footerLogo)doc.image(footerLogo,RIGHT-122,footerBottom-8,{fit:[90,29]});
+  doc.font('Regular').fontSize(7.9).fillColor(INK).text('Strona '+(i-start+1)+' z '+count,RIGHT-95,footerBottom+21,{width:95,align:'right'});
+  doc.page.margins.bottom=prevBottom;
  }
  doc.end();return promise;
 }
