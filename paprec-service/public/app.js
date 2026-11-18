@@ -59,12 +59,20 @@ async function setupPortal(){
 }
 async function refreshNotifications(){
  const data=await api('/api/admin/notifications');
- const all=data.jobs||[];
- const pending=all.filter(x=>x.status==='pending');
+ const jobs=data.jobs||[];
+ const counts=(kind,status)=>jobs.filter(x=>x.kind===kind&&x.status===status).length;
+ const pending=jobs.filter(x=>x.status==='pending');
  const failed=pending.filter(x=>x.attempt_count>0);
- const emailConfig=data.configured?.email?'Skonfigurowana':'Wymaga hasła aplikacji Google';
- const phoneConfig=data.configured?.phone?'Skonfigurowane':'Nieaktywne';
- $('notification-summary').textContent='Poczta: '+emailConfig+' • Telefon: '+phoneConfig+' • Oczekujące wysyłki: '+pending.length+' • Ponowne próby: '+failed.length;
+ const emailConfig=data.configured?.email?'Aktywna':'Nieaktywna';
+ const phoneConfig=data.configured?.phone?'Aktywne':'Nieaktywne — włącz na iPhonie';
+ const lastError=failed.slice(0,1).map(x=>x.kind+': '+(x.last_error||'błąd wysyłki')).join('');
+ $('notification-summary').textContent=
+  'Poczta: '+emailConfig+
+  ' • PDF do zgłaszających: wysłane '+counts('confirmation','delivered')+', oczekujące '+counts('confirmation','pending')+
+  ' • E-mail do MarkNet: wysłane '+counts('admin_email','delivered')+', oczekujące '+counts('admin_email','pending')+
+  ' • Telefon: '+phoneConfig+
+  ' • Ponowne próby: '+failed.length+
+  (lastError?' • Ostatni błąd: '+lastError:'');
 }
 function renderTickets(){
  const all=state.tickets||[],status=$('filter-status').value,category=$('filter-category').value,org=state.me?.role==='admin'?$('filter-org').value:'',search=$('filter-search').value.toLocaleLowerCase('pl-PL').trim();
