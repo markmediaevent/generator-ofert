@@ -85,7 +85,7 @@ async function auth(req,res,next){
     const token=bearer?bearer[1]:(cookie?cookie.slice('mn_session='.length):'');
     if(!/^[a-f0-9]{64}$/.test(token))return problem(res,401,'Zaloguj się.');
     const hashed=crypto.createHash('sha256').update(token).digest('hex');
-    const rows=await db.query("SELECT u.id,u.username,u.role,u.organization_id,o.name AS organization_name,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true AND (u.role='admin' OR o.is_active=true)",[hashed]);
+    const rows=await db.query("SELECT u.id,u.username,u.email,u.role,u.organization_id,o.name AS organization_name,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true AND (u.role='admin' OR o.is_active=true)",[hashed]);
     if(!rows.rowCount)return problem(res,401,'Sesja wygasła. Zaloguj się ponownie.');
     req.user=rows.rows[0];req.tokenHash=hashed;next();
   }catch(e){next(e);}
@@ -118,7 +118,7 @@ app.post('/api/login',async(req,res,next)=>{
     }
   }catch(e){next(e);}
 });
-app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,role:req.user.role,organization_id:req.user.organization_id,clientName:req.user.organization_name||'MarkNet'}));
+app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,email:req.user.email||'',role:req.user.role,organization_id:req.user.organization_id,clientName:req.user.organization_name||'MarkNet'}));
 app.post('/api/logout',auth,async(req,res,next)=>{try{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);if(!req.headers.authorization)res.set('Set-Cookie',sessionCookie('',0));res.json({ok:true});}catch(e){next(e);}});
 app.post('/api/change-password',auth,async(req,res,next)=>{
   try{
@@ -154,9 +154,12 @@ app.get('/api/tickets',auth,async(req,res,next)=>{
 app.post('/api/tickets',auth,async(req,res,next)=>{
   const kind=clean(req.body.kind,30),priority=clean(req.body.priority,30),category=clean(req.body.category,100);
   const title=clean(req.body.title,180),area=clean(req.body.area,150),device=clean(req.body.device,150),description=clean(req.body.description,5000);
-  const requesterName=clean(req.body.requester_name,120),requesterEmail=clean(req.body.requester_email,254).toLowerCase();
+  const requesterName=clean(req.body.requester_name,120);
+  // Konto klienta zawsze wysyła potwierdzenie na adres przypisany przez administratora.
+  const requesterEmail=(req.user.role==='client'?String(req.user.email||''):clean(req.body.requester_email,254)).trim().toLowerCase();
   const validEmail=/^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(requesterEmail);
-  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10||requesterName.length<3||!validEmail)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę i adres e-mail zgłaszającego, tytuł oraz opis.');
+  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10||requesterName.length<3)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę zgłaszającą, tytuł i opis.');
+  if(!validEmail)return problem(res,400,req.user.role==='client'?'Nie masz przypisanego poprawnego adresu e-mail. Poproś administratora MarkNet o uzupełnienie adresu na Twoim koncie.':'Podaj prawidłowy adres e-mail odbiorcy potwierdzenia.');
   const orgId=req.user.role==='admin'?String(req.body.organization_id||''):String(req.user.organization_id||'');
   if(!/^[1-9]\d*$/.test(orgId))return problem(res,400,'Wybierz klienta dla zgłoszenia.');
   const c=await db.connect();
