@@ -4,10 +4,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-14">
-<link rel="stylesheet" href="brand.css?v=20261118-14">
-<script src="management.js?v=20261118-14" defer></script>
-<script src="app.js?v=20261118-14" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261118-15">
+<link rel="stylesheet" href="brand.css?v=20261118-15">
+<script src="management.js?v=20261118-15" defer></script>
+<script src="app.js?v=20261118-15" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -86,6 +86,10 @@
       <p class="subtle">Dodawaj firmy i określaj, które instalacje obejmuje umowa serwisowa. Każdy klient widzi tylko własne zgłoszenia.</p></div>
       <form id="organization-form" class="form">
         <label>Nazwa firmy lub obiektu<input name="name" minlength="3" maxlength="140" required placeholder="Np. Nowa firma Sp. z o.o."></label>
+        <div class="two"><label>Adres siedziby<input name="profile_address" maxlength="250" placeholder="ulica, kod, miasto"></label>
+        <label>Osoba kontaktowa<input name="profile_contact_name" maxlength="120" placeholder="Imię i nazwisko"></label></div>
+        <div class="two"><label>E-mail kontaktowy<input type="email" name="profile_contact_email" maxlength="120" placeholder="kontakt@firma.pl"></label>
+        <label>Telefon kontaktowy<input type="tel" name="profile_contact_phone" maxlength="120" placeholder="Numer telefonu"></label></div>
         <div><span class="field-title">Systemy objęte serwisem</span><div id="new-org-services" class="service-checklist"></div></div>
         <button type="submit" class="btn main">+ Dodaj klienta</button>
       </form>
@@ -95,6 +99,8 @@
       <div><span class="eyebrow">Konta i uprawnienia</span><h2>Użytkownicy klientów</h2>
       <p class="subtle">Przypisz każdemu użytkownikowi adres e-mail, na który będzie wysyłane potwierdzenie zgłoszenia i protokół PDF. Zarządzaj loginami, hasłami i dostępem do firm.</p></div>
       <form id="user-create-form" class="form">
+        <div class="two"><label>Imię<input name="first_name" minlength="2" maxlength="80" autocomplete="given-name" required placeholder="Imię"></label>
+        <label>Nazwisko<input name="last_name" minlength="2" maxlength="80" autocomplete="family-name" required placeholder="Nazwisko"></label></div>
         <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
         <label>E-mail użytkownika<input name="email" type="email" maxlength="254" autocomplete="off" required placeholder="np. pracownik@firma.pl"></label></div>
         <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label>
@@ -122,9 +128,8 @@
       <label>Priorytet<select name="priority" required><option>Standardowy</option><option>Krytyczny</option></select></label></div>
       <label id="new-org-wrap" class="hide">Klient<select name="organization_id" id="new-organization"></select></label>
       <label>System / obszar<select name="category" id="new-category" required></select></label>
-      <div class="two"><label>Osoba zgłaszająca<input name="requester_name" minlength="3" maxlength="120" autocomplete="name" placeholder="Imię i nazwisko" required></label>
+      <div class="two"><label>Osoba zgłaszająca<input id="requester-name" name="requester_name" minlength="3" maxlength="120" autocomplete="name" placeholder="Imię i nazwisko z profilu" required></label>
       <label>E-mail do potwierdzenia PDF<input id="requester-email" name="requester_email" type="email" maxlength="254" autocomplete="off" placeholder="Adres przypisany do konta" required></label></div>
-      <label>Krótki tytuł<input name="title" minlength="5" maxlength="180" placeholder="Np. brak łączności z urządzeniem" required></label>
       <div class="two"><label>Lokalizacja<input name="area" maxlength="150" placeholder="Budynek, poziom, pomieszczenie"></label>
       <label>Urządzenie / identyfikator<input name="device" maxlength="150" placeholder="Nazwa urządzenia, punkt"></label></div>
       <label>Opis usterki lub awarii<textarea name="description" rows="5" minlength="10" maxlength="5000" placeholder="Co się dzieje? Od kiedy? Jakie instalacje są dotknięte?" required></textarea></label>
