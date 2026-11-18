@@ -9,8 +9,6 @@ services:
     autoDeployTrigger: off
     buildCommand: cd paprec-service && npm install --omit=dev --no-audit --no-fund && npm run check
     startCommand: cd paprec-service && npm start
-    domains:
-      - serwis.marknet.com.pl
     envVars:
       - key: NODE_ENV
         value: production
