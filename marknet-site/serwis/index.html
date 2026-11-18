@@ -4,9 +4,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-6">
-<link rel="stylesheet" href="brand.css?v=20261118-6">
-<script src="app.js?v=20261118-6" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261118-8">
+<link rel="stylesheet" href="brand.css?v=20261118-8">
+<script src="app.js?v=20261118-8" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -103,6 +103,7 @@
 <div id="detail-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="detail-title">
  <div class="modal detail"><div class="modal-header"><div><span class="eyebrow" id="detail-number"></span><h2 id="detail-title">Szczegóły zgłoszenia</h2></div><button class="close" data-close="detail-modal" aria-label="Zamknij">×</button></div>
    <div id="detail-information"></div>
+   <div class="push-actions"><button id="confirmation-pdf" type="button" class="btn outline">Pobierz potwierdzenie PDF</button></div>
    <div id="admin-controls" class="admin-controls hide"><h3>Obsługa MarkNet</h3>
       <div class="admin-actions"><button id="ack-button" class="btn outline small">Odnotuj weryfikację</button>
       <button id="onsite-button" class="btn outline small">Odnotuj przyjazd</button>
