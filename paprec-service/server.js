@@ -369,6 +369,11 @@ async function deliverNotifications(){
 }
 let delivering=false;
 async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
+app.post('/api/admin/notifications/test-email',auth,adminOnly,async(req,res,next)=>{
+ try{if(!notifications.smtpReady())return problem(res,503,'Brak hasła SMTP w konfiguracji Render.');
+  await notifications.testEmail();res.json({ok:true});
+ }catch(e){console.warn('SMTP test failed',e.message);return problem(res,503,'Test wysyłki e-mail nie powiódł się. Sprawdź hasło aplikacji i ustawienia konta.');}
+});
 app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
  try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:pushConfigured||notifications.phoneReady()}});}
  catch(e){next(e);}
