@@ -76,6 +76,13 @@ async function init(){
     console.log('Initial accounts initialized (passwords never logged).');
   }
   await migrateTenancy(db,categories);
+  // Jednorazowo odzyskaj wysyłki błędnie oznaczone jako wykonane przez starszą wersję procesora.
+  await db.query("CREATE TABLE IF NOT EXISTS service_migrations (migration_key TEXT PRIMARY KEY, executed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  const repairRun=await db.query("INSERT INTO service_migrations(migration_key) VALUES('notification_delivery_repair_20261118') ON CONFLICT DO NOTHING RETURNING migration_key");
+  if(repairRun.rowCount){
+    const repair=await db.query("UPDATE notification_jobs SET status='pending', attempt_count=0, retry_at=now(), delivered_at=NULL, last_error=NULL WHERE status='delivered' AND delivered_at IS NOT NULL AND delivered_at < TIMESTAMPTZ '2026-11-18 08:30:00+00'");
+    console.log('Recovered previously misclassified notification jobs:',repair.rowCount);
+  }
   const readiness=(await db.query(
     "SELECT "+
     "(SELECT count(*)::int FROM users WHERE role='client' AND is_active=true AND (email IS NULL OR btrim(email)='')) AS clients_missing_email, "+
@@ -393,17 +400,17 @@ async function phoneAlertForTicket(t){
   throw new Error('Brak aktywnej subskrypcji web push lub Telegram');
 }
 async function deliverNotifications(){
-  const result=await db.query("SELECT j.id,j.kind,j.attempt_count,t.*,u.username AS author,o.name AS organization_name FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by LEFT JOIN organizations o ON o.id=t.organization_id WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
+  const result=await db.query("SELECT j.id AS notification_job_id,j.kind AS notification_kind,j.attempt_count,t.*,u.username AS author,o.name AS organization_name FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by LEFT JOIN organizations o ON o.id=t.organization_id WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
   for(const job of result.rows){
     try{
-      if(job.kind==='confirmation')await notifications.emailConfirmation(job);
-      if(job.kind==='admin_email')await notifications.adminEmail(job);
-      if(job.kind==='phone')await phoneAlertForTicket(job);
-      await db.query("UPDATE notification_jobs SET status='delivered',delivered_at=now(),last_error=NULL WHERE id=$1",[job.id]);
+      if(job.notification_kind==='confirmation')await notifications.emailConfirmation(job);
+      if(job.notification_kind==='admin_email')await notifications.adminEmail(job);
+      if(job.notification_kind==='phone')await phoneAlertForTicket(job);
+      await db.query("UPDATE notification_jobs SET status='delivered',delivered_at=now(),last_error=NULL WHERE id=$1",[job.notification_job_id]);
     }catch(e){
       const delay=Math.min(3600,Math.pow(2,Math.min(8,job.attempt_count))*30);
-      await db.query("UPDATE notification_jobs SET attempt_count=attempt_count+1,retry_at=now()+($2::int*interval '1 second'),last_error=$3 WHERE id=$1",[job.id,delay,String(e.message||e).slice(0,350)]);
-      console.warn('Notification pending retry:',job.kind,job.id,String(e.message||e).slice(0,100));
+      await db.query("UPDATE notification_jobs SET attempt_count=attempt_count+1,retry_at=now()+($2::int*interval '1 second'),last_error=$3 WHERE id=$1",[job.notification_job_id,delay,String(e.message||e).slice(0,350)]);
+      console.warn('Notification pending retry:',job.notification_kind,job.notification_job_id,String(e.message||e).slice(0,100));
     }
   }
 }
