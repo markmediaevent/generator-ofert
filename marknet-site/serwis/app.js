@@ -41,7 +41,7 @@ async function setupPortal(){
  $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
- show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');
+ show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');show('admin-organizations',state.me.role==='admin');
  if(state.me.role==='admin')refreshNotifications().catch(()=>{});
  const category=$('new-category'),filter=$('filter-category'),status=$('filter-status');
  clear(category);clear(filter);clear(status);
@@ -50,6 +50,7 @@ async function setupPortal(){
  for(const s of meta.statuses)option(status,s);
  const d=$('detail-status');clear(d);for(const s of meta.statuses)option(d,s);
  if(!$('report-month').value)$('report-month').value=new Date().toISOString().slice(0,7);
+ if(state.me.role==='admin')await loadManagement();
  renderTickets();
 }
 async function refreshNotifications(){
@@ -62,8 +63,8 @@ async function refreshNotifications(){
  $('notification-summary').textContent='Poczta: '+emailConfig+' • Telefon: '+phoneConfig+' • Oczekujące wysyłki: '+pending.length+' • Ponowne próby: '+failed.length;
 }
 function renderTickets(){
- const all=state.tickets||[],status=$('filter-status').value,category=$('filter-category').value,search=$('filter-search').value.toLocaleLowerCase('pl-PL').trim();
- const filtered=all.filter(t=>(!status||t.status===status)&&(!category||t.category===category)&&(!search||[t.number,t.title,t.area,t.device,t.description,t.category].some(x=>String(x||'').toLocaleLowerCase('pl-PL').includes(search))));
+ const all=state.tickets||[],status=$('filter-status').value,category=$('filter-category').value,org=state.me?.role==='admin'?$('filter-org').value:'',search=$('filter-search').value.toLocaleLowerCase('pl-PL').trim();
+ const filtered=all.filter(t=>(!status||t.status===status)&&(!category||t.category===category)&&(!org||String(t.organization_id)===org)&&(!search||[t.number,t.title,t.area,t.device,t.description,t.category,t.organization_name].some(x=>String(x||'').toLocaleLowerCase('pl-PL').includes(search))));
  const summary=$('summary');clear(summary);
  const values=[['Wszystkie zgłoszenia',all.length],['Nowe',all.filter(t=>t.status==='Nowe').length],['Aktywne',all.filter(t=>!['Rozwiązane','Zamknięte'].includes(t.status)).length],['Krytyczne aktywne',all.filter(t=>t.priority==='Krytyczny'&&!['Rozwiązane','Zamknięte'].includes(t.status)).length]];
  values.forEach(([label,val])=>{const card=node('div','kpi');card.append(node('small','',label),node('strong','',val));summary.append(card);});
@@ -73,7 +74,7 @@ function renderTickets(){
   const btn=node('button','ticket-row');btn.type='button';
   const a=node('div');a.append(node('div','ticket-number',t.number),node('div','ticket-meta',date(t.created_at)));
   const b=node('div');b.append(node('div','ticket-title',t.title),node('div','ticket-meta',t.kind+' • '+t.priority));
-  const c=node('div');c.append(node('div','',t.category),node('div','ticket-meta',t.area||'Lokalizacja niepodana'));
+  const c=node('div');c.append(node('div','',t.category),node('div','ticket-meta',(state.me.role==='admin'?(t.organization_name||'Klient')+' • ':'')+(t.area||'Lokalizacja niepodana')));
   const d=node('span','status ticket-status'+(t.priority==='Krytyczny'?' critical':''),t.status);
   btn.append(a,b,c,d);btn.addEventListener('click',()=>openTicket(t.id));list.append(btn);
  }
@@ -92,7 +93,7 @@ async function openTicket(id){
   $('detail-title').textContent=t.title;
   const infoBox=$('detail-information');clear(infoBox);
   const grid=node('div','detail-grid');
-  info(grid,'Status',t.status);info(grid,'System',t.category);info(grid,'Zgłoszono',date(t.created_at));info(grid,'Zgłaszający',t.requester_name||t.author);info(grid,'E-mail zgłaszającego',t.requester_email);
+  info(grid,'Status',t.status);info(grid,'Klient',t.organization_name||'—');info(grid,'System',t.category);info(grid,'Zgłoszono',date(t.created_at));info(grid,'Zgłaszający',t.requester_name||t.author);info(grid,'E-mail zgłaszającego',t.requester_email);
   info(grid,'Lokalizacja',t.area);info(grid,'Urządzenie',t.device);info(grid,'Weryfikacja',date(t.acknowledged_at));info(grid,'Na obiekcie',date(t.on_site_at));
   info(grid,'Rozwiązanie',date(t.resolved_at));
   infoBox.append(grid,node('div','description-box',t.description));
@@ -109,7 +110,7 @@ async function openTicket(id){
   const filesBox=$('attachment-list');clear(filesBox);
   if(!files.length)filesBox.append(node('p','subtle','Brak załączników.'));
   for(const file of files){
-    const a=node('a','attachment-link',file.filename+' ('+Math.round(Number(file.size)/1024)+' KB)');
+    const a=node('a','attachment-link',(String(file.mime).startsWith('image/')?'📷 ':'📄 ')+file.filename+' ('+Math.round(Number(file.size)/1024)+' KB)');
     a.href='#';a.addEventListener('click',async e=>{e.preventDefault();try{await downloadFile('/api/attachments/'+file.id,file.filename);}catch(err){pop(err.message,true);}});filesBox.append(a);
   }
   modal('detail-modal');
@@ -159,19 +160,6 @@ function wireEvents(){
   finally{button.disabled=false;}
  });
  $('refresh-notifications').addEventListener('click',async()=>{try{await refreshNotifications();pop('Odświeżono stan wysyłek.');}catch(e){pop(e.message,true);}});
- $('client-password-form').addEventListener('submit',async e=>{
-   e.preventDefault();
-   const form=e.target, button=form.querySelector('button');button.disabled=true;
-   try{
-    const users=await api('/api/admin/users');
-    const account=users.users?.find(x=>x.username==='paprec'&&x.role==='client');
-    if(!account)throw Error('Nie znaleziono konta PAPREC.');
-    const body=Object.fromEntries(new FormData(form));
-    await api('/api/admin/users/'+account.id+'/reset-password',{method:'POST',body:JSON.stringify(body)});
-    form.reset();pop('Nowe hasło PAPREC zostało zapisane.'); 
-   }catch(err){pop(err.message,true);}
-   finally{button.disabled=false;}
- });
   $('test-push').addEventListener('click',async()=>{
   const b=$('test-push');b.disabled=true;
   try{await api('/api/push/test',{method:'POST'});pop('Wysłano próbny alert na telefon.');}
@@ -184,8 +172,19 @@ function wireEvents(){
  $('ticket-form').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,btn=form.querySelector('[type=submit]');btn.disabled=true;
   try{
-    const data=Object.fromEntries(new FormData(form));const r=await api('/api/tickets',{method:'POST',body:JSON.stringify(data)});
-    form.reset();closeModal('new-ticket-modal');await refresh();pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(r.notification?.email==='configuration_required'?' Potwierdzenie e-mail oczekuje na aktywację poczty.':' Potwierdzenie e-mail zostało ustawione do wysyłki.'));await openTicket(r.ticket.id);
+    const fd=new FormData(form);
+    const images=[...$('new-ticket-files').files];
+    if(images.length>10 || images.some(file=>file.size>5*1024*1024 || file.size===0))throw Error('Maksymalnie 10 plików, do 5 MB każdy.');
+    const data=Object.fromEntries(fd);delete data.photos;
+    const r=await api('/api/tickets',{method:'POST',body:JSON.stringify(data)});
+    let errors=0;
+    for(const file of images){
+      const item=new FormData();item.append('file',file,file.name);
+      try{await api('/api/tickets/'+r.ticket.id+'/attachments',{method:'POST',body:item});}catch(err){errors++;console.warn('Załącznik nie został dodany:',file.name);}
+    }
+    form.reset();closeModal('new-ticket-modal');await refresh();
+    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+' Potwierdzenie PDF znajdziesz w szczegółach.');
+    await openTicket(r.ticket.id);
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('comment-form').addEventListener('submit',async e=>{
@@ -195,7 +194,11 @@ function wireEvents(){
  });
  $('attachment-form').addEventListener('submit',async e=>{
   e.preventDefault();const f=e.target,btn=f.querySelector('button');btn.disabled=true;
-  try{const data=new FormData(f);await api('/api/tickets/'+state.selectedId+'/attachments',{method:'POST',body:data});f.reset();await openTicket(state.selectedId);pop('Dodano załącznik.');}
+  try{
+    const files=[...f.elements.file.files];if(!files.length||files.length>10)throw Error('Wybierz od 1 do 10 plików.');
+    for(const file of files){const data=new FormData();data.append('file',file,file.name);await api('/api/tickets/'+state.selectedId+'/attachments',{method:'POST',body:data});}
+    f.reset();await openTicket(state.selectedId);pop('Dodano '+files.length+' plików.');
+  }
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('save-status').addEventListener('click',()=>updateTicket({status:$('detail-status').value,details:$('admin-note').value}));
@@ -204,8 +207,8 @@ function wireEvents(){
  $('resolved-button').addEventListener('click',()=>updateTicket({event:'resolve',details:$('admin-note').value}));
  $('confirmation-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/tickets/'+state.selectedId+'/confirmation.pdf','Potwierdzenie-MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('ticket-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/reports/tickets/'+state.selectedId+'.pdf','MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
- $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
- $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
+ $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
+ $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
  $('password-form').addEventListener('submit',async e=>{
   e.preventDefault();const f=e.target,btn=f.querySelector('button');btn.disabled=true;
   try{await api('/api/change-password',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(f)))});f.reset();closeModal('password-modal');pop('Hasło zostało zmienione.');}
