@@ -74,4 +74,9 @@ async function mobileAlert(t){
  if(!res.ok||!data.ok)throw new Error('Telegram '+res.status+': '+String(data.description||'Błąd').slice(0,100));
  return String(data.result?.message_id||'ok');
 }
-module.exports={confirmation,emailConfirmation,adminEmail,mobileAlert,smtpReady,phoneReady};
+async function testEmail(){
+ if(!process.env.ADMIN_NOTIFY_EMAIL)throw new Error('Brak adresu administratora');
+ const r=await mailer().sendMail({from:process.env.SMTP_FROM,to:process.env.ADMIN_NOTIFY_EMAIL,subject:'MarkNet Serwis - test powiadomień',text:'Połączenie SMTP działa poprawnie. Powiadomienia o zgłoszeniach mogą być wysyłane.'});
+ return r.messageId||'ok';
+}
+module.exports={confirmation,emailConfirmation,adminEmail,mobileAlert,smtpReady,phoneReady,testEmail};
