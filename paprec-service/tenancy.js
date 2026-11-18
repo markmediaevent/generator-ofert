@@ -14,7 +14,7 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   }
   app.get('/api/admin/organizations',auth,adminOnly,async(req,res,next)=>{
     try{
-      const rows=(await db.query("SELECT o.id,o.name,o.is_active,o.created_at, COALESCE((SELECT json_agg(s.category ORDER BY s.category) FROM organization_systems s WHERE s.organization_id=o.id),'[]'::json) AS systems, (SELECT count(*)::int FROM users u WHERE u.organization_id=o.id) AS users_count FROM organizations o ORDER BY o.name")).rows;
+      const rows=(await db.query("SELECT o.id,o.name,o.is_active,o.created_at, COALESCE((SELECT json_agg(s.category ORDER BY s.category) FROM organization_systems s WHERE s.organization_id=o.id),'[]'::json) AS systems, (SELECT count(*)::int FROM users u WHERE u.organization_id=o.id AND u.deleted_at IS NULL) AS users_count FROM organizations o ORDER BY o.name")).rows;
       res.json({organizations:rows,categories});
     }catch(e){next(e);}
   });
@@ -47,7 +47,7 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   });
   app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     try{
-      const users=(await db.query("SELECT u.id,u.username,u.email,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id ORDER BY u.role,u.username")).rows;
+      const users=(await db.query("SELECT u.id,u.username,u.email,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.deleted_at IS NULL ORDER BY u.role,u.username")).rows;
       res.json({users});
     }catch(e){next(e);}
   });
@@ -65,13 +65,24 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
       res.status(201).json({user:u});
     }catch(e){if(!err(res,e,'user'))next(e);}
   });
+  app.delete('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
+    const c=await db.connect();
+    try{
+      await c.query('BEGIN');
+      const u=(await c.query("UPDATE users SET deleted_at=now(),is_active=false WHERE id=$1 AND role='client' AND deleted_at IS NULL RETURNING id,username",[req.params.id])).rows[0];
+      if(!u){await c.query('ROLLBACK');return problem(res,404,'Nie znaleziono konta użytkownika.');}
+      await c.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
+      await c.query('COMMIT');
+      res.json({ok:true,username:u.username});
+    }catch(e){await c.query('ROLLBACK');next(e);}finally{c.release();}
+  });
   app.patch('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
     const active=req.body?.is_active,company=orgId(req.body?.organization_id),email=emailValue(req.body?.email);
     if(typeof active!=='boolean'||!company||!validEmail(email))return problem(res,400,'Wybierz klienta, poprawny e-mail i stan konta.');
     try{
       const org=(await db.query('SELECT id FROM organizations WHERE id=$1',[company])).rows[0];
       if(!org)return problem(res,400,'Nie znaleziono klienta.');
-      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3 WHERE id=$4 AND role='client' RETURNING id,username,email,organization_id,is_active",[company,active,email,req.params.id])).rows[0];
+      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3 WHERE id=$4 AND role='client' AND deleted_at IS NULL RETURNING id,username,email,organization_id,is_active",[company,active,email,req.params.id])).rows[0];
       if(!u)return problem(res,404,'Nie znaleziono konta klienta.');
       await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
       res.json({user:u});
@@ -85,7 +96,10 @@ async function migrateTenancy(db,categories){
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT');
+  await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
+  await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ');
+  await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS deleted_by BIGINT REFERENCES users(id)');
   const paprec=(await db.query("INSERT INTO organizations(name) VALUES('PAPREC Energies Gdańsk') ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id")).rows[0];
   const serviceCount=(await db.query('SELECT count(*)::int AS n FROM organization_systems WHERE organization_id=$1',[paprec.id])).rows[0].n;
   if(serviceCount===0){
@@ -95,7 +109,8 @@ async function migrateTenancy(db,categories){
   await db.query("UPDATE users SET organization_id=$1 WHERE role='client' AND username='paprec' AND organization_id IS NULL",[paprec.id]);
   await db.query("UPDATE tickets t SET organization_id=u.organization_id FROM users u WHERE t.created_by=u.id AND t.organization_id IS NULL AND u.organization_id IS NOT NULL");
   await db.query("UPDATE tickets SET organization_id=$1 WHERE organization_id IS NULL AND organization='client'",[paprec.id]);
-  await db.query('CREATE INDEX IF NOT EXISTS tickets_tenant_idx ON tickets(organization_id,created_at DESC)');
+  await db.query('CREATE INDEX IF NOT EXISTS tickets_tenant_idx ON tickets(organization_id,created_at DESC) WHERE deleted_at IS NULL');
+  await db.query('CREATE INDEX IF NOT EXISTS tickets_deleted_idx ON tickets(deleted_at DESC) WHERE deleted_at IS NOT NULL');
 }
 
 module.exports={setupTenancy,migrateTenancy};
