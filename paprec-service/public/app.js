@@ -45,7 +45,8 @@ async function setupPortal(){
  emailInput.placeholder=state.me.role==='client'?'E-mail przypisany do konta':'Adres odbiorcy potwierdzenia';
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
- show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');show('admin-organizations',state.me.role==='admin');
+ show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');show('admin-organizations',state.me.role==='admin');show('admin-archive',state.me.role==='admin');
+ if(state.me.role==='admin')refreshArchive().catch(()=>{});
  if(state.me.role==='admin')refreshNotifications().catch(()=>{});
  const category=$('new-category'),filter=$('filter-category'),status=$('filter-status');
  clear(category);clear(filter);clear(status);
@@ -56,6 +57,27 @@ async function setupPortal(){
  if(!$('report-month').value)$('report-month').value=new Date().toISOString().slice(0,7);
  if(state.me.role==='admin')await loadManagement();
  renderTickets();
+}
+async function refreshArchive(){
+ if(state.me?.role!=='admin')return;
+ const response=await api('/api/admin/archived-tickets');
+ const box=$('archive-list');clear(box);
+ if(!response.tickets.length){box.append(node('p','subtle','Brak zgłoszeń w archiwum.'));return;}
+ for(const t of response.tickets){
+  const entry=node('div','archive-item');
+  const desc=node('div','');
+  desc.append(node('strong','',t.number+' • '+t.title),node('small','',t.organization_name+' • Usunięto: '+date(t.deleted_at)));
+  const restore=node('button','btn outline small','Przywróć');restore.type='button';
+  restore.addEventListener('click',async()=>{
+   restore.disabled=true;
+   try{
+    await api('/api/admin/tickets/'+t.id+'/restore',{method:'POST'});
+    await refreshArchive();await refresh();
+    pop('Przywrócono zgłoszenie '+t.number+'.');
+   }catch(err){pop(err.message,true);}finally{restore.disabled=false;}
+  });
+  entry.append(desc,restore);box.append(entry);
+ }
 }
 async function refreshNotifications(){
  const data=await api('/api/admin/notifications');
@@ -173,7 +195,20 @@ function wireEvents(){
   catch(e){$('push-status').textContent=e.message;pop(e.message,true);}
   finally{b.disabled=false;}
  });
- $('test-email').addEventListener('click',async()=>{
+ $('refresh-archive').addEventListener('click',async()=>{try{await refreshArchive();pop('Odświeżono archiwum zgłoszeń.');}catch(e){pop(e.message,true);}});
+ $('delete-ticket').addEventListener('click',async()=>{
+  if(state.me?.role!=='admin'||!state.selectedId||!state.detail?.ticket)return;
+  const t=state.detail.ticket;
+  if(!window.confirm('Usunąć zgłoszenie '+t.number+' („'+t.title+'”) z aktywnego rejestru? Zniknie u klientów i z raportów. Będzie można je przywrócić z archiwum.'))return;
+  const button=$('delete-ticket');button.disabled=true;
+  try{
+   await api('/api/tickets/'+state.selectedId,{method:'DELETE'});
+   closeModal('detail-modal');state.selectedId=null;state.detail=null;state.lastCreatedId=null;
+   await Promise.all([refresh(),refreshArchive()]);
+   pop('Zgłoszenie '+t.number+' usunięto z rejestru. Można je przywrócić z archiwum.');
+  }catch(err){pop(err.message,true);}finally{button.disabled=false;}
+ });
+  $('test-email').addEventListener('click',async()=>{
   const button=$('test-email');button.disabled=true;
   try{await api('/api/admin/notifications/test-email',{method:'POST'});pop('Testowy e-mail wysłano do administratora.');await refreshNotifications();}
   catch(err){pop(err.message,true);}
