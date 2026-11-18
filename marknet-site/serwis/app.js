@@ -139,6 +139,8 @@ async function openTicket(id){
   infoBox.append(grid,node('div','description-box',t.description));
   const admin=state.me.role==='admin';show('admin-controls',admin);
   $('detail-status').value=t.status;$('admin-note').value='';
+  show('service-protocol-pdf',t.status==='Zamknięte'&&Boolean(state.detail.completion));
+  if(admin)$('complete-ticket').textContent=state.detail.completion?'Edytuj protokół wykonanych prac':'Zakończ i wygeneruj protokół';
   const list=$('detail-events');clear(list);
   const timeline=node('div','timeline');
   for(const e of events){
@@ -155,6 +157,19 @@ async function openTicket(id){
   }
   modal('detail-modal');
  }catch(e){pop(e.message,true);}
+}
+function openCompletionForm(){
+ if(state.me?.role!=='admin'||!state.detail?.ticket)return;
+ const form=$('completion-form'),r=state.detail.completion;
+ form.reset();
+ const src=r?.work_date ? String(r.work_date).slice(0,10) : new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+ form.elements.work_date.value=src;
+ form.elements.technicians.value=r?.technicians||([state.me.first_name,state.me.last_name].filter(Boolean).join(' ')||'Marek Wyganowski');
+ form.elements.hours.value=r?.hours||'';
+ form.elements.work_done.value=r?.work_done||'';
+ form.elements.system_operational.value=r?.system_operational||'nie_oceniono';
+ form.elements.fit_for_use.value=r?.fit_for_use||'nie_oceniono';
+ modal('completion-modal');
 }
 async function updateTicket(payload){
  if(!state.selectedId)return;
@@ -277,11 +292,39 @@ function wireEvents(){
   }
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
- $('save-status').addEventListener('click',()=>updateTicket({status:$('detail-status').value,details:$('admin-note').value}));
+ $('save-status').addEventListener('click',()=>{
+  if($('detail-status').value==='Zamknięte'){openCompletionForm();return;}
+  updateTicket({status:$('detail-status').value,details:$('admin-note').value});
+ });
+ $('complete-ticket').addEventListener('click',openCompletionForm);
+ $('completion-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const form=e.target,button=form.querySelector('[type=submit]');
+  if(!state.selectedId||state.me?.role!=='admin')return;
+  button.disabled=true;
+  const id=state.selectedId;
+  try{
+   const payload=Object.fromEntries(new FormData(form));
+   payload.hours=Number(payload.hours);
+   await api('/api/tickets/'+id+'/service-completion',{method:'POST',body:JSON.stringify(payload)});
+   closeModal('completion-modal');
+   await refresh();
+   await openTicket(id);
+   pop('Zapisano zakończenie prac. Protokół PDF jest gotowy.');
+   try{await downloadFile('/api/tickets/'+id+'/service-protocol.pdf','Protokol-serwisowy-MarkNet-'+id+'.pdf');}
+   catch(err){pop('Protokół zapisany. Pobierz go przyciskiem w szczegółach zgłoszenia.',true);}
+  }catch(err){pop(err.message,true);}
+  finally{button.disabled=false;}
+ });
  $('ack-button').addEventListener('click',()=>updateTicket({event:'acknowledge',details:$('admin-note').value}));
  $('onsite-button').addEventListener('click',()=>updateTicket({event:'on_site',details:$('admin-note').value}));
  $('resolved-button').addEventListener('click',()=>updateTicket({event:'resolve',details:$('admin-note').value}));
- $('confirmation-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/tickets/'+state.selectedId+'/confirmation.pdf','Potwierdzenie-MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
+ $('service-protocol-pdf').addEventListener('click',async()=>{
+  if(!state.selectedId)return;
+  try{await downloadFile('/api/tickets/'+state.selectedId+'/service-protocol.pdf','Protokol-serwisowy-'+state.selectedId+'.pdf');}
+  catch(e){pop(e.message,true);}
+ });
+  $('confirmation-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/tickets/'+state.selectedId+'/confirmation.pdf','Potwierdzenie-MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('ticket-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/reports/tickets/'+state.selectedId+'.pdf','MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
  $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
