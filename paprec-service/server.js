@@ -7,6 +7,7 @@ const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const notifications=require('./notifications');
 
 const CONFIGURED = Boolean(process.env.DATABASE_URL && process.env.INIT_ADMIN_PASSWORD && process.env.INIT_CLIENT_PASSWORD);
 if (!CONFIGURED) console.warn('Waiting for secure database connection in Render configuration.');
@@ -58,6 +59,10 @@ async function init(){
   await db.query('CREATE TABLE IF NOT EXISTS tickets (id BIGSERIAL PRIMARY KEY, organization TEXT NOT NULL DEFAULT \'client\', kind TEXT NOT NULL, priority TEXT NOT NULL, category TEXT NOT NULL, title TEXT NOT NULL, area TEXT NOT NULL DEFAULT \'\', device TEXT NOT NULL DEFAULT \'\', description TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'Nowe\', created_by BIGINT NOT NULL REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), acknowledged_at TIMESTAMPTZ, on_site_at TIMESTAMPTZ, resolved_at TIMESTAMPTZ, closed_at TIMESTAMPTZ)');
   await db.query('CREATE TABLE IF NOT EXISTS ticket_events (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, actor_id BIGINT REFERENCES users(id), action TEXT NOT NULL, details TEXT NOT NULL DEFAULT \'\', created_at TIMESTAMPTZ NOT NULL DEFAULT now())');
   await db.query('CREATE TABLE IF NOT EXISTS attachments (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, uploader_id BIGINT REFERENCES users(id), filename TEXT NOT NULL, mime TEXT NOT NULL, content BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+  await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_name TEXT');
+  await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_email TEXT');
+  await db.query("CREATE TABLE IF NOT EXISTS notification_jobs (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK (kind IN ('confirmation','admin_email','phone')), status TEXT NOT NULL DEFAULT 'pending', attempt_count INT NOT NULL DEFAULT 0, retry_at TIMESTAMPTZ NOT NULL DEFAULT now(), delivered_at TIMESTAMPTZ, last_error TEXT, UNIQUE(ticket_id,kind))");
+  await db.query("CREATE INDEX IF NOT EXISTS notification_jobs_due ON notification_jobs(retry_at,id) WHERE status='pending'");
   const row=(await db.query('SELECT count(*)::int AS n FROM users')).rows[0];
   if(row.n===0){
     const admin=hashPassword(process.env.INIT_ADMIN_PASSWORD);
@@ -131,11 +136,14 @@ app.get('/api/tickets',auth,async(req,res,next)=>{
 app.post('/api/tickets',auth,async(req,res,next)=>{
   const kind=clean(req.body.kind,30),priority=clean(req.body.priority,30),category=clean(req.body.category,100);
   const title=clean(req.body.title,180),area=clean(req.body.area,150),device=clean(req.body.device,150),description=clean(req.body.description,5000);
-  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10)return problem(res,400,'Uzupełnij prawidłowo rodzaj, priorytet, kategorię, tytuł i opis (min. 10 znaków).');
+  const requesterName=clean(req.body.requester_name,120),requesterEmail=clean(req.body.requester_email,254).toLowerCase();
+  const validEmail=/^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(requesterEmail);
+  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10||requesterName.length<3||!validEmail)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę i adres e-mail zgłaszającego, tytuł oraz opis.');
   const c=await db.connect();
   try{await c.query('BEGIN');
-    const t=(await c.query('INSERT INTO tickets(kind,priority,category,title,area,device,description,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',[kind,priority,category,title,area,device,description,req.user.id])).rows[0];
+    const t=(await c.query('INSERT INTO tickets(kind,priority,category,title,area,device,description,created_by,requester_name,requester_email) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',[kind,priority,category,title,area,device,description,req.user.id,requesterName,requesterEmail])).rows[0];
     await audit(c,t.id,req.user.id,'Utworzono zgłoszenie',priority+' / '+kind);
+    await c.query("INSERT INTO notification_jobs(ticket_id,kind) SELECT $1, x FROM unnest(ARRAY['confirmation','admin_email','phone']::text[]) AS x",[t.id]);
     await c.query('COMMIT');res.status(201).json({ticket:ticketView(t)});
   }catch(e){await c.query('ROLLBACK');next(e);}finally{c.release();}
 });
@@ -280,6 +288,27 @@ app.get('/api/reports/month.csv',auth,adminOnly,async(req,res,next)=>{
     res.send('\ufeff'+[columns,...data].map(r=>r.map(val).join(';')).join('\r\n'));
   }catch(e){next(e);}
 });
+async function deliverNotifications(){
+  const result=await db.query("SELECT j.id,j.kind,j.attempt_count,t.*,u.username AS author FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
+  for(const job of result.rows){
+    try{
+      if(job.kind==='confirmation')await notifications.emailConfirmation(job);
+      if(job.kind==='admin_email')await notifications.adminEmail(job);
+      if(job.kind==='phone')await notifications.mobileAlert(job);
+      await db.query("UPDATE notification_jobs SET status='delivered',delivered_at=now(),last_error=NULL WHERE id=$1",[job.id]);
+    }catch(e){
+      const delay=Math.min(3600,Math.pow(2,Math.min(8,job.attempt_count))*30);
+      await db.query("UPDATE notification_jobs SET attempt_count=attempt_count+1,retry_at=now()+($2::int*interval '1 second'),last_error=$3 WHERE id=$1",[job.id,delay,String(e.message||e).slice(0,350)]);
+      console.warn('Notification pending retry:',job.kind,job.id,String(e.message||e).slice(0,100));
+    }
+  }
+}
+let delivering=false;
+async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
+app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
+ try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:notifications.phoneReady()}});}
+ catch(e){next(e);}
+});
 app.get('/api/health',async(req,res)=>{if(!CONFIGURED)return res.status(503).json({status:'setup_required'});try{await db.query('SELECT 1');res.json({status:'ok'});}catch{res.status(503).json({status:'unavailable'});}});
 app.use(express.static(path.join(__dirname,'public'),{index:'index.html',setHeaders(res){res.set('Cache-Control','no-store');}}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
@@ -289,6 +318,6 @@ app.use((err,req,res,next)=>{
   if(res.headersSent)return next(err);
   problem(res,500,'Nie udało się wykonać operacji. Spróbuj ponownie.');
 });
-if(CONFIGURED) init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal ready'))).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
+if(CONFIGURED) init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>{console.log('Service portal ready');setInterval(runNotificationJobs,15000).unref();runNotificationJobs();})).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
 else app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal in setup mode'));
 
