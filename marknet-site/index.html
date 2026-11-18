@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#08131e">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="MarkNet — projektowanie i wdrażanie sieci LAN i Wi-Fi, infrastruktury IT, monitoringu IP i bezpiecznego dostępu zdalnego. Rozwiązania technologiczne dla firm i obiektów.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pl_PL">
@@ -11,6 +11,7 @@
   <meta property="og:title" content="MarkNet — technologia, która działa">
   <meta property="og:description" content="Sieci, infrastruktura IT, monitoring i automatyzacja. Projektujemy rozwiązania, na których możesz polegać.">
   <meta property="og:url" content="https://marknet.com.pl/">
+  <meta property="og:image" content="https://marknet.com.pl/serwis/logo-marknet.webp">
   <title>MarkNet — sieci, IT, monitoring i automatyzacja</title>
   <style>
     :root{color-scheme:dark;--bg:#08131e;--bg2:#0c1c29;--panel:#112433;--ink:#eff8fb;--muted:#a2b6c2;--line:rgba(155,213,226,.14);--mint:#60e8dc;--blue:#68b9ff;--radius:22px}
@@ -35,12 +36,13 @@
     @media(max-width:370px){.actions{align-items:stretch;flex-direction:column}.actions .btn{width:100%}.floatlabel{display:none}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
   </style>
+  <link rel="stylesheet" href="/marknet-brand.css?v=20261118-1">
 </head>
 <body>
 <a class="skip" href="#main">Przejdź do treści</a>
 <header class="nav">
   <div class="layout">
-    <a class="brand" href="#top" aria-label="MarkNet, strona główna"><span class="brand-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="m7 11 10-5M7 13l10 5M19 7v10"/></svg></span><span>MARK<b>NET</b></span></a>
+    <a class="brand" href="#top" aria-label="MarkNet — strona główna"><img class="brand-logo" src="/serwis/logo-marknet.webp" alt="MarkNet — Systemy Zabezpieczeń" width="230" height="95" loading="eager" decoding="async"></a>
     <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu ☰</button>
     <nav class="nav-links" id="menu" aria-label="Nawigacja główna">
       <a href="#rozwiazania">Rozwiązania</a><a href="#o-nas">Jak działamy</a><a href="#zastosowania">Zastosowania</a><a class="nav-cta" href="#kontakt">Kontakt ↗</a>
@@ -98,7 +100,7 @@
 <section class="areas" id="zastosowania"><div class="layout area-wrap"><span class="area-title">Rozwiązania dla różnych środowisk</span><div class="pills"><span>Firmy i biura</span><span>Obiekty i instalacje</span><span>Wydarzenia i realizacje</span><span>Inteligentne budynki</span></div></div></section>
 <section class="contact" id="kontakt"><div class="layout"><div class="contact-panel reveal"><div><span class="overline">Skontaktuj się z nami</span><h2>Masz projekt?<br>Porozmawiajmy.</h2><p>Opowiedz nam, czego potrzebujesz — pomożemy dobrać technologię do skali, budżetu i charakteru instalacji.</p></div><a class="btn btn-primary" href="mailto:marknet.biuro@gmail.com?subject=Zapytanie%20%E2%80%93%20MarkNet">Napisz do MarkNet ↗</a></div></div></section>
 </main>
-<footer><div class="layout footer-row"><a class="brand" href="#top"><span class="brand-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="m7 11 10-5M7 13l10 5M19 7v10"/></svg></span><span>MARK<b>NET</b></span></a><div class="footer-right"><a href="mailto:marknet.biuro@gmail.com">Kontakt e-mail</a><small>© <span id="year">2026</span> MarkNet</small></div></div></footer>
+<footer><div class="layout footer-row"><a class="brand" href="#top" aria-label="MarkNet — strona główna"><img class="brand-logo" src="/serwis/logo-marknet.webp" alt="MarkNet — Systemy Zabezpieczeń" width="230" height="95" loading="lazy" decoding="async"></a><div class="footer-right"><a href="mailto:marknet.biuro@gmail.com">Kontakt e-mail</a><small>© <span id="year">2026</span> MarkNet</small></div></div></footer>
 <script>
   document.getElementById("year").textContent = String(new Date().getFullYear());
   const menuButton = document.getElementById("menu-btn");
