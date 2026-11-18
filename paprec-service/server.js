@@ -407,6 +407,7 @@ async function deliverNotifications(){
       if(job.notification_kind==='admin_email')await notifications.adminEmail(job);
       if(job.notification_kind==='phone')await phoneAlertForTicket(job);
       await db.query("UPDATE notification_jobs SET status='delivered',delivered_at=now(),last_error=NULL WHERE id=$1",[job.notification_job_id]);
+      console.info('Notification delivered:',job.notification_kind,job.notification_job_id);
     }catch(e){
       const delay=Math.min(3600,Math.pow(2,Math.min(8,job.attempt_count))*30);
       await db.query("UPDATE notification_jobs SET attempt_count=attempt_count+1,retry_at=now()+($2::int*interval '1 second'),last_error=$3 WHERE id=$1",[job.notification_job_id,delay,String(e.message||e).slice(0,350)]);
@@ -447,6 +448,6 @@ app.use((err,req,res,next)=>{
   if(res.headersSent)return next(err);
   problem(res,500,'Nie udało się wykonać operacji. Spróbuj ponownie.');
 });
-if(CONFIGURED) init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>{console.log('Service portal ready');setInterval(runNotificationJobs,15000).unref();runNotificationJobs();})).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
+if(CONFIGURED) init().then(()=>app.listen(process.env.PORT||10000,'0.0.0.0',()=>{console.log('Service portal ready');setInterval(runNotificationJobs,process.env.NODE_ENV==='test'?250:15000).unref();runNotificationJobs();})).catch(e=>{console.error('Database initialization failed',e.message);process.exit(1);});
 else app.listen(process.env.PORT||10000,'0.0.0.0',()=>console.log('Service portal in setup mode'));
 
