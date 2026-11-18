@@ -196,6 +196,7 @@ function wireEvents(){
  $('ack-button').addEventListener('click',()=>updateTicket({event:'acknowledge',details:$('admin-note').value}));
  $('onsite-button').addEventListener('click',()=>updateTicket({event:'on_site',details:$('admin-note').value}));
  $('resolved-button').addEventListener('click',()=>updateTicket({event:'resolve',details:$('admin-note').value}));
+ $('confirmation-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/tickets/'+state.selectedId+'/confirmation.pdf','Potwierdzenie-MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('ticket-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/reports/tickets/'+state.selectedId+'.pdf','MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
  $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
