@@ -59,12 +59,20 @@ async function setupPortal(){
 }
 async function refreshNotifications(){
  const data=await api('/api/admin/notifications');
- const all=data.jobs||[];
- const pending=all.filter(x=>x.status==='pending');
+ const jobs=data.jobs||[];
+ const counts=(kind,status)=>jobs.filter(x=>x.kind===kind&&x.status===status).length;
+ const pending=jobs.filter(x=>x.status==='pending');
  const failed=pending.filter(x=>x.attempt_count>0);
- const emailConfig=data.configured?.email?'Skonfigurowana':'Wymaga hasła aplikacji Google';
- const phoneConfig=data.configured?.phone?'Skonfigurowane':'Nieaktywne';
- $('notification-summary').textContent='Poczta: '+emailConfig+' • Telefon: '+phoneConfig+' • Oczekujące wysyłki: '+pending.length+' • Ponowne próby: '+failed.length;
+ const emailConfig=data.configured?.email?'Aktywna':'Nieaktywna';
+ const phoneConfig=data.configured?.phone?'Aktywne':'Nieaktywne — włącz na iPhonie';
+ const lastError=failed.slice(0,1).map(x=>x.kind+': '+(x.last_error||'błąd wysyłki')).join('');
+ $('notification-summary').textContent=
+  'Poczta: '+emailConfig+
+  ' • PDF do zgłaszających: wysłane '+counts('confirmation','delivered')+', oczekujące '+counts('confirmation','pending')+
+  ' • E-mail do MarkNet: wysłane '+counts('admin_email','delivered')+', oczekujące '+counts('admin_email','pending')+
+  ' • Telefon: '+phoneConfig+
+  ' • Ponowne próby: '+failed.length+
+  (lastError?' • Ostatni błąd: '+lastError:'');
 }
 function renderTickets(){
  const all=state.tickets||[],status=$('filter-status').value,category=$('filter-category').value,org=state.me?.role==='admin'?$('filter-org').value:'',search=$('filter-search').value.toLocaleLowerCase('pl-PL').trim();
@@ -76,6 +84,7 @@ function renderTickets(){
  if(!filtered.length){list.append(node('div','empty','Brak zgłoszeń spełniających wybrane kryteria.'));return;}
  for(const t of filtered){
   const btn=node('button','ticket-row');btn.type='button';
+  if(String(t.id)===String(state.lastCreatedId||''))btn.classList.add('ticket-highlight');
   const a=node('div');a.append(node('div','ticket-number',t.number),node('div','ticket-meta',date(t.created_at)));
   const b=node('div');b.append(node('div','ticket-title',t.title),node('div','ticket-meta',t.kind+' • '+t.priority));
   const c=node('div');c.append(node('div','',t.category),node('div','ticket-meta',(state.me.role==='admin'?(t.organization_name||'Klient')+' • ':'')+(t.area||'Lokalizacja niepodana')));
@@ -149,7 +158,8 @@ function wireEvents(){
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}sessionStorage.removeItem(AUTH_KEY);state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
- $('add-button').addEventListener('click',()=>{
+ $('submission-dismiss').addEventListener('click',()=>show('submission-success',false));
+  $('add-button').addEventListener('click',()=>{
   if(state.me?.role==='client'){
    if(!state.me.email){pop('Brak przypisanego adresu e-mail. Poproś MarkNet o uzupełnienie adresu na swoim koncie.',true);return;}
    $('requester-email').value=state.me.email;
@@ -192,9 +202,21 @@ function wireEvents(){
       const item=new FormData();item.append('file',file,file.name);
       try{await api('/api/tickets/'+r.ticket.id+'/attachments',{method:'POST',body:item});}catch(err){errors++;console.warn('Załącznik nie został dodany:',file.name);}
     }
-    form.reset();if(state.me?.role==='client')$('requester-email').value=state.me.email||'';closeModal('new-ticket-modal');await refresh();
-    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+(r.notification?.email==='queued'?' E-mail z PDF oczekuje na wysyłkę.':' Potwierdzenie PDF możesz pobrać ze szczegółów.'));
-    await openTicket(r.ticket.id);
+    form.reset();if(state.me?.role==='client')$('requester-email').value=state.me.email||'';
+    closeModal('new-ticket-modal');
+    state.lastCreatedId=r.ticket.id;
+    $('filter-status').value='';
+    $('filter-category').value='';
+    $('filter-search').value='';
+    if(state.me?.role==='admin')$('filter-org').value='';
+    $('submission-title').textContent='Zgłoszenie '+r.ticket.number+' zostało przekazane do serwisu MarkNet.';
+    const emailInfo=r.notification?.email==='queued'?'E-mail z potwierdzeniem i PDF został dodany do kolejki wysyłki.':'Potwierdzenie PDF możesz pobrać ze szczegółów zgłoszenia.';
+    $('submission-info').textContent=(errors?'Nie udało się dołączyć '+errors+' plików. ':'')+emailInfo+' Status zgłoszenia możesz śledzić na liście poniżej.';
+    show('submission-success',true);
+    closeModal('detail-modal');
+    window.scrollTo({top:0,behavior:'smooth'});
+    try{await refresh();}catch(err){pop('Zgłoszenie zostało zapisane, ale nie udało się odświeżyć listy. Odśwież stronę.',true);}
+    window.scrollTo({top:0,behavior:'smooth'});
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('comment-form').addEventListener('submit',async e=>{
