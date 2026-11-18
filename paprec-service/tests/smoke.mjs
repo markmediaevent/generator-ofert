@@ -41,11 +41,19 @@ try{
  const bad=await api('/api/login',{username:'paprec',password:'incorrect'},'POST');
  assert.equal(bad.r.status,401);
  const client=await login('paprec',clientPass);
+ const external=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://marknet.com.pl','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
+ assert.equal(external.status,200);
+ const extJson=await external.json();assert.match(extJson.accessToken,/^[a-f0-9]{64}$/);
+ const remote=await tryHttp('/api/me',{headers:{Origin:'https://marknet.com.pl',Authorization:'Bearer '+extJson.accessToken}});
+ assert.equal(remote.status,200);assert.equal((await remote.json()).role,'client');
+ assert.equal(remote.headers.get('access-control-allow-origin'),'https://marknet.com.pl');
+ const preflight=await tryHttp('/api/tickets',{method:'OPTIONS',headers:{Origin:'https://marknet.com.pl','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'Authorization, Content-Type'}});
+ assert.equal(preflight.status,204);
  const me=await api('/api/me',undefined,'GET',client);
  assert.equal(me.json.role,'client');
  const {r:created,json:creation}=await api('/api/tickets',{
   kind:'Awaria', priority:'Krytyczny',category:'Połączenia GPEC',
-  title:'Test awarii GPEC — łącze nie odpowiada',area:'Obiekt testowy',device:'Switch testowy',
+  title:'Test awarii GPEC — łącze nie odpowiada',area:'Obiekt testowy',device:'Switch testowy',requester_name:'Tester PAPREC',requester_email:'test@example.com',
   description:'Test automatyczny: połączenie nie odpowiada od 07:15, wymaga diagnostyki.'
  },'POST',client);
  assert.equal(created.status,201,JSON.stringify(creation));
@@ -57,6 +65,9 @@ try{
  const admin=await login('marknet',adminPass);
  const note=await api('/api/tickets/'+id,{event:'acknowledge',details:'Połączono z urządzeniem, weryfikacja rozpoczęta'},'PATCH',admin);
  assert.equal(note.r.status,200,JSON.stringify(note.json));
+ const queued=await api('/api/admin/notifications',undefined,'GET',admin);
+ assert.equal(queued.r.status,200);
+ assert.equal(queued.json.jobs.filter(x=>String(x.ticket_id)===String(id)).length,3);
  const seen=await api('/api/tickets/'+id,undefined,'GET',admin);
  assert.equal(seen.json.ticket.status,'Weryfikacja');
  assert.ok(seen.json.ticket.acknowledged_at);
