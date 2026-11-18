@@ -39,6 +39,11 @@ async function setupPortal(){
  const [meta,tickets]=await Promise.all([api('/api/meta'),api('/api/tickets')]);
  state.meta=meta;state.tickets=tickets.tickets;show('login-view',false);show('portal-view',true);
  $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
+ const nameInput=$('requester-name');
+ const profileName=[state.me.first_name,state.me.last_name].filter(Boolean).join(' ').trim();
+ nameInput.readOnly=state.me.role==='client'&&Boolean(profileName);
+ nameInput.value=state.me.role==='client'?profileName:'';
+ nameInput.placeholder=profileName?'Imię i nazwisko z profilu':'Imię i nazwisko (uzupełnij profil użytkownika)';
  const emailInput=$('requester-email');
  emailInput.readOnly=state.me.role==='client';
  emailInput.value=state.me.role==='client'?(state.me.email||''):'';
@@ -185,6 +190,7 @@ function wireEvents(){
   if(state.me?.role==='client'){
    if(!state.me.email){pop('Brak przypisanego adresu e-mail. Poproś MarkNet o uzupełnienie adresu na swoim koncie.',true);return;}
    $('requester-email').value=state.me.email;
+   $('requester-name').value=[state.me.first_name,state.me.last_name].filter(Boolean).join(' ').trim();
   }
   modal('new-ticket-modal');
  });
@@ -237,7 +243,10 @@ function wireEvents(){
       const item=new FormData();item.append('file',file,file.name);
       try{await api('/api/tickets/'+r.ticket.id+'/attachments',{method:'POST',body:item});}catch(err){errors++;console.warn('Załącznik nie został dodany:',file.name);}
     }
-    form.reset();if(state.me?.role==='client')$('requester-email').value=state.me.email||'';
+    form.reset();if(state.me?.role==='client'){
+      $('requester-email').value=state.me.email||'';
+      $('requester-name').value=[state.me.first_name,state.me.last_name].filter(Boolean).join(' ').trim();
+    }
     closeModal('new-ticket-modal');
     state.lastCreatedId=r.ticket.id;
     $('filter-status').value='';
