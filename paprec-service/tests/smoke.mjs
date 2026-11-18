@@ -109,7 +109,32 @@ try{
  assert.equal(pdf.status,200);
  assert.match(pdf.headers.get('content-type'),/application\/pdf/);
  const buf=Buffer.from(await pdf.arrayBuffer());assert.equal(buf.subarray(0,5).toString(),'%PDF-');
- const month=new Date().toISOString().slice(0,7);
+ const blockClose=await api('/api/tickets/'+id,{status:'Zamknięte'},'PATCH',admin);
+ assert.equal(blockClose.r.status,409);
+ assert.equal((await api('/api/tickets/'+id+'/service-protocol.pdf',undefined,'GET',admin)).r.status,409);
+ assert.equal((await api('/api/tickets/'+id+'/service-completion',{work_date:'2026-11-18'},'POST',client)).r.status,403);
+ const completion={
+  work_date:'2026-11-18',technicians:'Marek Wyganowski',hours:2.5,
+  work_done:'Weryfikacja toru światłowodowego GPEC, sprawdzenie medikonwertera i przywrócenie łączności poprzez przełączenie transmisji.',
+  system_operational:'tak',fit_for_use:'tak'
+ };
+ const complete=await api('/api/tickets/'+id+'/service-completion',completion,'POST',admin);
+ assert.equal(complete.r.status,200,JSON.stringify(complete.json));
+ const afterComplete=await api('/api/tickets/'+id,undefined,'GET',admin);
+ assert.equal(afterComplete.json.ticket.status,'Zamknięte');
+ assert.equal(afterComplete.json.completion.technicians,'Marek Wyganowski');
+ assert.equal(Number(afterComplete.json.completion.hours),2.5);
+ const protocol=await tryHttp('/api/tickets/'+id+'/service-protocol.pdf',{headers:{Cookie:admin}});
+ assert.equal(protocol.status,200);
+ const formalPdf=Buffer.from(await protocol.arrayBuffer());
+ assert.equal(formalPdf.subarray(0,5).toString(),'%PDF-');
+ assert.ok(formalPdf.length>3500,'Formal protocol PDF should contain substantive content');
+ const clientFormal=await tryHttp('/api/tickets/'+id+'/service-protocol.pdf',{headers:{Cookie:client}});
+ assert.equal(clientFormal.status,200);
+ assert.equal(Buffer.from(await clientFormal.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
+ const updateCompletion=await api('/api/tickets/'+id+'/service-completion',{...completion,work_done:completion.work_done+' Test kontroli poprawności po zmianie.'},'POST',admin);
+ assert.equal(updateCompletion.r.status,200);
+  const month=new Date().toISOString().slice(0,7);
  const csv=await tryHttp('/api/reports/month.csv?month='+month,{headers:{Cookie:admin}});
  assert.equal(csv.status,200);
  assert.match(await csv.text(),/MN-/);
@@ -223,7 +248,7 @@ try{
  assert.equal((await api('/api/admin/users/'+newUser.json.user.id,undefined,'DELETE',newClient)).r.status,403);
   const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(origins.status,403);
- console.log('SMOKE TEST PASSED: auth, tenant isolation, user accounts, images, PDF, CSV, real email queue handling, admin copy, ticket archive/restore, account removal and company suspension');
+ console.log('SMOKE TEST PASSED (including formal service PDF without conclusions): auth, tenant isolation, user accounts, images, PDF, CSV, real email queue handling, admin copy, ticket archive/restore, account removal and company suspension');
 }finally{
  child.kill('SIGTERM');
  await sleep(300);
