@@ -76,6 +76,18 @@ async function init(){
     console.log('Initial accounts initialized (passwords never logged).');
   }
   await migrateTenancy(db,categories);
+  const readiness=(await db.query(
+    "SELECT "+
+    "(SELECT count(*)::int FROM users WHERE role='client' AND is_active=true AND (email IS NULL OR btrim(email)='')) AS clients_missing_email, "+
+    "(SELECT count(*)::int FROM users WHERE role='client' AND is_active=true) AS active_client_users, "+
+    "(SELECT count(*)::int FROM notification_jobs WHERE status='pending') AS pending_notifications, "+
+    "(SELECT count(*)::int FROM notification_jobs WHERE status='pending' AND attempt_count>0) AS failed_notifications, "+
+    "(SELECT count(*)::int FROM notification_jobs WHERE status='delivered') AS delivered_notifications, "+
+    "(SELECT count(*)::int FROM push_subscriptions) AS subscribed_devices, "+
+    "(SELECT EXISTS(SELECT 1 FROM users WHERE username='paprec' AND is_active=true AND email IS NOT NULL AND btrim(email)<>'')) AS paprec_email_ready, "+
+    "(SELECT EXISTS(SELECT 1 FROM organization_systems os JOIN organizations o ON o.id=os.organization_id WHERE o.name='PAPREC Energies Gdańsk' AND os.category='Połączenia GPEC')) AS paprec_gpec_enabled"
+  )).rows[0];
+  console.log('Readiness preflight:',JSON.stringify({...readiness,smtp_configured:notifications.smtpReady(),push_configured:pushConfigured}));
 }
 function sessionCookie(token,age){return 'mn_session='+token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+age+(process.env.NODE_ENV==='production'?'; Secure':'');}
 async function auth(req,res,next){
