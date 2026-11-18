@@ -32,18 +32,19 @@ async function confirmation(t) {
  doc.moveDown(.5);doc.fillColor('#607c90').fontSize(8).text('Dokument potwierdza przyjęcie zgłoszenia do rejestru, a nie rozpoczęcie ani zakończenie naprawy. Awarie krytyczne zgłaszaj również telefonicznie: numer telefonu wskazany w uzgodnionych procedurach serwisowych.',{width:490});
  doc.end();return promise;
 }
-function smtpReady(){return Boolean(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_PASSWORD&&process.env.SMTP_FROM);}
+const fakeMail=process.env.NODE_ENV==='test'&&process.env.MARKNET_TEST_SMTP==='1';
+function smtpReady(){return fakeMail||Boolean(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_PASSWORD&&process.env.SMTP_FROM);}
 function phoneReady(){return Boolean(process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID);}
 let transporter;
 function mailer(){
  if(!smtpReady())throw new Error('Brak ustawień SMTP');
- return transporter??=nodemailer.createTransport({
+ return transporter??=(fakeMail?nodemailer.createTransport({streamTransport:true,buffer:true,newline:'unix'}):nodemailer.createTransport({
    host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||465),
    secure:Number(process.env.SMTP_PORT||465)===465,
    auth:{user:process.env.SMTP_USERNAME,pass:process.env.SMTP_PASSWORD},
    tls:{minVersion:'TLSv1.2'},
    connectionTimeout:10000,greetingTimeout:10000,socketTimeout:18000
- });
+ }));
 }
 function escapeHtml(value){
  return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
