@@ -260,7 +260,7 @@ app.get('/api/reports/month.csv',auth,adminOnly,async(req,res,next)=>{
     const val=(v)=>{let x=String(v??'');if(/^[=+@-]/.test(x))x="'"+x;return '"'+x.replace(/"/g,'""')+'"';};
     const columns=['Numer','Data','Rodzaj','Priorytet','System','Temat','Miejsce','Urządzenie','Status','Weryfikacja','Przyjazd','Rozwiązanie'];
     const data=rows.map(t=>[ticketNumber(t),datePL(t.created_at),t.kind,t.priority,t.category,t.title,t.area,t.device,t.status,datePL(t.acknowledged_at),datePL(t.on_site_at),datePL(t.resolved_at)]);
-    res.type('text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="zgłoszenia-'+month+'.csv"');
+    res.type('text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="zgloszenia-'+month+'.csv"');
     res.send('\ufeff'+[columns,...data].map(r=>r.map(val).join(';')).join('\r\n'));
   }catch(e){next(e);}
 });
