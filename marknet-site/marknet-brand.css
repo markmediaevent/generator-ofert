@@ -1,0 +1,107 @@
+/* MARKNET — oficjalna kolorystyka firmowa, niebieski / żółty / biel.
+   Warstwa stylów zastępuje wcześniejszą kolorystykę turkusowo-granatową. */
+:root {
+  color-scheme: light;
+  --bg: #f7fbfe;
+  --bg2: #eef7fc;
+  --panel: #ffffff;
+  --ink: #173b54;
+  --muted: #617e91;
+  --line: rgba(7,105,154,.15);
+  --mint: #009bd6;
+  --blue: #009bd6;
+  --yellow: #ffd600;
+}
+body {background:#f7fbfe;color:#173b54}
+::selection {background:#ffdd18;color:#103850}
+.brand {display:flex;align-items:center;gap:0}
+.brand-logo {display:block;width:205px;max-width:100%;height:auto;object-fit:contain;mix-blend-mode:multiply}
+.nav {
+  height:95px;
+  background:rgba(255,255,255,.96);
+  border-bottom:1px solid #d9ebf4;
+  box-shadow:0 2px 22px rgba(5,67,105,.06);
+}
+.nav-links a {color:#345e79}
+.nav-links a:hover,.nav-links a:focus-visible {color:#008fc8}
+.nav-links .nav-cta {color:#173b54;background:#ffd600;border:1px solid #f4cc00}
+.nav-links .nav-cta:hover {color:#173b54;background:#ffea70}
+.menu-btn {border-color:#cce2ee;color:#0d648a;background:#fff;font-weight:700}
+.menu-btn:hover {background:#f1fafe}
+.hero {
+  background:radial-gradient(ellipse 50% 60% at 85% 12%,rgba(255,222,35,.13),transparent 68%),
+    linear-gradient(145deg,#ffffff,#f1f9fe);
+  border-bottom-color:#dcecf4;
+}
+.hero::before {
+  background:radial-gradient(ellipse 58% 60% at 75% 33%,rgba(21,148,202,.10),transparent 76%),
+    radial-gradient(ellipse 42% 46% at 0 75%,rgba(255,221,0,.10),transparent 77%);
+}
+.hero::after {opacity:.6;background-image:linear-gradient(rgba(0,133,195,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,133,195,.045) 1px,transparent 1px)}
+.eyebrow-pill {color:#086e9b;background:#eaf8ff;border-color:#b9dff0}
+.led {background:#ffd600;box-shadow:0 0 0 5px rgba(255,214,0,.18),0 0 14px rgba(255,214,0,.4)}
+h1,h2,h3 {color:#143e59}
+h1 .accent {color:#009bd6}
+.hero-lead {color:#4f6c7f}
+.btn-primary {background:#ffd600;color:#173b54;box-shadow:0 8px 22px rgba(255,204,0,.18)}
+.btn-primary:hover {background:#ffeb70}
+.btn-ghost {background:#fff;border-color:#bddbe9;color:#195c81}
+.btn-ghost:hover {background:#f1faff;border-color:#009bd6}
+.capabilities span {background:#fff;border-color:#cde3ee;color:#54768b;box-shadow:0 3px 12px rgba(16,90,135,.035)}
+.visual::before {background:radial-gradient(circle,rgba(0,155,214,.11),transparent 69%)}
+.orbital {border-color:rgba(0,140,202,.12);box-shadow:0 0 0 42px rgba(6,138,198,.02),0 0 0 84px rgba(255,214,0,.025)}
+.orbital::before,.orbital::after {border-color:rgba(12,128,180,.20)}
+.diagram .link {stroke:#159cd3;stroke-opacity:.30}
+.diagram .line-strong {stroke:#f0b600;stroke-opacity:.84}
+.diagram .dot {fill:#ffd600}
+.diagram .ring {stroke:#008ecc;fill:#eefaff;stroke-opacity:.7}
+.diagram .halo {fill:#009bd6}
+.diagram text {fill:#376e88}
+.center-chip {background:linear-gradient(150deg,#ffffff,#e9f8fd);border-color:#77cde8;box-shadow:0 16px 48px rgba(17,97,139,.12)}
+.center-chip svg {stroke:#079bd3}
+.center-chip span {color:#006e9e}
+.floatlabel {background:rgba(255,255,255,.94);border-color:#cde2eb;box-shadow:0 10px 30px rgba(21,88,130,.12)}
+.floatlabel b {color:#195c7b}
+.floatlabel small {color:#028ec5}
+.overline {color:#008cc5}
+.overline::before {background:#ffcf00}
+.services {background:linear-gradient(180deg,#ffffff,#f4faff)}
+.service {background:linear-gradient(145deg,#fff,#f6fbfe);border-color:#d5e8f1;box-shadow:0 9px 25px rgba(25,97,136,.035)}
+.service:hover {border-color:#009bd6;box-shadow:0 15px 35px rgba(14,124,177,.10)}
+.service::after {background:linear-gradient(90deg,#ffd600,#009bd6)}
+.service-icon {background:#e9f8ff;border-color:#c4e6f5}
+.service-icon svg {stroke:#008ec5}
+.service h3 {color:#154863}
+.service p {color:#5e7c8f}
+.approach {background:#f4faff;border-top-color:#d9eaf1}
+.split .intro,.section-head p {color:#658396}
+.mini-rule {background:#ffd600}
+.steps {border-top-color:#d6e8f0}
+.step {border-bottom-color:#d6e8f0}
+.step-num {color:#008cc5}
+.step h3 {color:#15475e}
+.step p {color:#688599}
+.areas {background:#fff;border-top-color:#dceaf1;border-bottom-color:#dceaf1}
+.area-title {color:#174c69}
+.pills span {background:#f1faff;border-color:#d1e6f1;color:#456c82}
+.contact {background:#f7fbfe}
+.contact-panel {
+  background:radial-gradient(circle at 95% 5%,rgba(255,213,0,.18),transparent 38%),linear-gradient(115deg,#eaf8ff,#ffffff);
+  border-color:#b9dfef;
+  box-shadow:0 16px 44px rgba(6,99,151,.08);
+}
+.contact-panel h2 {color:#104e72}
+.contact-panel p {color:#5b7d92}
+footer {background:#fff;border-top-color:#dceaf2}
+.footer-row small {color:#708e9f}
+.footer-right a {color:#23739c}
+.footer-right a:hover {color:#008dcc}
+@media(max-width:760px){
+  .nav {height:87px}
+  .brand-logo {width:192px}
+  .nav-links {top:87px;background:#fff;border-bottom-color:#d4e7f2;box-shadow:0 18px 30px rgba(9,81,121,.1)}
+  .nav-links a {color:#1b5677}
+  .hero-grid {padding-block:60px 52px}
+  .hero h1 {font-size:clamp(2.7rem,10vw,4.45rem)}
+}
+@media(max-width:370px){.brand-logo{width:166px}}
