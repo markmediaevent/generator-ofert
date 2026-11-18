@@ -1,0 +1,42 @@
+name: PAPREC Service Smoke Test
+on:
+  push:
+    branches: [paprec-service-2026]
+    paths:
+      - 'paprec-service/**'
+      - '.github/workflows/paprec-service-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test_pw_ephemeral
+          POSTGRES_DB: tickets
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d tickets"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: paprec-service
+    env:
+      TEST_DATABASE_URL: postgres://test:test_pw_ephemeral@127.0.0.1:5432/tickets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check
+      - name: Verify authentication and reports
+        run: node tests/smoke.mjs
