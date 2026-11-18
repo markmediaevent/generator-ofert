@@ -39,6 +39,10 @@ async function setupPortal(){
  const [meta,tickets]=await Promise.all([api('/api/meta'),api('/api/tickets')]);
  state.meta=meta;state.tickets=tickets.tickets;show('login-view',false);show('portal-view',true);
  $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
+ const emailInput=$('requester-email');
+ emailInput.readOnly=state.me.role==='client';
+ emailInput.value=state.me.role==='client'?(state.me.email||''):'';
+ emailInput.placeholder=state.me.role==='client'?'E-mail przypisany do konta':'Adres odbiorcy potwierdzenia';
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
  show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');show('admin-organizations',state.me.role==='admin');
@@ -145,7 +149,13 @@ function wireEvents(){
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}sessionStorage.removeItem(AUTH_KEY);state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
- $('add-button').addEventListener('click',()=>modal('new-ticket-modal'));
+ $('add-button').addEventListener('click',()=>{
+  if(state.me?.role==='client'){
+   if(!state.me.email){pop('Brak przypisanego adresu e-mail. Poproś MarkNet o uzupełnienie adresu na swoim koncie.',true);return;}
+   $('requester-email').value=state.me.email;
+  }
+  modal('new-ticket-modal');
+ });
  $('password-button').addEventListener('click',()=>modal('password-modal'));
  $('enable-push').addEventListener('click',async()=>{
   const b=$('enable-push');b.disabled=true;
@@ -182,8 +192,8 @@ function wireEvents(){
       const item=new FormData();item.append('file',file,file.name);
       try{await api('/api/tickets/'+r.ticket.id+'/attachments',{method:'POST',body:item});}catch(err){errors++;console.warn('Załącznik nie został dodany:',file.name);}
     }
-    form.reset();closeModal('new-ticket-modal');await refresh();
-    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+' Potwierdzenie PDF znajdziesz w szczegółach.');
+    form.reset();if(state.me?.role==='client')$('requester-email').value=state.me.email||'';closeModal('new-ticket-modal');await refresh();
+    pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(errors?' Nie dodano '+errors+' załączników.':'')+(r.notification?.email==='queued'?' E-mail z PDF oczekuje na wysyłkę.':' Potwierdzenie PDF możesz pobrać ze szczegółów.'));
     await openTicket(r.ticket.id);
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
