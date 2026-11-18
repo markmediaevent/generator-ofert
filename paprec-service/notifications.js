@@ -20,6 +20,8 @@ async function confirmation(t) {
   doc.fillColor('#68869a').fontSize(9).text(label);doc.moveDown(.2);
   doc.fillColor('#183e56').fontSize(11).text(String(value??'—'),{width:495});doc.moveDown(.55);
  }
+ field('Numer zgłoszenia',no(t));
+ field('Klient',t.organization_name||'—');
  field('Data zgłoszenia',fmt(t.created_at));
  field('Osoba zgłaszająca',t.requester_name);
  field('Adres e-mail',t.requester_email);
@@ -43,13 +45,64 @@ function mailer(){
    connectionTimeout:10000,greetingTimeout:10000,socketTimeout:18000
  });
 }
+function escapeHtml(value){
+ return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 async function emailConfirmation(t) {
  if(!t.requester_email)throw new Error('Brak adresu e-mail zgłaszającego');
  const pdf=await confirmation(t);
- const body='Potwierdzamy rejestrację zgłoszenia serwisowego '+no(t)+'.\n\nTemat: '+t.title+'\nSystem: '+t.category+'\nPriorytet: '+t.priority+'\nData: '+fmt(t.created_at)+'\n\nW załączniku znajduje się potwierdzenie PDF.\n\nW przypadku awarii krytycznej skontaktuj się również telefonicznie z serwisem MarkNet: numer telefonu wskazany w uzgodnionych procedurach serwisowych.\n\nPanel zgłoszeń: https://marknet.com.pl/serwis/';
+ const number=no(t);
+ const company=t.organization_name||'';
+ const body=[
+  'Potwierdzamy zarejestrowanie zgłoszenia serwisowego w MarkNet.',
+  '',
+  'Numer zgłoszenia: '+number,
+  'Klient: '+company,
+  'Zgłaszający: '+(t.requester_name||'—'),
+  'Data: '+fmt(t.created_at),
+  'Rodzaj: '+t.kind+' / '+t.priority,
+  'System: '+t.category,
+  'Temat: '+t.title,
+  'Lokalizacja: '+(t.area||'Nie podano'),
+  '',
+  'Opis zgłoszenia:',
+  t.description,
+  '',
+  'W załączniku znajduje się podgląd zgłoszenia w formacie PDF.',
+  'Możesz też śledzić status pod adresem https://marknet.com.pl/serwis/',
+  '',
+  'To potwierdzenie rejestracji, nie potwierdzenie rozpoczęcia naprawy.',
+  'W sytuacji krytycznej skontaktuj się także z serwisem zgodnie z uzgodnioną procedurą.'
+ ].join('\n');
+ const cells=[
+  ['Numer zgłoszenia',number],
+  ['Klient',company||'—'],
+  ['Zgłaszający',t.requester_name||'—'],
+  ['Data',fmt(t.created_at)],
+  ['Rodzaj / priorytet',t.kind+' / '+t.priority],
+  ['System',t.category],
+  ['Temat',t.title],
+  ['Lokalizacja',t.area||'Nie podano']
+ ];
+ const rows=cells.map(([label,value])=>'<tr><td style="padding:8px 12px;color:#617e91;border-bottom:1px solid #deedf4;font-size:13px">'+escapeHtml(label)+'</td><td style="padding:8px 12px;border-bottom:1px solid #deedf4;font-weight:600;font-size:13px">'+escapeHtml(value)+'</td></tr>').join('');
+ const html=
+  '<!doctype html><html lang="pl"><head><meta charset="utf-8"></head>'+
+  '<body style="margin:0;background:#f5f9fc;font-family:Arial,sans-serif;color:#173b54">'+
+  '<div style="max-width:640px;margin:24px auto;background:#fff;border:1px solid #d6e7ef;border-radius:14px;overflow:hidden">'+
+  '<div style="padding:22px 26px;border-top:6px solid #ffda00"><strong style="font-size:25px;color:#009bd6">MARK</strong><strong style="font-size:25px;color:#e1b800">NET</strong><span style="color:#5a7589;font-size:12px;margin-left:10px">SERWIS</span></div>'+
+  '<div style="padding:0 26px 26px"><h2 style="color:#14445f;margin:6px 0 12px">Potwierdzenie przyjęcia zgłoszenia</h2>'+
+  '<p>Twoje zgłoszenie zostało zapisane w systemie MarkNet. Poniżej znajduje się jego podgląd.</p>'+
+  '<table style="width:100%;border-collapse:collapse">'+rows+'</table>'+
+  '<p style="margin-top:20px;font-weight:600">Opis zgłoszenia</p>'+
+  '<div style="white-space:pre-wrap;background:#eef8fe;border-radius:8px;padding:14px;font-size:14px">'+escapeHtml(t.description)+'</div>'+
+  '<p style="margin-top:20px">Pełne potwierdzenie znajdziesz w załączonym pliku <strong>PDF</strong>.</p>'+
+  '<p><a href="https://marknet.com.pl/serwis/" style="display:inline-block;background:#ffda00;color:#143850;text-decoration:none;font-weight:bold;padding:12px 18px;border-radius:8px">Otwórz panel zgłoszeń</a></p>'+
+  '<p style="color:#6e8798;font-size:12px;margin-top:28px">Wiadomość automatyczna. Rejestracja zgłoszenia nie oznacza rozpoczęcia naprawy. Zgłoszenia krytyczne wymagają również kontaktu zgodnego z uzgodnioną procedurą.</p></div></div></body></html>';
  const info=await mailer().sendMail({
-  from:process.env.SMTP_FROM,to:t.requester_email,subject:'MarkNet — potwierdzenie '+no(t),
-  text:body,attachments:[{filename:'MarkNet-'+no(t)+'.pdf',content:pdf,contentType:'application/pdf'}]
+  from:process.env.SMTP_FROM,to:t.requester_email,
+  subject:'MarkNet Serwis — potwierdzenie zgłoszenia '+number,
+  text:body,html,
+  attachments:[{filename:'Zgloszenie-MarkNet-'+number+'.pdf',content:pdf,contentType:'application/pdf'}]
  });
  return info.messageId||'ok';
 }
