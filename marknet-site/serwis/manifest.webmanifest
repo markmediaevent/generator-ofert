@@ -1,0 +1,20 @@
+{
+  "name": "MarkNet Serwis",
+  "short_name": "MarkNet",
+  "description": "Panel zgłoszeń serwisowych MarkNet",
+  "id": "/serwis/",
+  "start_url": "/serwis/",
+  "scope": "/serwis/",
+  "display": "standalone",
+  "background_color": "#f7fbfe",
+  "theme_color": "#ffffff",
+  "lang": "pl",
+  "icons": [
+    {
+      "src": "/serwis/logo-marknet.webp",
+      "sizes": "230x95",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}
