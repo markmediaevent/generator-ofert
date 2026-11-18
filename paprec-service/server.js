@@ -219,7 +219,11 @@ app.post('/api/tickets/:id/attachments',auth,longId,upload.single('file'),async(
     const jpg=b[0]===0xff && b[1]===0xd8 && b[2]===0xff;
     const png=b.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
     const pdf=b.subarray(0,5).toString()==='%PDF-';
-    if(!((jpg&&mime==='image/jpeg')||(png&&mime==='image/png')||(pdf&&mime==='application/pdf')))return problem(res,400,'Dozwolone są wyłącznie pliki JPG, PNG lub PDF do 5 MB.');
+    const webp=b.length>12&&b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WEBP';
+    const brand=b.length>=12?b.subarray(8,12).toString():'';
+    const heic=b.length>=12&&b.subarray(4,8).toString()==='ftyp'&&['heic','heix','hevc','hevx','mif1','msf1'].includes(brand);
+    const photo=(jpg&&mime==='image/jpeg')||(png&&mime==='image/png')||(webp&&mime==='image/webp')||(heic&&['image/heic','image/heif','application/octet-stream'].includes(mime));
+    if(!(photo||(pdf&&mime==='application/pdf')))return problem(res,400,'Dozwolone są zdjęcia JPG, PNG, WebP, HEIC lub PDF do 5 MB.');
     const name=path.basename(req.file.originalname).replace(/[^\p{L}\p{N}._ -]/gu,'_').slice(0,120)||'zalacznik';
     const count=(await db.query('SELECT count(*)::int AS n FROM attachments WHERE ticket_id=$1',[t.id])).rows[0].n;
     if(count>=10)return problem(res,400,'Limit 10 załączników na zgłoszenie.');
@@ -232,7 +236,7 @@ app.get('/api/attachments/:id',auth,longId,async(req,res,next)=>{
   try{
     const a=(await db.query('SELECT a.*,t.organization_id FROM attachments a JOIN tickets t ON t.id=a.ticket_id WHERE a.id=$1',[req.params.id])).rows[0];
     if(!canAccessTicket(a,req.user))return problem(res,404,'Nie znaleziono pliku.');
-    res.type(a.mime);res.set('Content-Disposition','attachment; filename="zalacznik-'+a.id+'.'+(a.mime==='application/pdf'?'pdf':a.mime==='image/jpeg'?'jpg':'png')+'"');res.send(a.content);
+    res.type(a.mime);res.set('Content-Disposition','attachment; filename="zalacznik-'+a.id+'.'+(a.mime==='application/pdf'?'pdf':a.mime==='image/jpeg'?'jpg':a.mime==='image/webp'?'webp':a.mime==='image/heic'||a.mime==='image/heif'?'heic':'png')+'"');res.send(a.content);
   }catch(e){next(e);}
 });
 function font(doc){
@@ -291,9 +295,11 @@ app.get('/api/reports/month.pdf',auth,adminOnly,async(req,res,next)=>{
   try{
     const month=String(req.query.month||'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))return problem(res,400,'Wybierz miesiąc RRRR-MM.');
     const from=month+'-01', to=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString().slice(0,10);
-    const rows=(await db.query('SELECT t.*,u.username AS author FROM tickets t JOIN users u ON t.created_by=u.id WHERE created_at >= ($1::date AT TIME ZONE \'Europe/Warsaw\') AND created_at < ($2::date AT TIME ZONE \'Europe/Warsaw\') ORDER BY created_at',[from,to])).rows;
+    const orgId=/^[1-9]\d*$/.test(String(req.query.organization_id||''))?String(req.query.organization_id):null;
+    const rows=(await db.query("SELECT t.*,u.username AS author,o.name AS organization_name FROM tickets t JOIN users u ON t.created_by=u.id LEFT JOIN organizations o ON o.id=t.organization_id WHERE t.created_at >= ($1::date AT TIME ZONE 'Europe/Warsaw') AND t.created_at < ($2::date AT TIME ZONE 'Europe/Warsaw') AND ($3::bigint IS NULL OR t.organization_id=$3) ORDER BY t.created_at",[from,to,orgId])).rows;
+    const headingOrg=orgId?(await db.query('SELECT name FROM organizations WHERE id=$1',[orgId])).rows[0]?.name||'Klient':'Wszyscy klienci';
     const doc=pdfStart(res,'raport-miesieczny-'+month+'.pdf');
-    head(doc,'Raport miesięczny • '+month,process.env.CLIENT_NAME||'Klient');
+    head(doc,'Raport miesięczny • '+month,headingOrg);
     const by=(key)=>Object.entries(rows.reduce((a,t)=>(a[t[key]]=(a[t[key]]||0)+1,a),{})).map(([k,n])=>k+': '+n).join('  |  ')||'brak';
     p(doc,'Liczba nowych zgłoszeń',rows.length);
     p(doc,'Według rodzaju',by('kind'));p(doc,'Według priorytetu',by('priority'));p(doc,'Według aktualnego statusu',by('status'));
@@ -312,10 +318,11 @@ app.get('/api/reports/month.csv',auth,adminOnly,async(req,res,next)=>{
   try{
     const month=String(req.query.month||'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))return problem(res,400,'Nieprawidłowy miesiąc.');
     const from=month+'-01',to=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString().slice(0,10);
-    const rows=(await db.query('SELECT * FROM tickets WHERE created_at >= ($1::date AT TIME ZONE \'Europe/Warsaw\') AND created_at < ($2::date AT TIME ZONE \'Europe/Warsaw\') ORDER BY created_at',[from,to])).rows;
+    const orgId=/^[1-9]\d*$/.test(String(req.query.organization_id||''))?String(req.query.organization_id):null;
+    const rows=(await db.query("SELECT t.*,o.name AS organization_name FROM tickets t LEFT JOIN organizations o ON o.id=t.organization_id WHERE t.created_at >= ($1::date AT TIME ZONE 'Europe/Warsaw') AND t.created_at < ($2::date AT TIME ZONE 'Europe/Warsaw') AND ($3::bigint IS NULL OR t.organization_id=$3) ORDER BY t.created_at",[from,to,orgId])).rows;
     const val=(v)=>{let x=String(v??'');if(/^[=+@-]/.test(x))x="'"+x;return '"'+x.replace(/"/g,'""')+'"';};
-    const columns=['Numer','Data','Rodzaj','Priorytet','System','Temat','Miejsce','Urządzenie','Status','Weryfikacja','Przyjazd','Rozwiązanie'];
-    const data=rows.map(t=>[ticketNumber(t),datePL(t.created_at),t.kind,t.priority,t.category,t.title,t.area,t.device,t.status,datePL(t.acknowledged_at),datePL(t.on_site_at),datePL(t.resolved_at)]);
+    const columns=['Numer','Klient','Data','Rodzaj','Priorytet','System','Temat','Miejsce','Urządzenie','Status','Weryfikacja','Przyjazd','Rozwiązanie'];
+    const data=rows.map(t=>[ticketNumber(t),t.organization_name||'',datePL(t.created_at),t.kind,t.priority,t.category,t.title,t.area,t.device,t.status,datePL(t.acknowledged_at),datePL(t.on_site_at),datePL(t.resolved_at)]);
     res.type('text/csv; charset=utf-8');res.set('Content-Disposition','attachment; filename="zgloszenia-'+month+'.csv"');
     res.send('\ufeff'+[columns,...data].map(r=>r.map(val).join(';')).join('\r\n'));
   }catch(e){next(e);}
@@ -371,7 +378,7 @@ async function phoneAlertForTicket(t){
   throw new Error('Brak aktywnej subskrypcji web push lub Telegram');
 }
 async function deliverNotifications(){
-  const result=await db.query("SELECT j.id,j.kind,j.attempt_count,t.*,u.username AS author FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
+  const result=await db.query("SELECT j.id,j.kind,j.attempt_count,t.*,u.username AS author,o.name AS organization_name FROM notification_jobs j JOIN tickets t ON t.id=j.ticket_id JOIN users u ON u.id=t.created_by LEFT JOIN organizations o ON o.id=t.organization_id WHERE j.status='pending' AND j.retry_at<=now() ORDER BY j.id LIMIT 12");
   for(const job of result.rows){
     try{
       if(job.kind==='confirmation')await notifications.emailConfirmation(job);
