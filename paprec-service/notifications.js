@@ -27,7 +27,7 @@ async function confirmation(t) {
  field('System',t.category);field('Temat',t.title);
  field('Lokalizacja',t.area||'Nie podano');field('Urządzenie',t.device||'Nie podano');
  field('Opis',t.description);
- doc.moveDown(.5);doc.fillColor('#607c90').fontSize(8).text('Dokument potwierdza przyjęcie zgłoszenia do rejestru, a nie rozpoczęcie ani zakończenie naprawy. Awarie krytyczne zgłaszaj również telefonicznie: 515 168 560.',{width:490});
+ doc.moveDown(.5);doc.fillColor('#607c90').fontSize(8).text('Dokument potwierdza przyjęcie zgłoszenia do rejestru, a nie rozpoczęcie ani zakończenie naprawy. Awarie krytyczne zgłaszaj również telefonicznie: numer telefonu wskazany w uzgodnionych procedurach serwisowych.',{width:490});
  doc.end();return promise;
 }
 function smtpReady(){return Boolean(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_PASSWORD&&process.env.SMTP_FROM);}
@@ -46,7 +46,7 @@ function mailer(){
 async function emailConfirmation(t) {
  if(!t.requester_email)throw new Error('Brak adresu e-mail zgłaszającego');
  const pdf=await confirmation(t);
- const body='Potwierdzamy rejestrację zgłoszenia serwisowego '+no(t)+'.\n\nTemat: '+t.title+'\nSystem: '+t.category+'\nPriorytet: '+t.priority+'\nData: '+fmt(t.created_at)+'\n\nW załączniku znajduje się potwierdzenie PDF.\n\nW przypadku awarii krytycznej skontaktuj się również telefonicznie z serwisem MarkNet: 515 168 560.\n\nPanel zgłoszeń: https://marknet.com.pl/serwis/';
+ const body='Potwierdzamy rejestrację zgłoszenia serwisowego '+no(t)+'.\n\nTemat: '+t.title+'\nSystem: '+t.category+'\nPriorytet: '+t.priority+'\nData: '+fmt(t.created_at)+'\n\nW załączniku znajduje się potwierdzenie PDF.\n\nW przypadku awarii krytycznej skontaktuj się również telefonicznie z serwisem MarkNet: numer telefonu wskazany w uzgodnionych procedurach serwisowych.\n\nPanel zgłoszeń: https://marknet.com.pl/serwis/';
  const info=await mailer().sendMail({
   from:process.env.SMTP_FROM,to:t.requester_email,subject:'MarkNet — potwierdzenie '+no(t),
   text:body,attachments:[{filename:'MarkNet-'+no(t)+'.pdf',content:pdf,contentType:'application/pdf'}]
