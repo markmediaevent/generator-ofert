@@ -135,6 +135,28 @@ async function init(){
     await portProvision.query('ROLLBACK');
     console.error('Port Czystej Energii provisioning failed:',e.message);
   }finally{portProvision.release();}
+  const portAccount=await db.connect();
+  try{
+    await portAccount.query('BEGIN');
+    const change=(await portAccount.query(
+      "INSERT INTO service_migrations(migration_key) VALUES('port_czystej_energii_bzieba_v2_20261118') ON CONFLICT DO NOTHING RETURNING migration_key"
+    ));
+    if(change.rowCount){
+      const updated=await portAccount.query(
+        "UPDATE users SET first_name=$1,last_name=$2,pass_salt=$3,pass_hash=$4 WHERE username=$5 AND role='client' AND deleted_at IS NULL",
+        ['Beata Ewa','Zięba','8f9929f86a2d345ae1521d1be585e700','784bf7516cbbc126e70f8a11d3771ccb72ee0802b4d47e30271c8a6a365ac64fb8210d27d48c0f21c0d797c16965d7124852318a46b72b71f5529a1187645072','b.zieba']
+      );
+      if(updated.rowCount!==1)throw new Error('Nie udało się skonfigurować profilu b.zieba.');
+      await portAccount.query("DELETE FROM sessions WHERE user_id=(SELECT id FROM users WHERE username='b.zieba')");
+      await portAccount.query('COMMIT');
+      console.log('b.zieba profile and initial password configured');
+    }else{
+      await portAccount.query('COMMIT');
+    }
+  }catch(e){
+    await portAccount.query('ROLLBACK');
+    console.error('Profile initialization failed:',e.message);
+  }finally{portAccount.release();}
   // Verify without logging emails, credentials or sensitive company information.
   const portCheck=(await db.query(
     "SELECT o.id,o.is_active,COUNT(DISTINCT s.category)::int AS systems,MAX(CASE WHEN u.username='b.zieba' AND u.role='client' AND u.is_active=true AND u.deleted_at IS NULL AND u.email='bzieba@portczystejenergii.pl' THEN 1 ELSE 0 END)::int AS user_ready "+
@@ -163,7 +185,7 @@ async function auth(req,res,next){
     const token=bearer?bearer[1]:(cookie?cookie.slice('mn_session='.length):'');
     if(!/^[a-f0-9]{64}$/.test(token))return problem(res,401,'Zaloguj się.');
     const hashed=crypto.createHash('sha256').update(token).digest('hex');
-    const rows=await db.query("SELECT u.id,u.username,u.email,u.role,u.organization_id,o.name AS organization_name,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true AND u.deleted_at IS NULL AND (u.role='admin' OR o.is_active=true)",[hashed]);
+    const rows=await db.query("SELECT u.id,u.username,u.email,u.first_name,u.last_name,u.role,u.organization_id,o.name AS organization_name,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true AND u.deleted_at IS NULL AND (u.role='admin' OR o.is_active=true)",[hashed]);
     if(!rows.rowCount)return problem(res,401,'Sesja wygasła. Zaloguj się ponownie.');
     req.user=rows.rows[0];req.tokenHash=hashed;next();
   }catch(e){next(e);}
@@ -196,7 +218,7 @@ app.post('/api/login',async(req,res,next)=>{
     }
   }catch(e){next(e);}
 });
-app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,email:req.user.email||'',role:req.user.role,organization_id:req.user.organization_id,clientName:req.user.organization_name||'MarkNet'}));
+app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,email:req.user.email||'',first_name:req.user.first_name||'',last_name:req.user.last_name||'',role:req.user.role,organization_id:req.user.organization_id,clientName:req.user.organization_name||'MarkNet'}));
 app.post('/api/logout',auth,async(req,res,next)=>{try{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);if(!req.headers.authorization)res.set('Set-Cookie',sessionCookie('',0));res.json({ok:true});}catch(e){next(e);}});
 app.post('/api/change-password',auth,async(req,res,next)=>{
   try{
@@ -231,12 +253,14 @@ app.get('/api/tickets',auth,async(req,res,next)=>{
 });
 app.post('/api/tickets',auth,async(req,res,next)=>{
   const kind=clean(req.body.kind,30),priority=clean(req.body.priority,30),category=clean(req.body.category,100);
-  const title=clean(req.body.title,180),area=clean(req.body.area,150),device=clean(req.body.device,150),description=clean(req.body.description,5000);
-  const requesterName=clean(req.body.requester_name,120);
+  const area=clean(req.body.area,150),device=clean(req.body.device,150),description=clean(req.body.description,5000);
+  const title=clean(kind+' – '+category+(area?' – '+area:''),180);
+  const profileName=clean([req.user.first_name,req.user.last_name].filter(Boolean).join(' '),120);
+  const requesterName=clean((req.user.role==='client'&&profileName)?profileName:req.body.requester_name,120);
   // Konto klienta zawsze wysyła potwierdzenie na adres przypisany przez administratora.
   const requesterEmail=(req.user.role==='client'?String(req.user.email||''):clean(req.body.requester_email,254)).trim().toLowerCase();
   const validEmail=/^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(requesterEmail);
-  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10||requesterName.length<3)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę zgłaszającą, tytuł i opis.');
+  if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||description.length<10||requesterName.length<3)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę zgłaszającą i opis.');
   if(!validEmail)return problem(res,400,req.user.role==='client'?'Nie masz przypisanego poprawnego adresu e-mail. Poproś administratora MarkNet o uzupełnienie adresu na Twoim koncie.':'Podaj prawidłowy adres e-mail odbiorcy potwierdzenia.');
   const orgId=req.user.role==='admin'?String(req.body.organization_id||''):String(req.user.organization_id||'');
   if(!/^[1-9]\d*$/.test(orgId))return problem(res,400,'Wybierz klienta dla zgłoszenia.');
