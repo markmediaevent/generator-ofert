@@ -35,7 +35,7 @@ function inputField(type,name,value='',required=false){
 function makeLabel(title,child){const l=document.createElement('label');l.append(node('span','field-title',title),child);return l;}
 function orgRow(org){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',org.name+' • '+org.users_count+' kont • '+org.systems.length+' systemów'));
+ details.append(node('summary','manager-heading',org.name+' • '+(org.is_active?'Dostęp aktywny':'DOSTĘP WSTRZYMANY')+' • '+org.users_count+' kont • '+org.systems.length+' systemów'));
  const form=node('form','form manager-form');
  const nameInput=inputField('text','name',org.name,true);nameInput.maxLength=140;
  const active=inputField('checkbox','is_active');active.checked=org.is_active;
@@ -43,7 +43,19 @@ function orgRow(org){
  const services=node('div','service-checklist');serviceOptions(services,state.meta.allCategories||state.meta.categories,org.systems);
  const button=node('button','btn main','Zapisz klienta i systemy');button.type='submit';
  form.append(makeLabel('Nazwa',nameInput),activeLabel,node('span','field-title','Systemy objęte serwisem'),services,button);
- form.addEventListener('submit',async ev=>{
+ const suspend=node('button',org.is_active?'btn danger-outline':'btn main',org.is_active?'Wstrzymaj dostęp całej firmie':'Przywróć dostęp całej firmie');
+ suspend.type='button';
+ suspend.addEventListener('click',async()=>{
+   const nextActive=!org.is_active;
+   if(!nextActive&&!window.confirm('Zablokować dostęp wszystkim użytkownikom firmy '+org.name+'? Zgłoszenia i historia pozostaną zachowane.'))return;
+   suspend.disabled=true;
+   try{
+     await api('/api/admin/organizations/'+org.id,{method:'PATCH',body:JSON.stringify({name:org.name,systems:org.systems,is_active:nextActive})});
+     await loadManagement();pop(nextActive?'Przywrócono dostęp firmie.':'Zablokowano dostęp całej firmie.');
+   }catch(e){pop(e.message,true);}finally{suspend.disabled=false;}
+ });
+ form.append(suspend);
+  form.addEventListener('submit',async ev=>{
   ev.preventDefault();button.disabled=true;
   try{
    await api('/api/admin/organizations/'+org.id,{method:'PATCH',body:JSON.stringify({name:nameInput.value,is_active:active.checked,systems:servicesFrom(form)})});
@@ -80,7 +92,18 @@ function userRow(user){
    reset.reset();pop('Hasło użytkownika zostało zmienione.');
   }catch(err){pop(err.message,true);}finally{submit.disabled=false;}
  });
- details.append(form,reset);
+ const deleteUser=node('button','btn danger-outline','Usuń użytkownika');
+ deleteUser.type='button';
+ deleteUser.addEventListener('click',async()=>{
+   if(!window.confirm('Usunąć konto '+user.username+'? Użytkownik natychmiast utraci dostęp. Dotychczasowe zgłoszenia i historia pozostaną w rejestrze.'))return;
+   deleteUser.disabled=true;
+   try{
+     await api('/api/admin/users/'+user.id,{method:'DELETE'});
+     await loadManagement();pop('Usunięto dostęp użytkownika '+user.username+'.');
+   }catch(e){pop(e.message,true);}finally{deleteUser.disabled=false;}
+ });
+ const actions=node('div','manager-danger-zone');actions.append(deleteUser);
+ details.append(form,reset,actions);
  return details;
 }
 async function loadManagement(){
