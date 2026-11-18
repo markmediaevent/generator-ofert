@@ -152,6 +152,12 @@ function wireEvents(){
   catch(e){$('push-status').textContent=e.message;pop(e.message,true);}
   finally{b.disabled=false;}
  });
+ $('test-email').addEventListener('click',async()=>{
+  const button=$('test-email');button.disabled=true;
+  try{await api('/api/admin/notifications/test-email',{method:'POST'});pop('Testowy e-mail wysłano do administratora.');await refreshNotifications();}
+  catch(err){pop(err.message,true);}
+  finally{button.disabled=false;}
+ });
  $('refresh-notifications').addEventListener('click',async()=>{try{await refreshNotifications();pop('Odświeżono stan wysyłek.');}catch(e){pop(e.message,true);}});
  $('client-password-form').addEventListener('submit',async e=>{
    e.preventDefault();
