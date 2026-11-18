@@ -86,6 +86,10 @@
       <p class="subtle">Dodawaj firmy i określaj, które instalacje obejmuje umowa serwisowa. Każdy klient widzi tylko własne zgłoszenia.</p></div>
       <form id="organization-form" class="form">
         <label>Nazwa firmy lub obiektu<input name="name" minlength="3" maxlength="140" required placeholder="Np. Nowa firma Sp. z o.o."></label>
+        <div class="two"><label>Adres siedziby<input name="profile_address" maxlength="250" placeholder="ulica, kod, miasto"></label>
+        <label>Osoba kontaktowa<input name="profile_contact_name" maxlength="120" placeholder="Imię i nazwisko"></label></div>
+        <div class="two"><label>E-mail kontaktowy<input type="email" name="profile_contact_email" maxlength="120" placeholder="kontakt@firma.pl"></label>
+        <label>Telefon kontaktowy<input type="tel" name="profile_contact_phone" maxlength="120" placeholder="Numer telefonu"></label></div>
         <div><span class="field-title">Systemy objęte serwisem</span><div id="new-org-services" class="service-checklist"></div></div>
         <button type="submit" class="btn main">+ Dodaj klienta</button>
       </form>
