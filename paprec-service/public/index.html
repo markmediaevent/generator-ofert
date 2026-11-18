@@ -144,14 +144,14 @@
 <div id="detail-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="detail-title">
  <div class="modal detail"><div class="modal-header"><div><span class="eyebrow" id="detail-number"></span><h2 id="detail-title">Szczegóły zgłoszenia</h2></div><button class="close" data-close="detail-modal" aria-label="Zamknij">×</button></div>
    <div id="detail-information"></div>
-   <div class="push-actions"><button id="confirmation-pdf" type="button" class="btn outline">Pobierz potwierdzenie PDF</button></div>
+   <div class="push-actions"><button id="confirmation-pdf" type="button" class="btn outline">Pobierz potwierdzenie PDF</button><button id="service-protocol-pdf" type="button" class="btn main hide">Protokół wykonanych prac PDF</button></div>
    <div id="admin-controls" class="admin-controls hide"><h3>Obsługa MarkNet</h3>
       <div class="admin-actions"><button id="ack-button" class="btn outline small">Odnotuj weryfikację</button>
       <button id="onsite-button" class="btn outline small">Odnotuj przyjazd</button>
       <button id="resolved-button" class="btn outline small">Oznacz rozwiązanie</button></div>
       <div class="two"><label>Aktualny status<select id="detail-status"></select></label><label>Opis wykonanych czynności / decyzji<textarea id="admin-note" rows="3" placeholder="Np. diagnostyka, ustalenia, wykonane działania..."></textarea></label></div>
       <button id="save-status" class="btn main">Zapisz zmianę / notatkę</button>
-      <button id="ticket-pdf" class="btn outline">Pobierz protokół PDF</button>
+      <div class="push-actions"><button id="complete-ticket" class="btn main" type="button">Zakończ i wygeneruj protokół</button><button id="ticket-pdf" class="btn outline" type="button">Raport techniczny PDF</button></div>
       <div class="ticket-danger-actions"><button id="delete-ticket" type="button" class="btn danger-outline">Usuń zgłoszenie z rejestru</button><p class="hint">Zgłoszenie zniknie z list klientów i raportów. Historię będzie można przywrócić w archiwum administratora.</p></div>
    </div>
    <section class="log"><h3>Historia zdarzeń</h3><div id="detail-events"></div></section>
@@ -160,6 +160,38 @@
      <form id="attachment-form" class="attachment-form"><input type="file" name="file" accept="image/*,.heic,.heif,.pdf" multiple required><button class="btn outline small" type="submit">Dodaj pliki</button></form>
      <p class="hint">Do 10 zdjęć lub dokumentów: JPG, PNG, WebP, HEIC, PDF. Maksymalnie 5 MB każdy.</p>
    </section>
+ </div>
+</div>
+<div id="completion-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+ <div class="modal">
+  <div class="modal-header"><div><span class="eyebrow">Dokumentacja MarkNet</span><h2 id="completion-title">Protokół z wykonanych prac serwisowych</h2></div><button class="close" type="button" data-close="completion-modal" aria-label="Zamknij">×</button></div>
+  <form id="completion-form" class="form">
+    <p class="hint">Protokół zostanie sporządzony na firmowym wzorze MarkNet. Nie zawiera sekcji „Wnioski”.</p>
+    <div class="two">
+      <label>Data wykonania prac<input name="work_date" type="date" required></label>
+      <label>Liczba godzin<input name="hours" type="number" min="0.25" max="500" step="0.25" placeholder="Np. 2,5" required></label>
+    </div>
+    <label>Serwisant / serwisanci<input name="technicians" maxlength="300" placeholder="Imię i nazwisko" required></label>
+    <label>1. Wykaz wykonanych prac<textarea name="work_done" minlength="10" maxlength="12000" rows="8" required placeholder="Opis diagnostyki i faktycznie wykonanych czynności serwisowych"></textarea></label>
+    <div class="two">
+      <label>Stan działania systemu
+        <select name="system_operational" required>
+          <option value="tak">Działa prawidłowo</option>
+          <option value="nie">Działa nieprawidłowo</option>
+          <option value="nie_oceniono">Nie oceniono</option>
+        </select>
+      </label>
+      <label>Przydatność do eksploatacji
+        <select name="fit_for_use" required>
+          <option value="tak">Nadaje się do eksploatacji</option>
+          <option value="nie">Nie nadaje się do eksploatacji</option>
+          <option value="nie_oceniono">Nie oceniono</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint">Miejsce na podpis wykonawcy i przedstawiciela klienta pozostanie puste do podpisania. Zapisanie zamknie zgłoszenie lub uzupełni istniejący protokół.</p>
+    <div class="form-actions"><button class="btn outline" type="button" data-close="completion-modal">Anuluj</button><button class="btn main" type="submit">Zapisz zakończenie i utwórz PDF</button></div>
+  </form>
  </div>
 </div>
 <div id="password-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="password-title"><div class="modal narrow">
