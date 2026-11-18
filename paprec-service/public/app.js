@@ -3,12 +3,27 @@ const $=id=>document.getElementById(id);
 const state={me:null,meta:null,tickets:[],selectedId:null,detail:null};
 function show(id,yes=true){$(id).classList.toggle('hide',!yes);}
 function pop(text,error=false){const el=$('toast');el.textContent=text;el.classList.toggle('error',error);show('toast',true);clearTimeout(pop.timer);pop.timer=setTimeout(()=>show('toast',false),4200);}
+const API_BASE = (location.hostname==='marknet.com.pl'||location.hostname==='www.marknet.com.pl') ? 'https://marknet-serwis-test.onrender.com' : '';
+const AUTH_KEY = 'marknet_serwis_access';
+function token(){return API_BASE?sessionStorage.getItem(AUTH_KEY):null;}
+function reqHeaders(body,headers={}){
+ const h={...(body instanceof FormData?{}:{'Content-Type':'application/json'}),...headers};
+ if(token())h.Authorization='Bearer '+token();
+ return h;
+}
 async function api(url,options={}){
-  const headers=options.body instanceof FormData?{}:{'Content-Type':'application/json'};
-  let res=await fetch(url,{credentials:'same-origin',...options,headers:{...headers,...options.headers}});
+  const res=await fetch(API_BASE+url,{credentials:API_BASE?'omit':'same-origin',...options,headers:reqHeaders(options.body,options.headers)});
   let data={};try{data=await res.json();}catch{}
   if(!res.ok)throw Error(data.error||'Wystąpił błąd. Spróbuj ponownie.');
   return data;
+}
+async function downloadFile(url,filename){
+ const response=await fetch(API_BASE+url,{credentials:API_BASE?'omit':'same-origin',headers:reqHeaders(undefined,{})});
+ if(!response.ok)throw Error('Nie udało się pobrać pliku ('+response.status+').');
+ const b=await response.blob();
+ const href=URL.createObjectURL(b);
+ const a=document.createElement('a');a.href=href;a.download=filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(href),15000);
 }
 const date=v=>v?new Intl.DateTimeFormat('pl-PL',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Warsaw'}).format(new Date(v)):'—';
 function node(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el;}
@@ -85,7 +100,7 @@ async function openTicket(id){
   if(!files.length)filesBox.append(node('p','subtle','Brak załączników.'));
   for(const file of files){
     const a=node('a','attachment-link',file.filename+' ('+Math.round(Number(file.size)/1024)+' KB)');
-    a.href='/api/attachments/'+file.id;a.rel='noopener';filesBox.append(a);
+    a.href='#';a.addEventListener('click',async e=>{e.preventDefault();try{await downloadFile('/api/attachments/'+file.id,file.filename);}catch(err){pop(err.message,true);}});filesBox.append(a);
   }
   modal('detail-modal');
  }catch(e){pop(e.message,true);}
@@ -100,10 +115,10 @@ async function updateTicket(payload){
 function wireEvents(){
  $('login-form').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;
-  try{await api('/api/login',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();state.me=await api('/api/me');await setupPortal();}
+  try{const result=await api('/api/login',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});if(API_BASE){if(!result.accessToken)throw Error('Brak tokenu dostępu.');sessionStorage.setItem(AUTH_KEY,result.accessToken);}e.target.reset();state.me=await api('/api/me');await setupPortal();}
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
- $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
+ $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}sessionStorage.removeItem(AUTH_KEY);state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
  $('add-button').addEventListener('click',()=>modal('new-ticket-modal'));
  $('password-button').addEventListener('click',()=>modal('password-modal'));
  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
@@ -130,9 +145,9 @@ function wireEvents(){
  $('ack-button').addEventListener('click',()=>updateTicket({event:'acknowledge',details:$('admin-note').value}));
  $('onsite-button').addEventListener('click',()=>updateTicket({event:'on_site',details:$('admin-note').value}));
  $('resolved-button').addEventListener('click',()=>updateTicket({event:'resolve',details:$('admin-note').value}));
- $('ticket-pdf').addEventListener('click',()=>{if(state.selectedId)location.href='/api/reports/tickets/'+state.selectedId+'.pdf';});
- $('month-pdf').addEventListener('click',()=>{const m=$('report-month').value;if(m)location.href='/api/reports/month.pdf?month='+encodeURIComponent(m);else pop('Wybierz miesiąc.',true);});
- $('month-csv').addEventListener('click',()=>{const m=$('report-month').value;if(m)location.href='/api/reports/month.csv?month='+encodeURIComponent(m);else pop('Wybierz miesiąc.',true);});
+ $('ticket-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/reports/tickets/'+state.selectedId+'.pdf','MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
+ $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
+ $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
  $('password-form').addEventListener('submit',async e=>{
   e.preventDefault();const f=e.target,btn=f.querySelector('button');btn.disabled=true;
   try{await api('/api/change-password',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(f)))});f.reset();closeModal('password-modal');pop('Hasło zostało zmienione.');}
