@@ -33,16 +33,35 @@ function inputField(type,name,value='',required=false){
  return e;
 }
 function makeLabel(title,child){const l=document.createElement('label');l.append(node('span','field-title',title),child);return l;}
+const profileDefinitions=[
+ ['address','Adres siedziby','text'],
+ ['nip','NIP','text'],
+ ['regon','REGON','text'],
+ ['krs','KRS','text'],
+ ['contact_name','Osoba kontaktowa','text'],
+ ['contact_role','Stanowisko','text'],
+ ['contact_email','E-mail kontaktowy','email'],
+ ['contact_phone','Telefon stacjonarny','tel'],
+ ['contact_mobile','Telefon komórkowy','tel']
+];
+function readProfile(form){
+ const profile={};
+ for(const [key] of profileDefinitions)profile[key]=String(form.elements['profile_'+key]?.value||'').trim();
+ return profile;
+}
 function orgRow(org){
  const details=document.createElement('details');details.className='management-item';
  details.append(node('summary','manager-heading',org.name+' • '+(org.is_active?'Dostęp aktywny':'DOSTĘP WSTRZYMANY')+' • '+org.users_count+' kont • '+org.systems.length+' systemów'));
  const form=node('form','form manager-form');
  const nameInput=inputField('text','name',org.name,true);nameInput.maxLength=140;
+ const profile=org.profile||{};
+ const metaForm=node('div','two');
+ for(const [key,label,type] of profileDefinitions){const input=inputField(type,'profile_'+key,profile[key]||'');input.maxLength=key==='address'?250:120;metaForm.append(makeLabel(label,input));}
  const active=inputField('checkbox','is_active');active.checked=org.is_active;
  const activeLabel=makeLabel('Klient aktywny',active);activeLabel.classList.add('inline-check');
  const services=node('div','service-checklist');serviceOptions(services,state.meta.allCategories||state.meta.categories,org.systems);
  const button=node('button','btn main','Zapisz klienta i systemy');button.type='submit';
- form.append(makeLabel('Nazwa',nameInput),activeLabel,node('span','field-title','Systemy objęte serwisem'),services,button);
+ form.append(makeLabel('Nazwa',nameInput),metaForm,activeLabel,node('span','field-title','Systemy objęte serwisem'),services,button);
  const suspend=node('button',org.is_active?'btn danger-outline':'btn main',org.is_active?'Wstrzymaj dostęp całej firmie':'Przywróć dostęp całej firmie');
  suspend.type='button';
  suspend.addEventListener('click',async()=>{
@@ -58,7 +77,7 @@ function orgRow(org){
   form.addEventListener('submit',async ev=>{
   ev.preventDefault();button.disabled=true;
   try{
-   await api('/api/admin/organizations/'+org.id,{method:'PATCH',body:JSON.stringify({name:nameInput.value,is_active:active.checked,systems:servicesFrom(form)})});
+   await api('/api/admin/organizations/'+org.id,{method:'PATCH',body:JSON.stringify({name:nameInput.value,is_active:active.checked,systems:servicesFrom(form),profile:readProfile(form)})});
    await loadManagement();pop('Zaktualizowano klienta i przypisane systemy.');
   }catch(e){pop(e.message,true);}finally{button.disabled=false;}
  });
@@ -66,18 +85,20 @@ function orgRow(org){
 }
 function userRow(user){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
+ details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
  const form=node('form','form manager-form');
  const org=document.createElement('select');orgSelect(org,false,String(user.organization_id));
  const email=inputField('email','email',user.email||'',true);email.maxLength=254;email.autocomplete='off';
+ const first=inputField('text','first_name',user.first_name||'',true);first.maxLength=80;first.minLength=2;
+ const last=inputField('text','last_name',user.last_name||'',true);last.maxLength=80;last.minLength=2;
  const active=inputField('checkbox','is_active');active.checked=user.is_active;
  const activeLabel=makeLabel('Konto aktywne',active);activeLabel.classList.add('inline-check');
  const save=node('button','btn outline','Zapisz uprawnienia');save.type='submit';
- form.append(makeLabel('Adres e-mail odbiorcy potwierdzenia PDF',email),makeLabel('Przypisany klient',org),activeLabel,save);
+ form.append(makeLabel('Imię',first),makeLabel('Nazwisko',last),makeLabel('Adres e-mail odbiorcy potwierdzenia PDF',email),makeLabel('Przypisany klient',org),activeLabel,save);
  form.addEventListener('submit',async e=>{
   e.preventDefault();save.disabled=true;
   try{
-   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,email:email.value.trim(),is_active:active.checked})});
+   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,email:email.value.trim(),first_name:first.value.trim(),last_name:last.value.trim(),is_active:active.checked})});
    await loadManagement();pop('Zapisano adres e-mail i uprawnienia użytkownika.');
   }catch(err){pop(err.message,true);}finally{save.disabled=false;}
  });
@@ -132,7 +153,7 @@ function initManagement(){
  $('organization-form').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,btn=form.querySelector('button[type=submit]');btn.disabled=true;
   try{
-   const data={name:form.elements.name.value,systems:servicesFrom(form)};
+   const data={name:form.elements.name.value,systems:servicesFrom(form),profile:readProfile(form)};
    await api('/api/admin/organizations',{method:'POST',body:JSON.stringify(data)});
    form.reset();await loadManagement();pop('Dodano klienta.');
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
