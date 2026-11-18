@@ -17,6 +17,7 @@
     "helmet": "^8.0.0",
     "pdfkit": "^0.16.0",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10"
+    "nodemailer": "^7.0.10",
+    "web-push": "^3.6.7"
   }
 }
