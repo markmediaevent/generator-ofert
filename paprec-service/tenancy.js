@@ -56,21 +56,21 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   });
   app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     try{
-      const users=(await db.query("SELECT u.id,u.username,u.email,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.deleted_at IS NULL ORDER BY u.role,u.username")).rows;
+      const users=(await db.query("SELECT u.id,u.username,u.email,u.first_name,u.last_name,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.deleted_at IS NULL ORDER BY u.role,u.username")).rows;
       res.json({users});
     }catch(e){next(e);}
   });
   app.post('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     const login=name(req.body?.username,50).toLowerCase();
     const password=req.body?.password;
-    const email=emailValue(req.body?.email);
+    const email=emailValue(req.body?.email),firstName=name(req.body?.first_name,80),lastName=name(req.body?.last_name,80);
     const company=orgId(req.body?.organization_id);
-    if(!usernameValid(login)||!passwordValid(password)||!company||!validEmail(email))return problem(res,400,'Podaj login (3–50 znaków), adres e-mail, hasło (minimum 8 znaków) i klienta.');
+    if(!usernameValid(login)||!passwordValid(password)||!company||!validEmail(email)||firstName.length<2||lastName.length<2)return problem(res,400,'Podaj login, imię, nazwisko, adres e-mail, hasło (minimum 8 znaków) i klienta.');
     try{
       const org=(await db.query('SELECT id FROM organizations WHERE id=$1 AND is_active=true',[company])).rows[0];
       if(!org)return problem(res,400,'Wybierz aktywnego klienta.');
       const h=hashPassword(password);
-      const u=(await db.query("INSERT INTO users(username,email,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,$2,'client',$3,$4,$5,true) RETURNING id,username,email,role,organization_id,is_active,created_at",[login,email,h.salt,h.hash,company])).rows[0];
+      const u=(await db.query("INSERT INTO users(username,email,first_name,last_name,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,$2,$3,$4,'client',$5,$6,$7,true) RETURNING id,username,email,first_name,last_name,role,organization_id,is_active,created_at",[login,email,firstName,lastName,h.salt,h.hash,company])).rows[0];
       res.status(201).json({user:u});
     }catch(e){if(!err(res,e,'user'))next(e);}
   });
@@ -86,12 +86,12 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
     }catch(e){await c.query('ROLLBACK');next(e);}finally{c.release();}
   });
   app.patch('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
-    const active=req.body?.is_active,company=orgId(req.body?.organization_id),email=emailValue(req.body?.email);
-    if(typeof active!=='boolean'||!company||!validEmail(email))return problem(res,400,'Wybierz klienta, poprawny e-mail i stan konta.');
+    const active=req.body?.is_active,company=orgId(req.body?.organization_id),email=emailValue(req.body?.email),firstName=name(req.body?.first_name,80),lastName=name(req.body?.last_name,80);
+    if(typeof active!=='boolean'||!company||!validEmail(email)||firstName.length<2||lastName.length<2)return problem(res,400,'Wybierz klienta, imię i nazwisko, poprawny e-mail oraz stan konta.');
     try{
       const org=(await db.query('SELECT id FROM organizations WHERE id=$1',[company])).rows[0];
       if(!org)return problem(res,400,'Nie znaleziono klienta.');
-      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3 WHERE id=$4 AND role='client' AND deleted_at IS NULL RETURNING id,username,email,organization_id,is_active",[company,active,email,req.params.id])).rows[0];
+      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3,first_name=$4,last_name=$5 WHERE id=$6 AND role='client' AND deleted_at IS NULL RETURNING id,username,email,first_name,last_name,organization_id,is_active",[company,active,email,firstName,lastName,req.params.id])).rows[0];
       if(!u)return problem(res,404,'Nie znaleziono konta klienta.');
       await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
       res.json({user:u});
@@ -106,6 +106,8 @@ async function migrateTenancy(db,categories){
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT');
+  await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT');
+  await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ');
