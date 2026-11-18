@@ -1,0 +1,102 @@
+/* MarkNet visual identity — original blue / yellow logo */
+:root {
+  color-scheme: light;
+  --bg: #f4f8fc;
+  --panel: #fff;
+  --panel2: #eef7fd;
+  --ink: #17364c;
+  --muted: #6e8798;
+  --line: rgba(8,80,120,.13);
+  --mint: #079ed5;
+  --blue: #079ed5;
+  --yellow: #ffd500;
+  --red: #b93d49;
+}
+html { background:#f4f8fc; }
+body { background:#f4f8fc; color:#17364c; }
+::selection {background:#ffea64;color:#17364c;}
+.logo-img {object-fit:contain;display:block;max-width:100%;height:auto;mix-blend-mode:multiply}
+.brand {display:flex;align-items:center;gap:12px;color:#0a92c6}
+.brand-service {background:#fff4b0;color:#806600;font-size:.66rem;font-weight:850;letter-spacing:.13em;border:1px solid #ffe179;padding:7px 11px;border-radius:999px;white-space:nowrap}
+.brand-small .brand-service {font-size:.65rem;}
+.logo-login {width:min(230px,100%);}
+.logo-nav {width:168px;}
+.login-view {
+  background:radial-gradient(ellipse 55% 75% at 95% 12%,rgba(255,214,0,.15),transparent 66%),
+    radial-gradient(ellipse 60% 85% at 1% 83%,rgba(9,158,218,.16),transparent 65%),
+    linear-gradient(180deg,#f9fcff,#eaf5fd);
+}
+.login-decor {color:#0b8ec2}
+.dot {background:#f8c900;box-shadow:0 0 0 5px #fff1a0}
+.login-card {background:#fff;border:1px solid #d9eaf3;box-shadow:0 30px 90px rgba(25,88,132,.1);}
+.login-card .brand {flex-wrap:wrap;}
+.login-card h1 {color:#0a547c}
+.lead,.subtle {color:#698599}
+.foot-note,.login-footer {color:#69859a}
+.form label,.report-tools label,.admin-controls label {color:#36586e}
+input,select,textarea {
+ color:#17364c;
+ background:#fff;
+ border:1px solid #c7dbe7;
+ box-shadow:0 1px 2px rgba(26,86,123,.025);
+}
+input::placeholder,textarea::placeholder {color:#8aa2b3}
+input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4px rgba(1,151,216,.11)}
+.btn {transition:background .2s,transform .18s,border-color .2s,box-shadow .2s}
+.btn.main {color:#142d3d;background:#ffda00;box-shadow:0 6px 16px rgba(255,204,0,.12);}
+.btn.main:hover {background:#ffea66;box-shadow:0 7px 18px rgba(255,204,0,.23);transform:translateY(-1px)}
+.btn.main:focus-visible {outline:3px solid #008eca;outline-offset:3px}
+.btn.outline {background:#fff;color:#126c9b;border:1px solid #b8dcea}
+.btn.outline:hover {background:#edf8fe;border-color:#0694cb}
+.topbar {background:rgba(255,255,255,.95);border-bottom:1px solid #d7e7ef;box-shadow:0 2px 14px rgba(10,70,110,.04);}
+.user-label {color:#53758a}
+.main-area {background:transparent}
+.intro-row h1 {color:#103b56}
+.eyebrow {color:#069ad1}
+.kpi {background:#fff;border:1px solid #d9e9f1;box-shadow:0 8px 24px rgba(32,90,123,.035);}
+.kpi small {color:#68889b}
+.kpi strong {color:#075f8c}
+.kpi:nth-child(1) {border-top:3px solid #079ed5}
+.kpi:nth-child(2) {border-top:3px solid #ffda00}
+.kpi:nth-child(3) {border-top:3px solid #5bbfd9}
+.kpi:nth-child(4) {border-top:3px solid #ffb06d}
+.panel {background:#fff;border:1px solid #d9e8f0;box-shadow:0 8px 25px rgba(33,88,127,.035);}
+.panel h2 {color:#123e58}
+.filters input,.filters select {color:#35556c;background:#fff}
+.ticket-row {background:#fff;border:1px solid #d5e5ed;color:#17364c;box-shadow:0 2px 5px rgba(12,66,99,.015);}
+.ticket-row:hover {background:#f1faff;border-color:#0097d2;box-shadow:0 4px 18px rgba(0,142,200,.09);}
+.ticket-number {color:#007fba}
+.ticket-title {color:#17465f}
+.ticket-meta {color:#7b93a4}
+.status {border:1px solid #b5d8e8;background:#eef9ff;color:#12618b}
+.status.critical {background:#fff1f0;border-color:#f1c1c4;color:#a33340}
+.empty {color:#7695a8}
+.hint {color:#6f91a4}
+.page-foot {color:#879caa}
+.overlay {background:rgba(20,57,78,.53);backdrop-filter:blur(6px)}
+.modal {background:#fff;border:1px solid #d4e6ef;box-shadow:0 36px 110px rgba(17,52,76,.21)}
+.modal-header {border-bottom:1px solid #d9e8f0}
+.modal-header h2,.modal h3 {color:#133e58}
+.close {color:#547e96}
+.detail-grid div {background:#f8fbfd;border:1px solid #e1ecf2}
+.detail-grid small {color:#738e9e}
+.detail-grid strong {color:#1e4b61}
+.description-box {background:#f3f9fc;border:1px solid #d7e8f0;color:#254e66}
+.admin-controls,.log,.attachments {border-color:#e1edf3}
+.timeline {border-left-color:#a7cfe0}
+.event:before {background:#ffda00;border-color:#fff}
+.event-meta {color:#738c9b}
+.event-title {color:#174866}
+.event-description {color:#53748a}
+.attachment-link {border:1px solid #c1e2ee;color:#067fae;background:#f6fbfd}
+.attachment-link:hover {background:#e9f8fe}
+.toast {background:#ecfbff;color:#134d65;border:1px solid #0ba1d9;box-shadow:0 15px 40px rgba(12,75,108,.19)}
+.toast.error {background:#fff2f2;border-color:#d7696d;color:#972a36}
+@media(max-width:600px){
+ .logo-nav{width:124px}
+ .brand-small .brand-service{display:none}
+ .topbar-inner {gap:6px}
+ .top-actions {gap:6px}
+ .top-actions .btn {padding:7px 10px;font-size:.74rem}
+ .login-card .brand-service {font-size:.58rem}
+}
