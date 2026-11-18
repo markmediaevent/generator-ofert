@@ -103,3 +103,5 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 
 .safety-note {background:#fffbea;border:1px solid #f0d86e;border-left:4px solid #f1bd00;border-radius:11px;padding:14px 17px;color:#6a560e;font-size:.83rem;line-height:1.65;margin:0 0 23px;}
 .safety-note strong{color:#674d00}.safety-note a{color:#036d9f;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+
+.push-actions{display:flex;flex-wrap:wrap;gap:10px}.push-actions .btn{flex:0 0 auto}#admin-push{border-left:4px solid #ffcd00}#push-status{font-weight:700;color:#096b98}@media(max-width:600px){.push-actions .btn{width:100%}}
