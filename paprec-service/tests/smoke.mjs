@@ -64,6 +64,9 @@ try{
  assert.equal((await api('/api/tickets/'+id,undefined,'GET',client)).r.status,200);
  assert.equal((await api('/api/tickets/'+id,{status:'W realizacji'},'PATCH',client)).r.status,403);
  assert.equal((await api('/api/reports/tickets/'+id+'.pdf',undefined,'GET',client)).r.status,403);
+ const clientPdf=await tryHttp('/api/tickets/'+id+'/confirmation.pdf',{headers:{Cookie:client}});
+ assert.equal(clientPdf.status,200);
+ assert.equal(Buffer.from(await clientPdf.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
  const admin=await login('marknet',adminPass);
  const note=await api('/api/tickets/'+id,{event:'acknowledge',details:'Połączono z urządzeniem, weryfikacja rozpoczęta'},'PATCH',admin);
  assert.equal(note.r.status,200,JSON.stringify(note.json));
