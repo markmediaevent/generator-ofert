@@ -48,7 +48,7 @@ try{
  assert.ok(seedPaprec);
  assert.equal(seedPaprec.email,null);
  const seedUpdate=await api('/api/admin/users/'+seedPaprec.id,
-  {organization_id:seedPaprec.organization_id,email:'paprec.test@example.org',is_active:true},'PATCH',admin);
+  {organization_id:seedPaprec.organization_id,email:'paprec.test@example.org',first_name:'Tester',last_name:'PAPREC',is_active:true},'PATCH',admin);
  assert.equal(seedUpdate.r.status,200,JSON.stringify(seedUpdate.json));
  const client=await login('paprec',clientPass);
  const external=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://marknet.com.pl','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
@@ -62,15 +62,19 @@ try{
  const me=await api('/api/me',undefined,'GET',client);
  assert.equal(me.json.role,'client');
  assert.equal(me.json.email,'paprec.test@example.org');
+ assert.equal(me.json.first_name,'Tester');
+ assert.equal(me.json.last_name,'PAPREC');
  const {r:created,json:creation}=await api('/api/tickets',{
   kind:'Awaria', priority:'Krytyczny',category:'Połączenia GPEC',
-  title:'Test awarii GPEC — łącze nie odpowiada',area:'Obiekt testowy',device:'Switch testowy',requester_name:'Tester PAPREC',requester_email:'spoofed@somewhere.example',
+  area:'Obiekt testowy',device:'Switch testowy',requester_name:'Tester PAPREC',requester_email:'spoofed@somewhere.example',
   description:'Test automatyczny: połączenie nie odpowiada od 07:15, wymaga diagnostyki.'
  },'POST',client);
  assert.equal(created.status,201,JSON.stringify(creation));
  const id=creation.ticket.id;
  assert.ok(creation.ticket.number.startsWith('MN-'));
  assert.equal(creation.ticket.requester_email,'paprec.test@example.org');
+ assert.equal(creation.ticket.requester_name,'Tester PAPREC');
+ assert.equal(creation.ticket.title,'Awaria – Połączenia GPEC – Obiekt testowy');
  assert.equal((await api('/api/tickets/'+id,undefined,'GET',client)).r.status,200);
  assert.equal((await api('/api/tickets/'+id,{status:'W realizacji'},'PATCH',client)).r.status,403);
  assert.equal((await api('/api/reports/tickets/'+id+'.pdf',undefined,'GET',client)).r.status,403);
@@ -135,9 +139,11 @@ try{
  assert.ok(orgList.json.organizations.find(o=>String(o.id)===String(newOrgId)));
  assert.equal((await api('/api/admin/organizations',{name:'Nieuprawniona',systems:['CCTV']},'POST',newClient)).r.status,403);
  const loginName='demo'+randomBytes(4).toString('hex');
- const newUser=await api('/api/admin/users',{username:loginName,email:'demo.client@example.org',password:'Haslo123',organization_id:newOrgId},'POST',admin);
+ const newUser=await api('/api/admin/users',{username:loginName,email:'demo.client@example.org',first_name:'Adam',last_name:'Próbny',password:'Haslo123',organization_id:newOrgId},'POST',admin);
  assert.equal(newUser.r.status,201,JSON.stringify(newUser.json));
  assert.equal(newUser.json.user.email,'demo.client@example.org');
+ assert.equal(newUser.json.user.first_name,'Adam');
+ assert.equal(newUser.json.user.last_name,'Próbny');
  const newClientCookie=await login(loginName,'Haslo123');
  const clientMeta=await api('/api/meta',undefined,'GET',newClientCookie);
  assert.deepEqual(clientMeta.json.categories,['CCTV','Telefonia']);
@@ -149,13 +155,15 @@ try{
  assert.equal(denied.r.status,400);
  const createdOther=await api('/api/tickets',{
   kind:'Usterka',priority:'Standardowy',category:'CCTV',organization_id:me.json.organization_id,
-  title:'Kamera w budynku B',requester_name:'Drugi klient',requester_email:'client@example.org',
+  requester_name:'Podmieniona nazwa',requester_email:'client@example.org',
   description:'Zgłoszenie z niezależnego klienta testowego.'
  },'POST',newClientCookie);
  assert.equal(createdOther.r.status,201,JSON.stringify(createdOther.json));
  const secondTicket=createdOther.json.ticket.id;
  assert.equal(String(createdOther.json.ticket.organization_id),String(newOrgId));
  assert.equal(createdOther.json.ticket.requester_email,'demo.client@example.org');
+ assert.equal(createdOther.json.ticket.requester_name,'Adam Próbny');
+ assert.equal(createdOther.json.ticket.title,'Usterka – CCTV');
  assert.equal((await api('/api/tickets/'+id,undefined,'GET',newClientCookie)).r.status,404);
  assert.equal((await api('/api/tickets/'+id+'/events',{body:'Nie wolno'},'POST',newClientCookie)).r.status,404);
  assert.equal((await api('/api/tickets/'+id+'/confirmation.pdf',undefined,'GET',newClientCookie)).r.status,404);
@@ -203,7 +211,7 @@ try{
  assert.equal(resumed.r.status,200);
  const resumedClient=await login(loginName,'Haslo123');
  assert.ok(resumedClient);
- const disabled=await api('/api/admin/users/'+newUser.json.user.id,{organization_id:newOrgId,email:'demo.updated@example.org',is_active:false},'PATCH',admin);
+ const disabled=await api('/api/admin/users/'+newUser.json.user.id,{organization_id:newOrgId,email:'demo.updated@example.org',first_name:'Adam',last_name:'Próbny',is_active:false},'PATCH',admin);
  assert.equal(disabled.r.status,200);
  assert.equal(disabled.json.user.email,'demo.updated@example.org');
  assert.equal((await api('/api/me',undefined,'GET',newClientCookie)).r.status,401);
