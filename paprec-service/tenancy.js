@@ -3,6 +3,8 @@
 function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId}){
   const name=(v,max=140)=>clean(v,max);
   function passwordValid(s){return typeof s==='string'&&s.length>=8&&s.length<=128;}
+  function emailValue(v){return typeof v==='string'?v.trim().toLowerCase():'';}
+  function validEmail(v){return v.length<=254 && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v);}
   function usernameValid(s){return /^[a-z0-9][a-z0-9._-]{2,49}$/.test(s);}
   function validServices(items){return Array.isArray(items)&&items.length>0&&items.length<=categories.length&&items.every(x=>categories.includes(x))&&new Set(items).size===items.length;}
   function orgId(v){return /^[1-9]\d*$/.test(String(v||''))?String(v):null;}
@@ -45,30 +47,31 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   });
   app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     try{
-      const users=(await db.query("SELECT u.id,u.username,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id ORDER BY u.role,u.username")).rows;
+      const users=(await db.query("SELECT u.id,u.username,u.email,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id ORDER BY u.role,u.username")).rows;
       res.json({users});
     }catch(e){next(e);}
   });
   app.post('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     const login=name(req.body?.username,50).toLowerCase();
     const password=req.body?.password;
+    const email=emailValue(req.body?.email);
     const company=orgId(req.body?.organization_id);
-    if(!usernameValid(login)||!passwordValid(password)||!company)return problem(res,400,'Podaj login (3–50 znaków), hasło (minimum 8 znaków) i klienta.');
+    if(!usernameValid(login)||!passwordValid(password)||!company||!validEmail(email))return problem(res,400,'Podaj login (3–50 znaków), adres e-mail, hasło (minimum 8 znaków) i klienta.');
     try{
       const org=(await db.query('SELECT id FROM organizations WHERE id=$1 AND is_active=true',[company])).rows[0];
       if(!org)return problem(res,400,'Wybierz aktywnego klienta.');
       const h=hashPassword(password);
-      const u=(await db.query("INSERT INTO users(username,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,'client',$2,$3,$4,true) RETURNING id,username,role,organization_id,is_active,created_at",[login,h.salt,h.hash,company])).rows[0];
+      const u=(await db.query("INSERT INTO users(username,email,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,$2,'client',$3,$4,$5,true) RETURNING id,username,email,role,organization_id,is_active,created_at",[login,email,h.salt,h.hash,company])).rows[0];
       res.status(201).json({user:u});
     }catch(e){if(!err(res,e,'user'))next(e);}
   });
   app.patch('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
-    const active=req.body?.is_active,company=orgId(req.body?.organization_id);
-    if(typeof active!=='boolean'||!company)return problem(res,400,'Wybierz klienta i stan konta.');
+    const active=req.body?.is_active,company=orgId(req.body?.organization_id),email=emailValue(req.body?.email);
+    if(typeof active!=='boolean'||!company||!validEmail(email))return problem(res,400,'Wybierz klienta, poprawny e-mail i stan konta.');
     try{
       const org=(await db.query('SELECT id FROM organizations WHERE id=$1',[company])).rows[0];
       if(!org)return problem(res,400,'Nie znaleziono klienta.');
-      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2 WHERE id=$3 AND role='client' RETURNING id,username,organization_id,is_active",[company,active,req.params.id])).rows[0];
+      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3 WHERE id=$4 AND role='client' RETURNING id,username,email,organization_id,is_active",[company,active,email,req.params.id])).rows[0];
       if(!u)return problem(res,404,'Nie znaleziono konta klienta.');
       await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
       res.json({user:u});
@@ -81,6 +84,7 @@ async function migrateTenancy(db,categories){
   await db.query("CREATE TABLE IF NOT EXISTS organization_systems (organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,category TEXT NOT NULL,PRIMARY KEY(organization_id,category))");
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
+  await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
   const paprec=(await db.query("INSERT INTO organizations(name) VALUES('PAPREC Energies Gdańsk') ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id")).rows[0];
   const serviceCount=(await db.query('SELECT count(*)::int AS n FROM organization_systems WHERE organization_id=$1',[paprec.id])).rows[0].n;
