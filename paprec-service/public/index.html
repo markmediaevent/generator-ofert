@@ -59,6 +59,17 @@
       <p class="hint">Na iPhonie otwórz panel w Safari → Udostępnij → Dodaj do ekranu początkowego. Uruchom aplikację z nowej ikony, zaloguj się jako MarkNet i włącz powiadomienia.</p>
       <p id="push-status" class="hint"></p>
     </div>
+    <div id="admin-status" class="panel reports hide">
+      <div><span class="eyebrow">Monitor wysyłek</span><h2>Potwierdzenia i powiadomienia</h2>
+      <p class="subtle">Sprawdzaj, czy e-mail z PDF i alert na telefon zostały faktycznie dostarczone do dostawcy usług.</p></div>
+      <div id="notification-summary" class="hint">Sprawdzanie stanu...</div>
+      <div class="push-actions"><button type="button" class="btn outline small" id="refresh-notifications">Odśwież stan</button></div>
+    </div>
+    <div id="admin-users" class="panel reports hide">
+      <div><span class="eyebrow">Dostępy klientów</span><h2>Konto PAPREC</h2>
+      <p class="subtle">Nadaj nowe hasło dla klienta. Po zmianie dotychczasowe sesje PAPREC zostaną wylogowane.</p></div>
+      <form id="client-password-form" class="form"><label>Nowe hasło klienta (minimum 12 znaków)<input type="password" name="newPassword" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="btn outline" type="submit">Ustaw hasło PAPREC</button></form>
+    </div>
     <div id="admin-reports" class="panel reports hide">
       <div><span class="eyebrow">Tylko MarkNet</span><h2>Raportowanie serwisu</h2><p class="subtle">Automatycznie przygotowane raporty na podstawie zapisanej historii zgłoszeń.</p></div>
       <div class="report-tools"><label>Miesiąc raportu <input id="report-month" type="month"></label>
