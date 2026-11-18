@@ -148,7 +148,7 @@ app.post('/api/tickets',auth,async(req,res,next)=>{
     const t=(await c.query('INSERT INTO tickets(kind,priority,category,title,area,device,description,created_by,requester_name,requester_email) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',[kind,priority,category,title,area,device,description,req.user.id,requesterName,requesterEmail])).rows[0];
     await audit(c,t.id,req.user.id,'Utworzono zgłoszenie',priority+' / '+kind);
     await c.query("INSERT INTO notification_jobs(ticket_id,kind) SELECT $1, x FROM unnest(ARRAY['confirmation','admin_email','phone']::text[]) AS x",[t.id]);
-    await c.query('COMMIT');res.status(201).json({ticket:ticketView(t)});
+    await c.query('COMMIT');res.status(201).json({ticket:ticketView(t),notification:{email:notifications.smtpReady()?'queued':'configuration_required'}});
   }catch(e){await c.query('ROLLBACK');next(e);}finally{c.release();}
 });
 app.get('/api/tickets/:id',auth,longId,async(req,res,next)=>{
@@ -362,6 +362,22 @@ async function runNotificationJobs(){if(delivering)return;delivering=true;try{aw
 app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
  try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:pushConfigured||notifications.phoneReady()}});}
  catch(e){next(e);}
+});
+app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
+ try{const q=await db.query("SELECT id,username,role,created_at FROM users ORDER BY role,username");res.json({users:q.rows});}
+ catch(e){next(e);}
+});
+app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
+ try{
+  const password=typeof req.body?.newPassword==='string'?req.body.newPassword:'';
+  if(password.length<12||password.length>128)return problem(res,400,'Hasło musi mieć od 12 do 128 znaków.');
+  const u=(await db.query("SELECT id,username FROM users WHERE id=$1 AND role='client'",[req.params.id])).rows[0];
+  if(!u)return problem(res,404,'Konto klienta nie istnieje.');
+  const h=hashPassword(password);
+  await db.query('UPDATE users SET pass_hash=$1,pass_salt=$2 WHERE id=$3',[h.hash,h.salt,u.id]);
+  await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
+  res.json({ok:true,username:u.username});
+ }catch(e){next(e);}
 });
 app.get('/api/health',async(req,res)=>{if(!CONFIGURED)return res.status(503).json({status:'setup_required'});try{await db.query('SELECT 1');res.json({status:'ok'});}catch{res.status(503).json({status:'unavailable'});}});
 app.use(express.static(path.join(__dirname,'public'),{index:'index.html',setHeaders(res){res.set('Cache-Control','no-store');}}));
