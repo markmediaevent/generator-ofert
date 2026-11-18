@@ -10,6 +10,7 @@ const path = require('path');
 const notifications=require('./notifications');
 const webpush=require('web-push');
 const {setupTenancy,migrateTenancy}=require('./tenancy');
+const {renderProtocol}=require('./service-protocol');
 const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
 
@@ -63,6 +64,7 @@ async function init(){
   await db.query('CREATE TABLE IF NOT EXISTS tickets (id BIGSERIAL PRIMARY KEY, organization TEXT NOT NULL DEFAULT \'client\', kind TEXT NOT NULL, priority TEXT NOT NULL, category TEXT NOT NULL, title TEXT NOT NULL, area TEXT NOT NULL DEFAULT \'\', device TEXT NOT NULL DEFAULT \'\', description TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'Nowe\', created_by BIGINT NOT NULL REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), acknowledged_at TIMESTAMPTZ, on_site_at TIMESTAMPTZ, resolved_at TIMESTAMPTZ, closed_at TIMESTAMPTZ)');
   await db.query('CREATE TABLE IF NOT EXISTS ticket_events (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, actor_id BIGINT REFERENCES users(id), action TEXT NOT NULL, details TEXT NOT NULL DEFAULT \'\', created_at TIMESTAMPTZ NOT NULL DEFAULT now())');
   await db.query('CREATE TABLE IF NOT EXISTS attachments (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, uploader_id BIGINT REFERENCES users(id), filename TEXT NOT NULL, mime TEXT NOT NULL, content BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+  await db.query("CREATE TABLE IF NOT EXISTS service_completions (ticket_id BIGINT PRIMARY KEY REFERENCES tickets(id) ON DELETE CASCADE, work_date DATE NOT NULL, technicians TEXT NOT NULL, hours NUMERIC(7,2) NOT NULL CHECK(hours>0), work_done TEXT NOT NULL, system_operational TEXT NOT NULL CHECK(system_operational IN ('tak','nie','nie_oceniono')), fit_for_use TEXT NOT NULL CHECK(fit_for_use IN ('tak','nie','nie_oceniono')), recorded_by BIGINT NOT NULL REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_name TEXT');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_email TEXT');
   await db.query("CREATE TABLE IF NOT EXISTS notification_jobs (id BIGSERIAL PRIMARY KEY, ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK (kind IN ('confirmation','admin_email','phone')), status TEXT NOT NULL DEFAULT 'pending', attempt_count INT NOT NULL DEFAULT 0, retry_at TIMESTAMPTZ NOT NULL DEFAULT now(), delivered_at TIMESTAMPTZ, last_error TEXT, UNIQUE(ticket_id,kind))");
@@ -310,7 +312,8 @@ app.get('/api/tickets/:id',auth,longId,async(req,res,next)=>{
     if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
     const events=(await db.query('SELECT e.id,e.action,e.details,e.created_at,u.username AS author FROM ticket_events e LEFT JOIN users u ON e.actor_id=u.id WHERE e.ticket_id=$1 ORDER BY e.created_at,e.id',[t.id])).rows;
     const files=(await db.query('SELECT id,filename,mime,created_at,octet_length(content) AS size FROM attachments WHERE ticket_id=$1 ORDER BY id',[t.id])).rows;
-    res.json({ticket:ticketView(t),events,files});
+    const completion=(await db.query('SELECT ticket_id,work_date,technicians,hours,work_done,system_operational,fit_for_use,updated_at FROM service_completions WHERE ticket_id=$1',[t.id])).rows[0]||null;
+    res.json({ticket:ticketView(t),events,files,completion});
   }catch(e){next(e);}
 });
 app.post('/api/tickets/:id/events',auth,longId,async(req,res,next)=>{
@@ -326,6 +329,7 @@ app.post('/api/tickets/:id/events',auth,longId,async(req,res,next)=>{
 app.patch('/api/tickets/:id',auth,adminOnly,longId,async(req,res,next)=>{
   const status=clean(req.body.status,80), event=clean(req.body.event,40),details=clean(req.body.details,3000);
   if(status && !statuses.includes(status))return problem(res,400,'Niepoprawny status.');
+  if(status==='Zamknięte')return problem(res,409,'Aby zamknąć zgłoszenie, użyj formularza „Zakończ i wygeneruj protokół”.');
   if(event && !['acknowledge','on_site','resolve'].includes(event))return problem(res,400,'Niepoprawne zdarzenie.');
   if(!status&&!event&&!details)return problem(res,400,'Brak zmian.');
   const c=await db.connect();
@@ -397,6 +401,43 @@ function head(doc,title,subtitle){
  doc.fontSize(10).fillColor('#6c8799').text(subtitle,45,154);
  doc.moveTo(45,174).lineTo(550,174).strokeColor('#c9e3ee').stroke();doc.y=190;
 }
+app.post('/api/tickets/:id/service-completion',auth,adminOnly,longId,async(req,res,next)=>{
+  const workDate=String(req.body.work_date||'');
+  const technicians=clean(req.body.technicians,300),workDone=clean(req.body.work_done,12000);
+  const hours=Number(req.body.hours),operational=clean(req.body.system_operational,30),fit=clean(req.body.fit_for_use,30);
+  const validDate=/^\d{4}-\d{2}-\d{2}$/.test(workDate)&&new Date(workDate+'T12:00:00Z').toISOString().startsWith(workDate);
+  if(!validDate||technicians.length<3||workDone.length<10||!Number.isFinite(hours)||hours<=0||hours>500||
+     !['tak','nie','nie_oceniono'].includes(operational)||!['tak','nie','nie_oceniono'].includes(fit))
+    return problem(res,400,'Uzupełnij datę, serwisanta, liczbę godzin, wykaz wykonanych prac i ocenę stanu systemu.');
+  const client=await db.connect();
+  try{
+    await client.query('BEGIN');
+    const ticket=(await client.query('SELECT * FROM tickets WHERE id=$1 AND deleted_at IS NULL FOR UPDATE',[req.params.id])).rows[0];
+    if(!ticket){await client.query('ROLLBACK');return problem(res,404,'Nie znaleziono zgłoszenia.');}
+    await client.query("INSERT INTO service_completions(ticket_id,work_date,technicians,hours,work_done,system_operational,fit_for_use,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(ticket_id) DO UPDATE SET work_date=EXCLUDED.work_date,technicians=EXCLUDED.technicians,hours=EXCLUDED.hours,work_done=EXCLUDED.work_done,system_operational=EXCLUDED.system_operational,fit_for_use=EXCLUDED.fit_for_use,recorded_by=EXCLUDED.recorded_by,updated_at=now()",[ticket.id,workDate,technicians,hours,workDone,operational,fit,req.user.id]);
+    await client.query("UPDATE tickets SET status='Zamknięte',closed_at=COALESCE(closed_at,now()) WHERE id=$1",[ticket.id]);
+    await audit(client,ticket.id,req.user.id,'Zamknięto zgłoszenie i sporządzono protokół','Data prac: '+workDate+'; serwisanci: '+technicians+'; liczba godzin: '+hours);
+    await client.query('COMMIT');
+    res.json({ok:true,number:ticketNumber(ticket),hasProtocol:true});
+  }catch(e){await client.query('ROLLBACK');next(e);}finally{client.release();}
+});
+app.get('/api/tickets/:id/service-protocol.pdf',auth,longId,async(req,res,next)=>{
+  try{
+    const t=await getTicket(req.params.id);
+    if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
+    const completion=(await db.query('SELECT * FROM service_completions WHERE ticket_id=$1',[t.id])).rows[0];
+    if(!completion||t.status!=='Zamknięte')return problem(res,409,'Protokół można pobrać po zakończeniu prac i uzupełnieniu formularza.');
+    const pdf=await renderProtocol(t,completion,{
+      name:process.env.PROTOCOL_COMPANY_NAME||'Marek Wyganowski MarkNet',
+      address:process.env.PROTOCOL_COMPANY_ADDRESS||'',
+      phone:process.env.PROTOCOL_COMPANY_PHONE||'',
+      email:process.env.PROTOCOL_COMPANY_EMAIL||process.env.SMTP_USERNAME||'marknet.biuro@gmail.com'
+    });
+    res.type('application/pdf');
+    res.set('Content-Disposition','attachment; filename="Protokol-prac-'+ticketNumber(t)+'.pdf"');
+    res.send(pdf);
+  }catch(e){next(e);}
+});
 app.get('/api/tickets/:id/confirmation.pdf',auth,longId,async(req,res,next)=>{
  try{
   const t=await getTicket(req.params.id);
