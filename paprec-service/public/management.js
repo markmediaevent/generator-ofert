@@ -85,18 +85,20 @@ function orgRow(org){
 }
 function userRow(user){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
+ details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
  const form=node('form','form manager-form');
  const org=document.createElement('select');orgSelect(org,false,String(user.organization_id));
  const email=inputField('email','email',user.email||'',true);email.maxLength=254;email.autocomplete='off';
+ const first=inputField('text','first_name',user.first_name||'',true);first.maxLength=80;first.minLength=2;
+ const last=inputField('text','last_name',user.last_name||'',true);last.maxLength=80;last.minLength=2;
  const active=inputField('checkbox','is_active');active.checked=user.is_active;
  const activeLabel=makeLabel('Konto aktywne',active);activeLabel.classList.add('inline-check');
  const save=node('button','btn outline','Zapisz uprawnienia');save.type='submit';
- form.append(makeLabel('Adres e-mail odbiorcy potwierdzenia PDF',email),makeLabel('Przypisany klient',org),activeLabel,save);
+ form.append(makeLabel('Imię',first),makeLabel('Nazwisko',last),makeLabel('Adres e-mail odbiorcy potwierdzenia PDF',email),makeLabel('Przypisany klient',org),activeLabel,save);
  form.addEventListener('submit',async e=>{
   e.preventDefault();save.disabled=true;
   try{
-   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,email:email.value.trim(),is_active:active.checked})});
+   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,email:email.value.trim(),first_name:first.value.trim(),last_name:last.value.trim(),is_active:active.checked})});
    await loadManagement();pop('Zapisano adres e-mail i uprawnienia użytkownika.');
   }catch(err){pop(err.message,true);}finally{save.disabled=false;}
  });
