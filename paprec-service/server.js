@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const notifications=require('./notifications');
 const webpush=require('web-push');
+const {setupTenancy,migrateTenancy}=require('./tenancy');
 const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
 
@@ -74,6 +75,7 @@ async function init(){
     await db.query('INSERT INTO users(username,role,pass_salt,pass_hash) VALUES ($1,$2,$3,$4),($5,$6,$7,$8)', ['marknet','admin',admin.salt,admin.hash,'paprec','client',client.salt,client.hash]);
     console.log('Initial accounts initialized (passwords never logged).');
   }
+  await migrateTenancy(db,categories);
 }
 function sessionCookie(token,age){return 'mn_session='+token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age='+age+(process.env.NODE_ENV==='production'?'; Secure':'');}
 async function auth(req,res,next){
@@ -83,14 +85,15 @@ async function auth(req,res,next){
     const token=bearer?bearer[1]:(cookie?cookie.slice('mn_session='.length):'');
     if(!/^[a-f0-9]{64}$/.test(token))return problem(res,401,'Zaloguj się.');
     const hashed=crypto.createHash('sha256').update(token).digest('hex');
-    const rows=await db.query('SELECT u.id,u.username,u.role,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()', [hashed]);
+    const rows=await db.query("SELECT u.id,u.username,u.role,u.organization_id,o.name AS organization_name,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=u.organization_id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.is_active=true AND (u.role='admin' OR o.is_active=true)",[hashed]);
     if(!rows.rowCount)return problem(res,401,'Sesja wygasła. Zaloguj się ponownie.');
     req.user=rows.rows[0];req.tokenHash=hashed;next();
   }catch(e){next(e);}
 }
 function adminOnly(req,res,next){if(req.user.role!=='admin')return problem(res,403,'Brak uprawnień.');next();}
 function longId(req,res,next){if(!/^[1-9]\d*$/.test(req.params.id))return problem(res,400,'Nieprawidłowy numer zgłoszenia.');next();}
-async function getTicket(id){return (await db.query('SELECT t.*, u.username AS author FROM tickets t JOIN users u ON t.created_by=u.id WHERE t.id=$1',[id])).rows[0];}
+async function getTicket(id){return (await db.query('SELECT t.*,u.username AS author,o.name AS organization_name FROM tickets t JOIN users u ON t.created_by=u.id LEFT JOIN organizations o ON o.id=t.organization_id WHERE t.id=$1',[id])).rows[0];}
+function canAccessTicket(t,u){return !!t && (u.role==='admin' || (u.organization_id!=null && String(t.organization_id)===String(u.organization_id)));}
 function ticketView(t){return {...t,number:ticketNumber(t)};}
 const attempts=new Map();
 app.post('/api/login',async(req,res,next)=>{
@@ -100,8 +103,8 @@ app.post('/api/login',async(req,res,next)=>{
     if(value.count>=8)return problem(res,429,'Za dużo prób. Spróbuj ponownie później.');
     const username=clean(req.body.username,80).toLowerCase(), password=typeof req.body.password==='string'?req.body.password:'';
     if(!username || password.length<1 || password.length>256)return problem(res,400,'Podaj login i hasło.');
-    const u=(await db.query('SELECT * FROM users WHERE username=$1',[username])).rows[0];
-    if(!u || !comparePassword(password,u)){
+    const u=(await db.query('SELECT u.*,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.username=$1',[username])).rows[0];
+    if(!u || !u.is_active || (u.role==='client' && !u.org_active) || !comparePassword(password,u)){
       value.count++; attempts.set(ip,value); return problem(res,401,'Nieprawidłowy login lub hasło.');
     }
     attempts.delete(ip);
@@ -115,12 +118,12 @@ app.post('/api/login',async(req,res,next)=>{
     }
   }catch(e){next(e);}
 });
-app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,role:req.user.role,clientName:process.env.CLIENT_NAME||'Klient'}));
+app.get('/api/me',auth,(req,res)=>res.json({username:req.user.username,role:req.user.role,organization_id:req.user.organization_id,clientName:req.user.organization_name||'MarkNet'}));
 app.post('/api/logout',auth,async(req,res,next)=>{try{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);if(!req.headers.authorization)res.set('Set-Cookie',sessionCookie('',0));res.json({ok:true});}catch(e){next(e);}});
 app.post('/api/change-password',auth,async(req,res,next)=>{
   try{
     const old=String(req.body.oldPassword||''),fresh=String(req.body.newPassword||'');
-    if(fresh.length<12 || fresh.length>128)return problem(res,400,'Nowe hasło musi mieć od 12 do 128 znaków.');
+    if(fresh.length<8 || fresh.length>128)return problem(res,400,'Nowe hasło musi mieć od 8 do 128 znaków.');
     const u=(await db.query('SELECT * FROM users WHERE id=$1',[req.user.id])).rows[0];
     if(!comparePassword(old,u))return problem(res,401,'Dotychczasowe hasło jest niepoprawne.');
     const p=hashPassword(fresh);
@@ -129,13 +132,24 @@ app.post('/api/change-password',auth,async(req,res,next)=>{
     res.json({ok:true});
   }catch(e){next(e);}
 });
-app.get('/api/meta',auth,(req,res)=>res.json({categories,statuses,kinds,priorities,clientName:process.env.CLIENT_NAME||'Klient'}));
+app.get('/api/meta',auth,async(req,res,next)=>{
+ try{
+  const allowed=req.user.role==='admin'?categories:(await db.query('SELECT category FROM organization_systems WHERE organization_id=$1 ORDER BY category',[req.user.organization_id])).rows.map(r=>r.category);
+  res.json({categories:allowed,allCategories:req.user.role==='admin'?categories:undefined,statuses,kinds,priorities,clientName:req.user.organization_name||'MarkNet'});
+ }catch(e){next(e);}
+});
 app.get('/api/tickets',auth,async(req,res,next)=>{
-  try{
-    const q=req.user.role==='admin'?'SELECT t.*,u.username AS author FROM tickets t JOIN users u ON t.created_by=u.id ORDER BY t.created_at DESC LIMIT 500':'SELECT t.*,u.username AS author FROM tickets t JOIN users u ON t.created_by=u.id WHERE t.organization=$1 ORDER BY t.created_at DESC LIMIT 500';
-    const rows=req.user.role==='admin'?(await db.query(q)).rows:(await db.query(q,['client'])).rows;
-    res.json({tickets:rows.map(ticketView)});
-  }catch(e){next(e);}
+ try{
+  const sql="SELECT t.*,u.username AS author,o.name AS organization_name FROM tickets t JOIN users u ON t.created_by=u.id LEFT JOIN organizations o ON o.id=t.organization_id";
+  let rows;
+  if(req.user.role==='admin'){
+    const filter=/^[1-9]\d*$/.test(String(req.query.organization_id||''))?String(req.query.organization_id):null;
+    rows=(await db.query(sql+(filter?" WHERE t.organization_id=$1":"")+" ORDER BY t.created_at DESC LIMIT 500",filter?[filter]:[])).rows;
+  } else {
+    rows=(await db.query(sql+" WHERE t.organization_id=$1 ORDER BY t.created_at DESC LIMIT 500",[req.user.organization_id])).rows;
+  }
+  res.json({tickets:rows.map(ticketView)});
+ }catch(e){next(e);}
 });
 app.post('/api/tickets',auth,async(req,res,next)=>{
   const kind=clean(req.body.kind,30),priority=clean(req.body.priority,30),category=clean(req.body.category,100);
@@ -143,9 +157,13 @@ app.post('/api/tickets',auth,async(req,res,next)=>{
   const requesterName=clean(req.body.requester_name,120),requesterEmail=clean(req.body.requester_email,254).toLowerCase();
   const validEmail=/^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(requesterEmail);
   if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||title.length<5||description.length<10||requesterName.length<3||!validEmail)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę i adres e-mail zgłaszającego, tytuł oraz opis.');
+  const orgId=req.user.role==='admin'?String(req.body.organization_id||''):String(req.user.organization_id||'');
+  if(!/^[1-9]\d*$/.test(orgId))return problem(res,400,'Wybierz klienta dla zgłoszenia.');
   const c=await db.connect();
   try{await c.query('BEGIN');
-    const t=(await c.query('INSERT INTO tickets(kind,priority,category,title,area,device,description,created_by,requester_name,requester_email) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',[kind,priority,category,title,area,device,description,req.user.id,requesterName,requesterEmail])).rows[0];
+    const allowed=(await c.query("SELECT o.id FROM organizations o JOIN organization_systems s ON s.organization_id=o.id WHERE o.id=$1 AND o.is_active=true AND s.category=$2",[orgId,category])).rows[0];
+    if(!allowed){await c.query('ROLLBACK');return problem(res,400,'Wybrany system nie jest objęty obsługą tego klienta.');}
+    const t=(await c.query('INSERT INTO tickets(kind,priority,category,title,area,device,description,created_by,requester_name,requester_email,organization_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *',[kind,priority,category,title,area,device,description,req.user.id,requesterName,requesterEmail,orgId])).rows[0];
     await audit(c,t.id,req.user.id,'Utworzono zgłoszenie',priority+' / '+kind);
     await c.query("INSERT INTO notification_jobs(ticket_id,kind) SELECT $1, x FROM unnest(ARRAY['confirmation','admin_email','phone']::text[]) AS x",[t.id]);
     await c.query('COMMIT');res.status(201).json({ticket:ticketView(t),notification:{email:notifications.smtpReady()?'queued':'configuration_required'}});
@@ -154,7 +172,7 @@ app.post('/api/tickets',auth,async(req,res,next)=>{
 app.get('/api/tickets/:id',auth,longId,async(req,res,next)=>{
   try{
     const t=await getTicket(req.params.id);
-    if(!t || (req.user.role!=='admin'&&t.organization!=='client'))return problem(res,404,'Nie znaleziono zgłoszenia.');
+    if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
     const events=(await db.query('SELECT e.id,e.action,e.details,e.created_at,u.username AS author FROM ticket_events e LEFT JOIN users u ON e.actor_id=u.id WHERE e.ticket_id=$1 ORDER BY e.created_at,e.id',[t.id])).rows;
     const files=(await db.query('SELECT id,filename,mime,created_at,octet_length(content) AS size FROM attachments WHERE ticket_id=$1 ORDER BY id',[t.id])).rows;
     res.json({ticket:ticketView(t),events,files});
@@ -163,7 +181,7 @@ app.get('/api/tickets/:id',auth,longId,async(req,res,next)=>{
 app.post('/api/tickets/:id/events',auth,longId,async(req,res,next)=>{
   try{
     const t=await getTicket(req.params.id);
-    if(!t || (req.user.role!=='admin'&&t.organization!=='client'))return problem(res,404,'Nie znaleziono zgłoszenia.');
+    if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
     if(t.status==='Zamknięte' && req.user.role!=='admin')return problem(res,409,'Zgłoszenie jest zamknięte.');
     const body=clean(req.body.body,3000);if(body.length<2)return problem(res,400,'Wpisz treść komentarza.');
     await db.query('INSERT INTO ticket_events(ticket_id,actor_id,action,details) VALUES($1,$2,$3,$4)',[t.id,req.user.id,'Komentarz',body]);
@@ -195,7 +213,7 @@ const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:5*1024*1024
 app.post('/api/tickets/:id/attachments',auth,longId,upload.single('file'),async(req,res,next)=>{
   try{
     const t=await getTicket(req.params.id);
-    if(!t || (req.user.role!=='admin'&&t.organization!=='client'))return problem(res,404,'Nie znaleziono zgłoszenia.');
+    if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
     if(!req.file)return problem(res,400,'Nie wybrano pliku.');
     const b=req.file.buffer, mime=req.file.mimetype;
     const jpg=b[0]===0xff && b[1]===0xd8 && b[2]===0xff;
@@ -212,8 +230,8 @@ app.post('/api/tickets/:id/attachments',auth,longId,upload.single('file'),async(
 });
 app.get('/api/attachments/:id',auth,longId,async(req,res,next)=>{
   try{
-    const a=(await db.query('SELECT a.*,t.organization FROM attachments a JOIN tickets t ON t.id=a.ticket_id WHERE a.id=$1',[req.params.id])).rows[0];
-    if(!a || (req.user.role!=='admin'&&a.organization!=='client'))return problem(res,404,'Nie znaleziono pliku.');
+    const a=(await db.query('SELECT a.*,t.organization_id FROM attachments a JOIN tickets t ON t.id=a.ticket_id WHERE a.id=$1',[req.params.id])).rows[0];
+    if(!canAccessTicket(a,req.user))return problem(res,404,'Nie znaleziono pliku.');
     res.type(a.mime);res.set('Content-Disposition','attachment; filename="zalacznik-'+a.id+'.'+(a.mime==='application/pdf'?'pdf':a.mime==='image/jpeg'?'jpg':'png')+'"');res.send(a.content);
   }catch(e){next(e);}
 });
@@ -243,7 +261,7 @@ function head(doc,title,subtitle){
 app.get('/api/tickets/:id/confirmation.pdf',auth,longId,async(req,res,next)=>{
  try{
   const t=await getTicket(req.params.id);
-  if(!t||(req.user.role!=='admin'&&t.organization!=='client'))return problem(res,404,'Nie znaleziono zgłoszenia.');
+  if(!canAccessTicket(t,req.user))return problem(res,404,'Nie znaleziono zgłoszenia.');
   const pdf=await notifications.confirmation({
    ...t,requester_name:t.requester_name||t.author,requester_email:t.requester_email||'Nie podano'
   });
@@ -256,7 +274,7 @@ app.get('/api/reports/tickets/:id.pdf',auth,adminOnly,async(req,res,next)=>{
     const t=await getTicket(req.params.id);if(!t)return problem(res,404,'Nie znaleziono zgłoszenia.');
     const ev=(await db.query('SELECT e.*,u.username FROM ticket_events e LEFT JOIN users u ON e.actor_id=u.id WHERE e.ticket_id=$1 ORDER BY e.created_at,e.id',[t.id])).rows;
     const doc=pdfStart(res,'raport-'+ticketNumber(t)+'.pdf');
-    head(doc,'Protokół zgłoszenia '+ticketNumber(t),process.env.CLIENT_NAME||'Klient');
+    head(doc,'Protokół zgłoszenia '+ticketNumber(t),t.organization_name||'Klient');
     p(doc,'Temat',t.title);p(doc,'Rodzaj / priorytet',t.kind+' / '+t.priority);p(doc,'System / lokalizacja',t.category+' / '+(t.area||'nie podano'));p(doc,'Urządzenie',t.device||'nie podano');
     p(doc,'Zgłoszone',datePL(t.created_at)+' • '+t.author);p(doc,'Status',t.status);
     p(doc,'Pierwsza weryfikacja',datePL(t.acknowledged_at));p(doc,'Przyjazd na obiekt',datePL(t.on_site_at));
@@ -378,14 +396,11 @@ app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
  try{const x=await db.query("SELECT j.id,j.ticket_id,j.kind,j.status,j.attempt_count,j.delivered_at,j.last_error,j.retry_at FROM notification_jobs j ORDER BY j.id DESC LIMIT 100");res.json({jobs:x.rows,configured:{email:notifications.smtpReady(),phone:pushConfigured||notifications.phoneReady()}});}
  catch(e){next(e);}
 });
-app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
- try{const q=await db.query("SELECT id,username,role,created_at FROM users ORDER BY role,username");res.json({users:q.rows});}
- catch(e){next(e);}
-});
+setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
  try{
   const password=typeof req.body?.newPassword==='string'?req.body.newPassword:'';
-  if(password.length<12||password.length>128)return problem(res,400,'Hasło musi mieć od 12 do 128 znaków.');
+  if(password.length<8||password.length>128)return problem(res,400,'Hasło musi mieć od 8 do 128 znaków.');
   const u=(await db.query("SELECT id,username FROM users WHERE id=$1 AND role='client'",[req.params.id])).rows[0];
   if(!u)return problem(res,404,'Konto klienta nie istnieje.');
   const h=hashPassword(password);
