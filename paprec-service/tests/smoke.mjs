@@ -104,9 +104,57 @@ try{
  assert.equal(reset.r.status,200);
  const newClient=await login('paprec',newPassword);
  assert.ok(newClient);
- const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
+ const orgResult=await api('/api/admin/organizations',{name:'Drugi klient testowy',systems:['CCTV','Telefonia']},'POST',admin);
+ assert.equal(orgResult.r.status,201,JSON.stringify(orgResult.json));
+ const newOrgId=orgResult.json.organization.id;
+ const orgList=await api('/api/admin/organizations',undefined,'GET',admin);
+ assert.equal(orgList.r.status,200);
+ assert.ok(orgList.json.organizations.find(o=>String(o.id)===String(newOrgId)));
+ assert.equal((await api('/api/admin/organizations',{name:'Nieuprawniona',systems:['CCTV']},'POST',newClient)).r.status,403);
+ const loginName='demo'+randomBytes(4).toString('hex');
+ const newUser=await api('/api/admin/users',{username:loginName,password:'Haslo123',organization_id:newOrgId},'POST',admin);
+ assert.equal(newUser.r.status,201,JSON.stringify(newUser.json));
+ const newClientCookie=await login(loginName,'Haslo123');
+ const clientMeta=await api('/api/meta',undefined,'GET',newClientCookie);
+ assert.deepEqual(clientMeta.json.categories,['CCTV','Telefonia']);
+ assert.equal(clientMeta.json.clientName,'Drugi klient testowy');
+ const denied=await api('/api/tickets',{kind:'Awaria',priority:'Standardowy',category:'Połączenia GPEC',
+  title:'Zablokowana kategoria GPEC',requester_name:'Test Klient',requester_email:'client@example.org',
+  description:'Ten system nie należy do podpisanej umowy z klientem.'},'POST',newClientCookie);
+ assert.equal(denied.r.status,400);
+ const createdOther=await api('/api/tickets',{
+  kind:'Usterka',priority:'Standardowy',category:'CCTV',organization_id:me.json.organization_id,
+  title:'Kamera w budynku B',requester_name:'Drugi klient',requester_email:'client@example.org',
+  description:'Zgłoszenie z niezależnego klienta testowego.'
+ },'POST',newClientCookie);
+ assert.equal(createdOther.r.status,201,JSON.stringify(createdOther.json));
+ const secondTicket=createdOther.json.ticket.id;
+ assert.equal(String(createdOther.json.ticket.organization_id),String(newOrgId));
+ assert.equal((await api('/api/tickets/'+id,undefined,'GET',newClientCookie)).r.status,404);
+ assert.equal((await api('/api/tickets/'+id+'/events',{body:'Nie wolno'},'POST',newClientCookie)).r.status,404);
+ assert.equal((await api('/api/tickets/'+id+'/confirmation.pdf',undefined,'GET',newClientCookie)).r.status,404);
+ assert.equal((await api('/api/tickets/'+secondTicket,undefined,'GET',newClient)).r.status,404);
+ assert.equal((await api('/api/tickets',undefined,'GET',newClientCookie)).json.tickets.some(t=>String(t.id)===String(id)),false);
+ assert.equal((await api('/api/tickets',undefined,'GET',newClient)).json.tickets.some(t=>String(t.id)===String(secondTicket)),false);
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAJzVRuoAAAAASUVORK5CYII=','base64');
+ const imageForm=new FormData();imageForm.append('file',new Blob([png],{type:'image/png'}),'kamera.png');
+ const imageRes=await tryHttp('/api/tickets/'+secondTicket+'/attachments',{method:'POST',headers:{Cookie:newClientCookie},body:imageForm});
+ assert.equal(imageRes.status,201,await imageRes.text());
+ const secondDetails=await api('/api/tickets/'+secondTicket,undefined,'GET',newClientCookie);
+ assert.equal(secondDetails.json.files.length,1);
+ const fileId=secondDetails.json.files[0].id;
+ assert.equal((await api('/api/attachments/'+fileId,undefined,'GET',newClient)).r.status,404);
+ assert.equal((await tryHttp('/api/attachments/'+fileId,{headers:{Cookie:newClientCookie}})).status,200);
+ const editedOrg=await api('/api/admin/organizations/'+newOrgId,{name:'Drugi klient testowy',systems:['CCTV'],is_active:true},'PATCH',admin);
+ assert.equal(editedOrg.r.status,200);
+ assert.deepEqual((await api('/api/meta',undefined,'GET',newClientCookie)).json.categories,['CCTV']);
+ const disabled=await api('/api/admin/users/'+newUser.json.user.id,{organization_id:newOrgId,is_active:false},'PATCH',admin);
+ assert.equal(disabled.r.status,200);
+ assert.equal((await api('/api/me',undefined,'GET',newClientCookie)).r.status,401);
+ assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401);
+  const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(origins.status,403);
- console.log('SMOKE TEST PASSED: auth, RBAC, ticket, events, PDF, CSV, CSRF guard');
+ console.log('SMOKE TEST PASSED: auth, tenant isolation, user accounts, service scopes, image upload, PDF and CSV');
 }finally{
  child.kill('SIGTERM');
  await sleep(300);
