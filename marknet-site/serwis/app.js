@@ -41,7 +41,8 @@ async function setupPortal(){
  $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
- show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');
+ show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');
+ if(state.me.role==='admin')refreshNotifications().catch(()=>{});
  const category=$('new-category'),filter=$('filter-category'),status=$('filter-status');
  clear(category);clear(filter);clear(status);
  option(filter,'Wszystkie systemy','');option(status,'Wszystkie statusy','');
@@ -50,6 +51,15 @@ async function setupPortal(){
  const d=$('detail-status');clear(d);for(const s of meta.statuses)option(d,s);
  if(!$('report-month').value)$('report-month').value=new Date().toISOString().slice(0,7);
  renderTickets();
+}
+async function refreshNotifications(){
+ const data=await api('/api/admin/notifications');
+ const all=data.jobs||[];
+ const pending=all.filter(x=>x.status==='pending');
+ const failed=pending.filter(x=>x.attempt_count>0);
+ const emailConfig=data.configured?.email?'Skonfigurowana':'Wymaga hasła aplikacji Google';
+ const phoneConfig=data.configured?.phone?'Skonfigurowane':'Nieaktywne';
+ $('notification-summary').textContent='Poczta: '+emailConfig+' • Telefon: '+phoneConfig+' • Oczekujące wysyłki: '+pending.length+' • Ponowne próby: '+failed.length;
 }
 function renderTickets(){
  const all=state.tickets||[],status=$('filter-status').value,category=$('filter-category').value,search=$('filter-search').value.toLocaleLowerCase('pl-PL').trim();
@@ -142,7 +152,21 @@ function wireEvents(){
   catch(e){$('push-status').textContent=e.message;pop(e.message,true);}
   finally{b.disabled=false;}
  });
- $('test-push').addEventListener('click',async()=>{
+ $('refresh-notifications').addEventListener('click',async()=>{try{await refreshNotifications();pop('Odświeżono stan wysyłek.');}catch(e){pop(e.message,true);}});
+ $('client-password-form').addEventListener('submit',async e=>{
+   e.preventDefault();
+   const form=e.target, button=form.querySelector('button');button.disabled=true;
+   try{
+    const users=await api('/api/admin/users');
+    const account=users.users?.find(x=>x.username==='paprec'&&x.role==='client');
+    if(!account)throw Error('Nie znaleziono konta PAPREC.');
+    const body=Object.fromEntries(new FormData(form));
+    await api('/api/admin/users/'+account.id+'/reset-password',{method:'POST',body:JSON.stringify(body)});
+    form.reset();pop('Nowe hasło PAPREC zostało zapisane.'); 
+   }catch(err){pop(err.message,true);}
+   finally{button.disabled=false;}
+ });
+  $('test-push').addEventListener('click',async()=>{
   const b=$('test-push');b.disabled=true;
   try{await api('/api/push/test',{method:'POST'});pop('Wysłano próbny alert na telefon.');}
   catch(e){pop(e.message,true);}
@@ -155,7 +179,7 @@ function wireEvents(){
   e.preventDefault();const form=e.target,btn=form.querySelector('[type=submit]');btn.disabled=true;
   try{
     const data=Object.fromEntries(new FormData(form));const r=await api('/api/tickets',{method:'POST',body:JSON.stringify(data)});
-    form.reset();closeModal('new-ticket-modal');await refresh();pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.');await openTicket(r.ticket.id);
+    form.reset();closeModal('new-ticket-modal');await refresh();pop('Zgłoszenie '+r.ticket.number+' zostało zapisane.'+(r.notification?.email==='configuration_required'?' Potwierdzenie e-mail oczekuje na aktywację poczty.':' Potwierdzenie e-mail zostało ustawione do wysyłki.'));await openTicket(r.ticket.id);
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
  $('comment-form').addEventListener('submit',async e=>{
