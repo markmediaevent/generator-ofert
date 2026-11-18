@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: marknet-serwis-test
+    runtime: node
+    plan: free
+    region: frankfurt
+    repo: https://github.com/markmediaevent/generator-ofert
+    branch: paprec-service-2026
+    autoDeployTrigger: off
+    buildCommand: cd paprec-service && npm install --omit=dev --no-audit --no-fund && npm run check
+    startCommand: cd paprec-service && npm start
+    domains:
+      - serwis.marknet.com.pl
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_NAME
+        value: PAPREC Energies Gdańsk
+      - key: DATABASE_URL
+        fromDatabase:
+          name: marknet-serwis-staging-db
+          property: connectionString
