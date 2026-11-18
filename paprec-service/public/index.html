@@ -22,6 +22,7 @@
       <button type="submit" class="btn main">Zaloguj do panelu</button>
     </form>
     <p class="foot-note">Połączenie szyfrowane HTTPS • Dostęp chroniony hasłem</p>
+    <a class="home-link" href="/">← Powrót na stronę MarkNet</a>
   </div>
   <footer class="login-footer">© MarkNet — system obsługi zgłoszeń</footer>
 </section>
@@ -30,7 +31,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <div class="brand brand-small"><img class="logo-img logo-nav" src="/logo-marknet.webp" alt="MarkNet — Systemy Zabezpieczeń" width="178" height="74"><span class="brand-service">SERWIS</span></div>
-      <div class="top-actions"><span id="user-label" class="user-label"></span>
+      <div class="top-actions"><a href="/" class="btn outline small home-top-link">← Strona główna</a><span id="user-label" class="user-label"></span>
         <button id="password-button" class="btn outline small">Zmień hasło</button>
         <button id="logout-button" class="btn outline small">Wyloguj</button>
       </div>
@@ -46,7 +47,7 @@
     <div id="summary" class="summary"></div>
     <div class="panel">
       <div class="panel-head"><div><h2>Lista zgłoszeń</h2><p class="subtle">Kliknij zgłoszenie, aby otworzyć szczegóły i historię.</p></div>
-        <div class="filters"><select id="filter-status" aria-label="Filtr statusu"><option value="">Wszystkie statusy</option></select>
+        <div class="filters"><select id="filter-org" class="hide" aria-label="Filtr klienta"><option value="">Wszyscy klienci</option></select><select id="filter-status" aria-label="Filtr statusu"><option value="">Wszystkie statusy</option></select>
         <select id="filter-category" aria-label="Filtr kategorii"><option value="">Wszystkie systemy</option></select>
         <input id="filter-search" type="search" placeholder="Szukaj zgłoszenia..." aria-label="Szukaj zgłoszenia"></div>
       </div>
@@ -54,7 +55,7 @@
     </div>
     <div id="admin-push" class="panel reports hide">
       <div><span class="eyebrow">Alerty na iPhone</span><h2>Powiadomienia o nowych awariach</h2>
-      <p class="subtle">Otrzymuj natychmiastowe powiadomienia na telefon o nowych zgłoszeniach PAPREC. Krytyczne zgłoszenia są oznaczane jako pilne.</p></div>
+      <p class="subtle">Otrzymuj natychmiastowe powiadomienia na telefon o nowych zgłoszeniach od wszystkich klientów. Krytyczne zgłoszenia są oznaczane jako pilne.</p></div>
       <div class="push-actions"><button type="button" id="enable-push" class="btn main">Włącz powiadomienia</button><button type="button" id="test-push" class="btn outline">Wyślij test na telefon</button></div>
       <p class="hint">Na iPhonie otwórz panel w Safari → Udostępnij → Dodaj do ekranu początkowego. Uruchom aplikację z nowej ikony, zaloguj się jako MarkNet i włącz powiadomienia.</p>
       <p id="push-status" class="hint"></p>
@@ -65,14 +66,30 @@
       <div id="notification-summary" class="hint">Sprawdzanie stanu...</div>
       <div class="push-actions"><button type="button" class="btn outline small" id="refresh-notifications">Odśwież stan</button><button type="button" class="btn outline small" id="test-email">Wyślij testowy e-mail</button></div>
     </div>
+    <div id="admin-organizations" class="panel reports hide">
+      <div><span class="eyebrow">Zarządzanie klientami</span><h2>Klienci i obsługiwane systemy</h2>
+      <p class="subtle">Dodawaj firmy i określaj, które instalacje obejmuje umowa serwisowa. Każdy klient widzi tylko własne zgłoszenia.</p></div>
+      <form id="organization-form" class="form">
+        <label>Nazwa firmy lub obiektu<input name="name" minlength="3" maxlength="140" required placeholder="Np. Nowa firma Sp. z o.o."></label>
+        <div><span class="field-title">Systemy objęte serwisem</span><div id="new-org-services" class="service-checklist"></div></div>
+        <button type="submit" class="btn main">+ Dodaj klienta</button>
+      </form>
+      <div id="organization-list" class="management-list"></div>
+    </div>
     <div id="admin-users" class="panel reports hide">
-      <div><span class="eyebrow">Dostępy klientów</span><h2>Konto PAPREC</h2>
-      <p class="subtle">Nadaj nowe hasło dla klienta. Po zmianie dotychczasowe sesje PAPREC zostaną wylogowane.</p></div>
-      <form id="client-password-form" class="form"><label>Nowe hasło klienta (minimum 12 znaków)<input type="password" name="newPassword" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="btn outline" type="submit">Ustaw hasło PAPREC</button></form>
+      <div><span class="eyebrow">Konta i uprawnienia</span><h2>Użytkownicy klientów</h2>
+      <p class="subtle">Samodzielnie twórz loginy i hasła, przypisuj użytkowników do firm i w razie potrzeby blokuj dostęp. Minimum hasła: 8 znaków.</p></div>
+      <form id="user-create-form" class="form">
+        <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
+        <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label></div>
+        <label>Przypisz użytkownika do klienta<select name="organization_id" id="new-user-organization" required></select></label>
+        <button type="submit" class="btn main">+ Utwórz użytkownika</button>
+      </form>
+      <div id="user-list" class="management-list"></div>
     </div>
     <div id="admin-reports" class="panel reports hide">
       <div><span class="eyebrow">Tylko MarkNet</span><h2>Raportowanie serwisu</h2><p class="subtle">Automatycznie przygotowane raporty na podstawie zapisanej historii zgłoszeń.</p></div>
-      <div class="report-tools"><label>Miesiąc raportu <input id="report-month" type="month"></label>
+      <div class="report-tools"><label>Klient <select id="report-org" aria-label="Klient w raporcie"><option value="">Wszyscy klienci</option></select></label><label>Miesiąc raportu <input id="report-month" type="month"></label>
         <button class="btn main" id="month-pdf">Raport miesięczny PDF</button>
         <button class="btn outline" id="month-csv">Eksport zgłoszeń CSV</button>
       </div>
@@ -87,6 +104,7 @@
     <form id="ticket-form" class="form">
       <div class="two"><label>Rodzaj zdarzenia<select name="kind" required><option>Usterka</option><option>Awaria</option></select></label>
       <label>Priorytet<select name="priority" required><option>Standardowy</option><option>Krytyczny</option></select></label></div>
+      <label id="new-org-wrap" class="hide">Klient<select name="organization_id" id="new-organization"></select></label>
       <label>System / obszar<select name="category" id="new-category" required></select></label>
       <div class="two"><label>Osoba zgłaszająca<input name="requester_name" minlength="3" maxlength="120" autocomplete="name" placeholder="Imię i nazwisko" required></label>
       <label>E-mail do potwierdzenia PDF<input name="requester_email" type="email" maxlength="254" autocomplete="email" placeholder="imie.nazwisko@firma.pl" required></label></div>
@@ -94,7 +112,9 @@
       <div class="two"><label>Lokalizacja<input name="area" maxlength="150" placeholder="Budynek, poziom, pomieszczenie"></label>
       <label>Urządzenie / identyfikator<input name="device" maxlength="150" placeholder="Nazwa urządzenia, punkt"></label></div>
       <label>Opis usterki lub awarii<textarea name="description" rows="5" minlength="10" maxlength="5000" placeholder="Co się dzieje? Od kiedy? Jakie instalacje są dotknięte?" required></textarea></label>
-      <p class="hint">Po zapisaniu zgłoszenia wyślemy potwierdzenie i kopię zgłoszenia w PDF na podany adres e-mail. Priorytet krytyczny wymaga weryfikacji przez serwis.</p>
+      <label>Zdjęcia lub dokumenty (opcjonalnie)<input id="new-ticket-files" type="file" name="photos" accept="image/*,.heic,.heif,.pdf" multiple></label>
+      <p class="hint" id="photos-hint">Możesz dodać maksymalnie 10 plików, do 5 MB każdy. Obsługiwane: zdjęcia JPG, PNG, WebP, HEIC i PDF.</p>
+      <p class="hint">Po zapisaniu zgłoszenia potwierdzenie PDF będzie dostępne do pobrania. E-mail z potwierdzeniem zostanie wysłany po skonfigurowaniu poczty. Priorytet krytyczny wymaga weryfikacji przez serwis.</p>
       <div class="form-actions"><button type="button" class="btn outline" data-close="new-ticket-modal">Anuluj</button><button class="btn main" type="submit">Wyślij zgłoszenie</button></div>
     </form>
   </div>
@@ -115,8 +135,8 @@
    <section class="log"><h3>Historia zdarzeń</h3><div id="detail-events"></div></section>
    <form id="comment-form" class="form comment-form"><label>Dodaj komentarz / informację<textarea name="body" rows="3" minlength="2" maxlength="3000" placeholder="Wpisz wiadomość..." required></textarea></label><button class="btn main" type="submit">Dodaj wpis</button></form>
    <section class="attachments"><h3>Załączniki</h3><div id="attachment-list"></div>
-     <form id="attachment-form" class="attachment-form"><input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required><button class="btn outline small" type="submit">Dodaj załącznik</button></form>
-     <p class="hint">Do 10 plików JPG, PNG lub PDF, każdy maksymalnie 5 MB.</p>
+     <form id="attachment-form" class="attachment-form"><input type="file" name="file" accept="image/*,.heic,.heif,.pdf" multiple required><button class="btn outline small" type="submit">Dodaj pliki</button></form>
+     <p class="hint">Do 10 zdjęć lub dokumentów: JPG, PNG, WebP, HEIC, PDF. Maksymalnie 5 MB każdy.</p>
    </section>
  </div>
 </div>
@@ -124,7 +144,7 @@
   <div class="modal-header"><h2 id="password-title">Zmiana hasła</h2><button class="close" data-close="password-modal" aria-label="Zamknij">×</button></div>
   <form id="password-form" class="form">
     <label>Obecne hasło<input name="oldPassword" type="password" autocomplete="current-password" required></label>
-    <label>Nowe hasło (min. 12 znaków)<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>
+    <label>Nowe hasło (min. 8 znaków)<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
     <button class="btn main" type="submit">Zmień hasło</button>
   </form>
  </div></div>
