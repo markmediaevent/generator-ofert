@@ -2,11 +2,11 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-3">
-<link rel="stylesheet" href="brand.css?v=20261118-3">
-<script src="app.js?v=20261118-3" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261118-5">
+<link rel="stylesheet" href="brand.css?v=20261118-5">
+<script src="app.js?v=20261118-5" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -51,6 +51,13 @@
         <input id="filter-search" type="search" placeholder="Szukaj zgłoszenia..." aria-label="Szukaj zgłoszenia"></div>
       </div>
       <div id="ticket-list" class="ticket-list"></div>
+    </div>
+    <div id="admin-push" class="panel reports hide">
+      <div><span class="eyebrow">Alerty na iPhone</span><h2>Powiadomienia o nowych awariach</h2>
+      <p class="subtle">Otrzymuj natychmiastowe powiadomienia na telefon o nowych zgłoszeniach PAPREC. Krytyczne zgłoszenia są oznaczane jako pilne.</p></div>
+      <div class="push-actions"><button type="button" id="enable-push" class="btn main">Włącz powiadomienia</button><button type="button" id="test-push" class="btn outline">Wyślij test na telefon</button></div>
+      <p class="hint">Na iPhonie otwórz panel w Safari → Udostępnij → Dodaj do ekranu początkowego. Uruchom aplikację z nowej ikony, zaloguj się jako MarkNet i włącz powiadomienia.</p>
+      <p id="push-status" class="hint"></p>
     </div>
     <div id="admin-reports" class="panel reports hide">
       <div><span class="eyebrow">Tylko MarkNet</span><h2>Raportowanie serwisu</h2><p class="subtle">Automatycznie przygotowane raporty na podstawie zapisanej historii zgłoszeń.</p></div>
