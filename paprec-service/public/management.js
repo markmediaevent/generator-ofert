@@ -54,18 +54,19 @@ function orgRow(org){
 }
 function userRow(user){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',user.username+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
+ details.append(node('summary','manager-heading',user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
  const form=node('form','form manager-form');
  const org=document.createElement('select');orgSelect(org,false,String(user.organization_id));
+ const email=inputField('email','email',user.email||'',true);email.maxLength=254;email.autocomplete='off';
  const active=inputField('checkbox','is_active');active.checked=user.is_active;
  const activeLabel=makeLabel('Konto aktywne',active);activeLabel.classList.add('inline-check');
  const save=node('button','btn outline','Zapisz uprawnienia');save.type='submit';
- form.append(makeLabel('Przypisany klient',org),activeLabel,save);
+ form.append(makeLabel('Adres e-mail odbiorcy potwierdzenia PDF',email),makeLabel('Przypisany klient',org),activeLabel,save);
  form.addEventListener('submit',async e=>{
   e.preventDefault();save.disabled=true;
   try{
-   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,is_active:active.checked})});
-   await loadManagement();pop('Zapisano uprawnienia użytkownika.');
+   await api('/api/admin/users/'+user.id,{method:'PATCH',body:JSON.stringify({organization_id:org.value,email:email.value.trim(),is_active:active.checked})});
+   await loadManagement();pop('Zapisano adres e-mail i uprawnienia użytkownika.');
   }catch(err){pop(err.message,true);}finally{save.disabled=false;}
  });
  const reset=node('form','form manager-form');
@@ -118,7 +119,7 @@ function initManagement(){
   try{
    const payload=Object.fromEntries(new FormData(form));
    await api('/api/admin/users',{method:'POST',body:JSON.stringify(payload)});
-   form.reset();await loadManagement();pop('Dodano użytkownika. Hasło należy przekazać mu bezpiecznym kanałem.');
+   form.reset();await loadManagement();pop('Dodano użytkownika z adresem e-mail. Hasło należy przekazać mu bezpiecznym kanałem.');
   }catch(err){pop(err.message,true);}finally{button.disabled=false;}
  });
 }
