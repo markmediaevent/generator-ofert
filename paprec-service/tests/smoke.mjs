@@ -12,7 +12,7 @@ const adminPass='S-'+randomBytes(24).toString('hex');
 const clientPass='S-'+randomBytes(24).toString('hex');
 const vapid=webpush.generateVAPIDKeys();
 const child=spawn(process.execPath,['server.js'],{cwd:new URL('../',import.meta.url).pathname,
- env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
+ env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',MARKNET_TEST_SMTP:'1',SMTP_FROM:'MarkNet Test <test-marknet@example.com>',ADMIN_NOTIFY_EMAIL:'admin@example.com',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
 const tryHttp=async(path,opts={})=>fetch(base+path,opts);
 async function ready(){
  for(let i=0;i<40;i++){
@@ -82,6 +82,20 @@ try{
  const queued=await api('/api/admin/notifications',undefined,'GET',admin);
  assert.equal(queued.r.status,200);
  assert.equal(queued.json.jobs.filter(x=>String(x.ticket_id)===String(id)).length,3);
+ let doneMail=false;
+ for(let tries=0;tries<40;tries++){
+  const r=await api('/api/admin/notifications',undefined,'GET',admin);
+  const jobs=r.json.jobs.filter(x=>String(x.ticket_id)===String(id));
+  const confirmed=jobs.find(x=>x.kind==='confirmation');
+  const adminCopy=jobs.find(x=>x.kind==='admin_email');
+  if(confirmed?.status==='delivered'&&adminCopy?.status==='delivered'){doneMail=true;break;}
+  await sleep(250);
+ }
+ assert.equal(doneMail,true,'Both client PDF confirmation and admin notification must be sent automatically');
+ const delivered=await api('/api/admin/notifications',undefined,'GET',admin);
+ const jobsForFirst=delivered.json.jobs.filter(x=>String(x.ticket_id)===String(id));
+ assert.equal(jobsForFirst.find(x=>x.kind==='confirmation').attempt_count,0);
+ assert.equal(jobsForFirst.find(x=>x.kind==='admin_email').attempt_count,0);
  const seen=await api('/api/tickets/'+id,undefined,'GET',admin);
  assert.equal(seen.json.ticket.status,'Weryfikacja');
  assert.ok(seen.json.ticket.acknowledged_at);
@@ -167,7 +181,7 @@ try{
  assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401);
   const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(origins.status,403);
- console.log('SMOKE TEST PASSED: auth, tenant isolation, user accounts, service scopes, image upload, PDF and CSV');
+ console.log('SMOKE TEST PASSED: auth, tenant isolation, user accounts, images, PDF, CSV, real email queue handling and admin copy');
 }finally{
  child.kill('SIGTERM');
  await sleep(300);
