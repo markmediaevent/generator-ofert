@@ -205,7 +205,7 @@ function wireEvents(){
     const emailInfo=r.notification?.email==='queued'?'E-mail z potwierdzeniem i PDF został dodany do kolejki wysyłki.':'Potwierdzenie PDF możesz pobrać ze szczegółów zgłoszenia.';
     $('submission-info').textContent=(errors?'Nie udało się dołączyć '+errors+' plików. ':'')+emailInfo+' Status zgłoszenia możesz śledzić na liście poniżej.';
     show('submission-success',true);
-    show('ticket-modal',false);
+    closeModal('detail-modal');
     window.scrollTo({top:0,behavior:'smooth'});
     try{await refresh();}catch(err){pop('Zgłoszenie zostało zapisane, ale nie udało się odświeżyć listy. Odśwież stronę.',true);}
     window.scrollTo({top:0,behavior:'smooth'});
