@@ -83,6 +83,65 @@ async function init(){
     const repair=await db.query("UPDATE notification_jobs SET status='pending', attempt_count=0, retry_at=now(), delivered_at=NULL, last_error=NULL WHERE status='delivered' AND delivered_at IS NOT NULL AND delivered_at < TIMESTAMPTZ '2026-11-18 08:30:00+00'");
     console.log('Recovered previously misclassified notification jobs:',repair.rowCount);
   }
+  // Jednorazowa migracja utworzenia profilu Portu Czystej Energii oraz konta b.zieba.
+  // W repozytorium znajduje się wyłącznie losowy sól i skrót scrypt; hasło jawne nie jest publikowane.
+  const portProvision=await db.connect();
+  try{
+    await portProvision.query('BEGIN');
+    const migration=(await portProvision.query(
+      "INSERT INTO service_migrations(migration_key) VALUES('port_czystej_energii_profile_20261118_v1') ON CONFLICT DO NOTHING RETURNING migration_key"
+    ));
+    if(migration.rowCount){
+      const orgName='Port Czystej Energii Sp. z o.o.';
+      const profile={
+        address:'ul. Jabłoniowa 57, 80-175 Gdańsk',
+        nip:'583-322-49-15',
+        regon:'366163098',
+        krs:'0000654720',
+        contact_name:'Beata Ewa Zięba',
+        contact_role:'Kierownik, Dział energetyki i ciepłownictwa',
+        contact_email:'bzieba@portczystejenergii.pl',
+        contact_phone:'+48 58 585-36-02',
+        contact_mobile:'506-912-871'
+      };
+      const org=(await portProvision.query(
+        "INSERT INTO organizations(name,profile) VALUES($1,$2::jsonb) ON CONFLICT(name) DO UPDATE SET profile=EXCLUDED.profile RETURNING id",
+        [orgName,JSON.stringify(profile)]
+      )).rows[0];
+      const paprec=(await portProvision.query(
+        "SELECT id FROM organizations WHERE name='PAPREC Energies Gdańsk'"
+      )).rows[0];
+      if(!paprec)throw new Error('Brak profilu PAPREC do skopiowania zakresu systemów.');
+      const count=(await portProvision.query(
+        'SELECT count(*)::int AS n FROM organization_systems WHERE organization_id=$1',[paprec.id]
+      )).rows[0].n;
+      if(count<1)throw new Error('PAPREC nie ma przypisanych systemów.');
+      await portProvision.query('DELETE FROM organization_systems WHERE organization_id=$1',[org.id]);
+      await portProvision.query(
+        "INSERT INTO organization_systems(organization_id,category) SELECT $1,category FROM organization_systems WHERE organization_id=$2",
+        [org.id,paprec.id]
+      );
+      const account=(await portProvision.query(
+        "INSERT INTO users(username,email,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,$2,'client',$3,$4,$5,true) ON CONFLICT(username) DO NOTHING RETURNING id",
+        ['b.zieba','bzieba@portczystejenergii.pl','f7e87a8487046c3d641b5b0043273cc3',
+         'da722869398452ef73fe7cf54811711a080d88a2994e41821d0338219f457a57172c471e04f8afb6620c1b365f23e5a05e267b8d10643d9ff105d2953c72d1f5',org.id]
+      )).rows[0];
+      await portProvision.query('COMMIT');
+      console.log('Port Czystej Energii provisioning:',JSON.stringify({organization_created:true,system_count:count,account_created:!!account}));
+    }else{
+      await portProvision.query('COMMIT');
+    }
+  }catch(e){
+    await portProvision.query('ROLLBACK');
+    console.error('Port Czystej Energii provisioning failed:',e.message);
+  }finally{portProvision.release();}
+  // Verify without logging emails, credentials or sensitive company information.
+  const portCheck=(await db.query(
+    "SELECT o.id,o.is_active,COUNT(DISTINCT s.category)::int AS systems,MAX(CASE WHEN u.username='b.zieba' AND u.role='client' AND u.is_active=true AND u.deleted_at IS NULL AND u.email='bzieba@portczystejenergii.pl' THEN 1 ELSE 0 END)::int AS user_ready "+
+    "FROM organizations o LEFT JOIN organization_systems s ON s.organization_id=o.id LEFT JOIN users u ON u.organization_id=o.id "+
+    "WHERE o.name='Port Czystej Energii Sp. z o.o.' GROUP BY o.id,o.is_active"
+  )).rows[0];
+  console.log('Port Czystej Energii account readiness:',JSON.stringify(portCheck||{missing:true}));
   const readiness=(await db.query(
     "SELECT "+
     "(SELECT count(*)::int FROM users WHERE role='client' AND is_active=true AND (email IS NULL OR btrim(email)='')) AS clients_missing_email, "+
