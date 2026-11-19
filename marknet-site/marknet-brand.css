@@ -267,3 +267,19 @@ img,video{max-width:100%}
   .tech-item.tech-detailed .tech-symbol{width:109px;flex-basis:109px}
   .tech-item.tech-detailed .tech-symbol img{max-width:109px}
 }
+
+.tech-track{animation-duration:98s}
+.tech-item.tech-added{gap:11px}
+.tech-item.tech-added .tech-symbol{flex:0 0 39px;width:39px}
+.tech-item.tech-added .tech-symbol img{max-width:38px;max-height:38px}
+.tech-ctcunion strong{color:#1289c3}
+.tech-dell strong{color:#0877ac}
+.tech-bitstream strong{color:#1471a0}
+.tech-avigilon strong{color:#006fbd}
+.tech-schneider strong{color:#008f52;font-size:.77rem}
+.tech-saik strong{color:#d43024}
+@media(max-width:760px){
+ .tech-item.tech-added .tech-symbol{flex-basis:32px;width:32px}
+ .tech-item.tech-added .tech-symbol img{max-width:30px;max-height:30px}
+ .tech-schneider strong{font-size:.69rem}
+}
