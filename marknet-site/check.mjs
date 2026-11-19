@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const html=fs.readFileSync('marknet-site/index.html','utf8');
+const css=fs.readFileSync('marknet-site/experience.css','utf8');
+const brand=fs.readFileSync('marknet-site/marknet-brand.css','utf8');
+const js=fs.readFileSync('marknet-site/experience.js','utf8');
+const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+const known=new Set(ids);
+assert.equal(ids.length,known.size,'HTML IDs must be unique');
+for(const required of ['entry-intro','entry-canvas','entry-skip','main','kompetencje','branze','utrzymanie','kontakt','technologies-title'])assert(known.has(required),'Missing '+required);
+const tabs=[...html.matchAll(/class="expertise-tab"/g)];
+const panels=[...html.matchAll(/class="expertise-panel"/g)];
+assert.equal(tabs.length,11);
+assert.equal(panels.length,tabs.length);
+for(const match of html.matchAll(/aria-controls="([^"]+)"/g))assert(known.has(match[1]),'Missing aria target '+match[1]);
+for(const match of html.matchAll(/aria-labelledby="([^"]+)"/g))assert(known.has(match[1]),'Missing label target '+match[1]);
+for(const match of html.matchAll(/\bhref="#([^"]+)"/g))assert(known.has(match[1]),'Missing hash target '+match[1]);
+assert.equal((html.match(/class="tech-item tech-/g)||[]).length,36,'Two 18-brand carousel groups');
+assert.equal((html.match(/class="tech-group"/g)||[]).length,2,'Expected two ticker groups');
+assert(css.includes('prefers-reduced-motion'),'Reduced motion required');
+assert(css.includes('.entry-intro'),'Intro styles required');
+assert(js.includes('marknet-intro-seen'),'Intro must not replay repeatedly');
+assert(js.includes('setTimeout(finish,3100)'),'Intro must end automatically');
+assert(!brand.includes('animation-play-state:paused'),'Ticker must keep moving');
+assert(!/<!--|\/\*/.test(html),'No production comments in HTML');
+assert(!/\/\*/.test(brand+css),'No production CSS comments');
+assert(!/^\s*\/\//m.test(js),'No production JS comments');
+for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(match[1].trim())new vm.Script(match[1],{filename:'inline-homepage-script.js'});
+const htmlWithoutRaw=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'');
+const voids=new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+const stack=[];
+for(const match of htmlWithoutRaw.matchAll(/<\/?([a-z][a-z0-9-]*)\b[^>]*>/gi)){
+ const token=match[0],tag=match[1].toLowerCase();
+ if(voids.has(tag)||token.endsWith('/>'))continue;
+ if(token.startsWith('</'))assert.equal(stack.pop(),tag,'Invalid closing '+tag);
+ else stack.push(tag);
+}
+assert.equal(stack.length,0,'All HTML tags must be closed');
+console.log('MarkNet homepage checks passed:',tabs.length,'expertise areas,',36/2,'technology brands, intro and mobile UX.');
