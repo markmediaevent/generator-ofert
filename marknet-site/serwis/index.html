@@ -5,10 +5,10 @@
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <link rel="icon" type="image/png" sizes="192x192" href="/serwis/marknet-icon-192.png"><link rel="apple-touch-icon" href="/serwis/marknet-icon-180.png">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261119-10">
-<link rel="stylesheet" href="brand.css?v=20261119-10">
-<script src="management.js?v=20261119-10" defer></script>
-<script src="app.js?v=20261119-10" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261119-11">
+<link rel="stylesheet" href="brand.css?v=20261119-11">
+<script src="management.js?v=20261119-11" defer></script>
+<script src="app.js?v=20261119-11" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -118,8 +118,9 @@
       <form id="user-create-form" class="form">
         <div class="two"><label>Imię<input name="first_name" minlength="2" maxlength="80" autocomplete="given-name" required placeholder="Imię"></label>
         <label>Nazwisko<input name="last_name" minlength="2" maxlength="80" autocomplete="family-name" required placeholder="Nazwisko"></label></div>
-        <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
+        <div class="two"><label>Login (generowany automatycznie)<input id="new-user-login-preview" type="text" readonly aria-describedby="new-user-login-help" placeholder="Np. a.lobocki"></label>
         <label>E-mail użytkownika<input name="email" type="email" maxlength="254" autocomplete="off" required placeholder="np. pracownik@firma.pl"></label></div>
+        <p class="hint" id="new-user-login-help">Login ma postać: pierwsza litera imienia, kropka i nazwisko bez polskich znaków. Jeśli istnieje już taki login, system doda cyfrę (np. a.lobocki2).</p>
         <p class="hint">Po utworzeniu konta użytkownik automatycznie otrzyma e-mail z loginem, linkiem do strony MarkNet i jednorazowym odnośnikiem do ustawienia własnego hasła. Hasło nie jest wysyłane e-mailem.</p>
         <label>Przypisz użytkownika do klienta<select name="organization_id" id="new-user-organization" required></select></label>
         <button type="submit" class="btn main">+ Utwórz użytkownika</button>
