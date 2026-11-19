@@ -7,9 +7,10 @@
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
 <link rel="stylesheet" href="styles.css?v=20261119-11">
 <link rel="stylesheet" href="brand.css?v=20261119-11">
-<link rel="stylesheet" href="calendar.css?v=20261119-1">
+<link rel="stylesheet" href="calendar.css?v=20261119-2">
 <script src="management.js?v=20261119-11" defer></script>
 <script src="calendar.js?v=20261119-1" defer></script>
+<script src="calendar-report.js?v=20261119-2" defer></script>
 <script src="app.js?v=20261119-12" defer></script>
 </head>
 <body>
@@ -203,6 +204,41 @@
           <button type="submit" class="btn main" id="cal-save">Zapisz termin</button></div>
       </div>
     </form>
+  </div>
+</div>
+
+<div id="cal-report-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="cal-report-title">
+  <div class="modal wide cal-report-modal">
+    <div class="modal-header">
+      <div><span class="eyebrow">MIWIPOL / RAPORT REALIZACJI</span><h2 id="cal-report-title">Szczegóły pracy</h2></div>
+      <button type="button" class="close" data-close="cal-report-modal" aria-label="Zamknij raport">×</button>
+    </div>
+    <div class="cal-report-brief">
+      <div class="cal-report-brief-top"><span id="cal-report-status" class="cal-status planned">Zaplanowane</span><span id="cal-report-date" class="cal-report-date"></span></div>
+      <p class="cal-report-address" id="cal-report-address"></p>
+      <p id="cal-report-planned-note" class="cal-report-note"></p>
+      <button type="button" id="cal-report-edit" class="btn outline small hide">✎ Edytuj termin i zakres</button>
+    </div>
+    <div id="cal-report-controls" class="cal-report-controls hide">
+      <div class="cal-completion"><div><strong>Realizacja zadania</strong><small>Jednym dotknięciem oznaczysz wykonanie lub cofniesz oznaczenie.</small></div>
+        <button type="button" id="cal-report-complete" class="btn main">✓ Oznacz jako wykonane</button></div>
+      <form id="cal-note-form" class="form cal-note-form">
+        <h3>Dodaj notatkę z postępu prac</h3>
+        <label>Opis czynności / ustalenia<textarea name="body" minlength="2" maxlength="3000" rows="3" required placeholder="Np. Zweryfikowano okablowanie, oczekiwanie na część…"></textarea></label>
+        <button type="submit" class="btn main">+ Zapisz notatkę</button>
+      </form>
+      <form id="cal-photo-form" class="form cal-photo-form">
+        <h3>Dokumentacja zdjęciowa</h3>
+        <label>Dodaj zdjęcia wykonanych prac<input id="cal-photo-input" name="photos" type="file" accept="image/*,.heic,.heif" multiple required></label>
+        <p id="cal-photo-selected" class="cal-time-help">JPG, PNG, WebP lub HEIC · maks. 8 MB · 12 zdjęć na pracę</p>
+        <button type="submit" class="btn outline">📷 Dodaj zdjęcia do raportu</button>
+      </form>
+    </div>
+    <div class="cal-report-history">
+      <div class="cal-report-history-head"><h3>Historia realizacji</h3><button type="button" class="btn outline small" id="cal-report-refresh">Odśwież</button></div>
+      <p id="cal-report-feedback" class="hint" role="status" aria-live="polite">Ładowanie raportu…</p>
+      <div id="cal-report-activity" class="cal-report-activity"></div>
+    </div>
   </div>
 </div>
 
