@@ -38,7 +38,14 @@ async function initialize(){
 async function setupPortal(){
  const [meta,tickets]=await Promise.all([api('/api/meta'),api('/api/tickets')]);
  state.meta=meta;state.tickets=tickets.tickets;show('login-view',false);show('portal-view',true);
- $('user-label').textContent=state.me.username+' • '+(state.me.role==='admin'?'Administrator':'Klient');
+ // Firma klienta pochodzi wyłącznie z sesji serwera. Nie ma możliwości wyboru innej firmy.
+ const isAdmin=state.me.role==='admin';
+ show('new-org-wrap',isAdmin);
+ show('client-org-wrap',!isAdmin);
+ $('new-organization').disabled=!isAdmin;
+ $('client-org-name').textContent=isAdmin?'':(state.me.clientName||'Firma nieprzypisana');
+ show('filter-org',isAdmin);
+ $('user-label').textContent=state.me.username+' • '+(isAdmin?'Administrator':state.me.clientName);
  const nameInput=$('requester-name');
  const profileName=[state.me.first_name,state.me.last_name].filter(Boolean).join(' ').trim();
  nameInput.readOnly=state.me.role==='client'&&Boolean(profileName);
@@ -252,6 +259,7 @@ function wireEvents(){
     const images=[...$('new-ticket-files').files];
     if(images.length>10 || images.some(file=>file.size>5*1024*1024 || file.size===0))throw Error('Maksymalnie 10 plików, do 5 MB każdy.');
     const data=Object.fromEntries(fd);delete data.photos;
+    if(state.me?.role==='client')delete data.organization_id;
     const r=await api('/api/tickets',{method:'POST',body:JSON.stringify(data)});
     let errors=0;
     for(const file of images){
