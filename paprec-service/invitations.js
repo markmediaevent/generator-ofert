@@ -92,14 +92,13 @@ function setupInvitationRoutes(app,{db,auth,adminOnly,hashPassword,problem,longI
    const user=(await client.query(
     "SELECT u.id,u.email,u.must_set_password,u.is_active,u.deleted_at,o.is_active AS org_active "+
     "FROM users u JOIN organizations o ON o.id=u.organization_id WHERE u.id=$1 AND u.role='client' FOR UPDATE OF u",[req.params.id])).rows[0];
-   if(!user||user.deleted_at)return problemRollback(client,res,404,'Nie znaleziono użytkownika.');
-   if(!user.is_active||!user.org_active)return problemRollback(client,res,409,'Najpierw aktywuj konto i firmę.');
-   if(!user.must_set_password)return problemRollback(client,res,409,'To konto zostało już aktywowane. W razie potrzeby użyj zmiany hasła.');
+   if(!user||user.deleted_at){await client.query('ROLLBACK');return problem(res,404,'Nie znaleziono użytkownika.');}
+   if(!user.is_active||!user.org_active){await client.query('ROLLBACK');return problem(res,409,'Najpierw aktywuj konto i firmę.');}
+   if(!user.must_set_password){await client.query('ROLLBACK');return problem(res,409,'To konto zostało już aktywowane. W razie potrzeby użyj zmiany hasła.');}
    const invite=await issueInvitation(client,user.id,user.email);
    await client.query('COMMIT');
    res.json({ok:true,invitation:invite});
   }catch(e){await client.query('ROLLBACK');next(e);}finally{client.release();}
  });
- async function problemRollback(client,res,status,message){await client.query('ROLLBACK');return problem(res,status,message);}
 }
 module.exports={migrateInvitations,issueInvitation,sendPendingInvitations,setupInvitationRoutes};
