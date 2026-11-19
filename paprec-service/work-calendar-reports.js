@@ -2,7 +2,7 @@
 // Raporty postępu MIWIPOL: historia statusów, notatki, fotografie — tylko uprawnione konta.
 const multer=require('multer');
 const sharp=require('sharp');
-const MAX_PHOTOS=12;
+const MAX_PHOTOS=40;
 const MAX_BYTES=8*1024*1024;
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:MAX_BYTES,files:1}});
 const statuses=new Set(['Zaplanowane','W trakcie','Wykonane','Odwołane']);
@@ -103,7 +103,7 @@ function setupWorkReports(app,{db,auth,access,adminOnly,problem}){
         const event=(await c.query("SELECT id FROM work_calendar WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,req.calendarOrg])).rows[0];
         if(!event){await c.query('ROLLBACK');return problem(res,404,'Nie znaleziono pracy.');}
         const count=(await c.query("SELECT count(*)::int AS n FROM work_calendar_photos WHERE calendar_id=$1",[event.id])).rows[0].n;
-        if(count>=MAX_PHOTOS){await c.query('ROLLBACK');return problem(res,409,'Limit 12 zdjęć dla jednej pracy został osiągnięty.');}
+        if(count>=MAX_PHOTOS){await c.query('ROLLBACK');return problem(res,409,'Limit 40 zdjęć dla jednej pracy został osiągnięty.');}
         const activity=(await c.query("INSERT INTO work_calendar_activity(calendar_id,author_id,kind,body) "+
           "VALUES($1,$2,'photo',$3) RETURNING id",[event.id,req.user.id,filename])).rows[0];
         const photo=(await c.query("INSERT INTO work_calendar_photos(calendar_id,activity_id,filename,mime,content) "+
