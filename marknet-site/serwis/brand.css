@@ -159,3 +159,57 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 .client-org-fixed strong{font-size:1.04rem;font-weight:820;overflow-wrap:anywhere}
 .client-org-fixed .hint{margin:0;color:#597b90}
 .client-org-fixed.hide{display:none!important}
+
+
+/* iPhone and small-screen portal: fit the dashboard to the device rather than widening the page. */
+html{width:100%;max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{width:100%;min-width:0;max-width:100%;overflow-x:clip}
+#portal-view,#login-view,.main-area,.topbar,.topbar-inner,.container,.panel,.intro-row,.panel-head,.summary,.ticket-list,.filters,.report-tools{min-width:0;max-width:100%}
+#portal-view,#login-view{width:100%}
+.container{width:min(1200px,calc(100% - 28px))}
+.topbar-inner>*,.intro-row>*,.panel-head>*,.report-tools>*,.kpi,.ticket-row,.summary>*,.form>*,.filters>*{min-width:0}
+.intro-row h1,.intro-row .subtle,.panel-head h2,.panel-head p,.ticket-row,.kpi small,.manager-heading{overflow-wrap:anywhere}
+.panel,.kpi,.management-item{max-width:100%}
+input,textarea,select,button{max-width:100%}
+@media(max-width:800px){
+  .topbar-inner{height:auto;min-height:0;padding-block:12px;display:flex;align-items:stretch;flex-wrap:wrap;gap:9px}
+  .topbar-inner>.brand{min-width:0;max-width:100%;flex:1 1 100%;justify-content:center}
+  .topbar-inner .logo-nav{width:min(45vw,159px);max-width:100%;height:auto}
+  .topbar-inner .brand-service{font-size:.58rem;padding:5px 8px}
+  .top-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;width:100%;min-width:0}
+  .top-actions .user-label{display:none}
+  .top-actions .btn{width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:center;padding:8px 5px;min-height:41px;font-size:clamp(.65rem,2.5vw,.8rem);line-height:1.24}
+  .main-area{padding-top:20px;padding-bottom:48px}
+  .intro-row{display:flex;flex-direction:column;align-items:stretch;gap:14px;margin-bottom:21px}
+  .intro-row>div{width:100%}
+  .intro-row h1{font-size:clamp(1.52rem,6vw,2.15rem);line-height:1.15;margin-block:8px}
+  .intro-row .subtle{font-size:.86rem;line-height:1.55}
+  .intro-row #add-button{width:100%;white-space:normal;min-width:0}
+  .summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .kpi{padding:13px;min-height:100px}
+  .kpi strong{font-size:clamp(1.35rem,6vw,1.8rem)}
+  .kpi small{font-size:.71rem;line-height:1.35;display:block}
+  .panel{padding:15px;border-radius:16px}
+  .panel-head{flex-direction:column;align-items:stretch;gap:12px}
+  .panel-head h2{font-size:clamp(1.26rem,5.5vw,1.65rem)}
+  .filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%;gap:8px;justify-content:stretch}
+  .filters select,.filters input{width:100%!important;min-width:0!important;max-width:100%}
+  .ticket-row{grid-template-columns:minmax(0,1fr);gap:10px;padding:14px}
+  .ticket-row>*{min-width:0}
+  .ticket-status{justify-self:start}
+  .report-tools label,.report-tools .btn{min-width:0;width:100%}
+  .report-tools{align-items:stretch}
+  .two,.detail-grid{grid-template-columns:minmax(0,1fr)}
+  .attachment-form input{min-width:0;flex:1 1 100%}
+  .login-card{max-width:100%}
+}
+@media(max-width:390px){
+  .container{width:calc(100% - 22px)}
+  .top-actions .btn{padding-inline:4px;font-size:.68rem}
+  .kpi{padding:11px}
+  .safety-note{padding:13px}
+}
+/* Prevent Safari focusing a form input from zooming the entire page. */
+@media(hover:none) and (pointer:coarse){
+  input,textarea,select{font-size:16px}
+}
