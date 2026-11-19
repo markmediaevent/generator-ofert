@@ -50,7 +50,7 @@ try{
  assert.equal(unauth.r.status,401);
  const bad=await api('/api/login',{username:'paprec',password:'incorrect'},'POST');
  assert.equal(bad.r.status,401);
- const admin=await login('marknet',adminPass);
+ const admin=await login('MaRkNeT',adminPass);
  const seedUsers=await api('/api/admin/users',undefined,'GET',admin);
  const seedPaprec=seedUsers.json.users.find(u=>u.username==='paprec');
  assert.ok(seedPaprec);
@@ -58,7 +58,7 @@ try{
  const seedUpdate=await api('/api/admin/users/'+seedPaprec.id,
   {organization_id:seedPaprec.organization_id,email:'paprec.test@example.org',first_name:'Tester',last_name:'PAPREC',is_active:true},'PATCH',admin);
  assert.equal(seedUpdate.r.status,200,JSON.stringify(seedUpdate.json));
- const client=await login('paprec',clientPass);
+ const client=await login('PaPrEc',clientPass);
  const external=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://marknet.com.pl','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(external.status,200);
  const extJson=await external.json();assert.match(extJson.accessToken,/^[a-f0-9]{64}$/);
@@ -186,12 +186,19 @@ try{
  assert.equal(orgList.r.status,200);
  assert.ok(orgList.json.organizations.find(o=>String(o.id)===String(newOrgId)));
  assert.equal((await api('/api/admin/organizations',{name:'Nieuprawniona',systems:['CCTV']},'POST',newClient)).r.status,403);
- const loginName='demo'+randomBytes(4).toString('hex');
- const newUser=await api('/api/admin/users',{username:loginName,email:'demo.client@example.org',first_name:'Adam',last_name:'Próbny',organization_id:newOrgId},'POST',admin);
+ const loginName='a.probny';
+ const newUser=await api('/api/admin/users',{username:'manually.supplied.should.be.ignored',email:'demo.client@example.org',first_name:'Adam',last_name:'Próbny',organization_id:newOrgId},'POST',admin);
  assert.equal(newUser.r.status,201,JSON.stringify(newUser.json));
  assert.equal(newUser.json.user.email,'demo.client@example.org');
  assert.equal(newUser.json.user.first_name,'Adam');
  assert.equal(newUser.json.user.last_name,'Próbny');
+ assert.equal(newUser.json.user.username,'a.probny','The backend must generate the login, ignoring user-supplied username');
+ const accented=await api('/api/admin/users',{email:'accented1@example.org',first_name:'Adam',last_name:'Łobocki',organization_id:newOrgId},'POST',admin);
+ assert.equal(accented.r.status,201,JSON.stringify(accented.json));
+ assert.equal(accented.json.user.username,'a.lobocki','Polish Ł and ó should transliterate to l and o');
+ const sameName=await api('/api/admin/users',{email:'accented2@example.org',first_name:'Adam',last_name:'Łobocki',organization_id:newOrgId},'POST',admin);
+ assert.equal(sameName.r.status,201,JSON.stringify(sameName.json));
+ assert.equal(sameName.json.user.username,'a.lobocki2','Second account with same full name receives next free number');
  assert.equal(newUser.json.user.must_set_password,true);
  assert.equal(newUser.json.invitation.status,'pending');
  assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401,'Invited account must not login until activation');
@@ -224,7 +231,7 @@ try{
  assert.equal(activated.r.status,200,JSON.stringify(activated.json));
  assert.equal(activated.json.username,loginName);
  assert.equal((await api('/api/activate',{token,password:'Reset12345',confirmPassword:'Reset12345'},'POST')).r.status,410,'Invitation must be one-time');
- const newClientCookie=await login(loginName,chosenPassword);
+ const newClientCookie=await login(loginName.toUpperCase(),chosenPassword);
  const newAudit=await api('/api/admin/login-history?user_id='+newUser.json.user.id,undefined,'GET',admin);
  assert.equal(newAudit.r.status,200);
  assert.ok(newAudit.json.entries.some(x=>x.username===loginName&&x.success===true));
