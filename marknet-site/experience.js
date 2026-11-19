@@ -114,15 +114,11 @@ function initIntro(){
   clearTimeout(timer);
   cancelAnimationFrame(raf);
   window.removeEventListener("resize",size);
-  window.removeEventListener("keydown",keyHandler);
   document.body.classList.remove("entry-lock");
   try{sessionStorage.setItem("marknet-intro-seen","1")}catch{}
   overlay.classList.add("is-exiting");
   setTimeout(()=>{document.documentElement.classList.add("intro-seen");overlay.remove()},490);
  }
- function keyHandler(e){if(e.key==="Escape"){e.preventDefault();finish()}}
- qs("#entry-skip",overlay)?.addEventListener("click",finish);
- window.addEventListener("keydown",keyHandler);
  window.addEventListener("resize",size,{passive:true});
  size();
  if(context)raf=requestAnimationFrame(paint);
