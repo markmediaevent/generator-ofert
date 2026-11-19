@@ -156,6 +156,17 @@
 <footer><div class="layout footer-row"><a class="brand" href="#top" aria-label="MarkNet — strona główna"><img class="brand-logo" src="/serwis/logo-marknet-hd.png" alt="MarkNet — Systemy Zabezpieczeń" width="230" height="95" loading="lazy" decoding="async"></a><div class="footer-right"><a href="/serwis/">Panel serwisowy</a><a href="mailto:marknet.biuro@gmail.com">Kontakt e-mail</a><small>© <span id="year">2026</span> MarkNet</small></div></div></footer>
 <script>
   document.getElementById("year").textContent = String(new Date().getFullYear());
+  // Zachowaj czytelny znak marki, gdy zewnętrzna ikona producenta jest niedostępna.
+  document.querySelectorAll(".tech-symbol img").forEach(function (img) {
+    img.addEventListener("error", function () {
+      const label = img.closest(".tech-item")?.querySelector("strong")?.textContent?.trim() || "?";
+      const fallback = document.createElement("span");
+      fallback.className = "tech-initial";
+      fallback.setAttribute("aria-hidden", "true");
+      fallback.textContent = label.charAt(0);
+      img.replaceWith(fallback);
+    });
+  });
   const menuButton = document.getElementById("menu-btn");
   const menu = document.getElementById("menu");
   menuButton.addEventListener("click", function () {
