@@ -195,7 +195,7 @@ try{
  assert.equal(newUser.json.user.must_set_password,true);
  assert.equal(newUser.json.invitation.status,'pending');
  assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401,'Invited account must not login until activation');
- assert.equal((await api('/api/admin/users/'+newUser.json.user.id+'/invite',{},'POST',client)).r.status,403);
+ assert.equal((await api('/api/admin/users/'+newUser.json.user.id+'/invite',{},'POST',newClient)).r.status,403);
  let mailData=[];
  for(let attempts=0;attempts<70;attempts++){
   try{mailData=(await readFile(capturePath,'utf8')).trim().split('\n').filter(Boolean).map(x=>JSON.parse(x));}catch{}
