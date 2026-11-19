@@ -11,7 +11,7 @@ const known=new Set(ids);
 assert.equal(ids.length,known.size,'HTML IDs must be unique');
 for(const required of ['entry-intro','entry-canvas','main','kompetencje','branze','utrzymanie','kontakt','technologies-title'])assert(known.has(required),'Missing '+required);
 const tabs=[...html.matchAll(/class="expertise-tab"/g)];
-const panels=[...html.matchAll(/class="expertise-panel"/g)];
+const panels=[...html.matchAll(/class="expertise-panel(?:\\s|")/g)];
 assert.equal(tabs.length,12);
 assert.equal(panels.length,tabs.length);
 for(const match of html.matchAll(/aria-controls="([^"]+)"/g))assert(known.has(match[1]),'Missing aria target '+match[1]);
@@ -24,8 +24,9 @@ for(const name of ['CTC Union','DELL','BitStream','Avigilon','Schneider Electric
 }
 const groupParts=html.split(/<div class="tech-group" role="(?:list|presentation)"(?: aria-hidden="true")?>/).slice(1,3);
 assert.equal(groupParts.length,2,'Expected two full ticker tracks');
-const groupBrandOrder=part=>[...part.matchAll(/class="tech-item tech-([\w-]+)"/g)].map(m=>m[1]);
+const groupBrandOrder=part=>[...part.matchAll(/class="tech-item tech-([\w-]+)(?:\s|")/g)].map(m=>m[1]);
 assert.deepEqual(groupBrandOrder(groupParts[0]),groupBrandOrder(groupParts[1]),'Ticker groups must be identical for seamless repeat');
+assert.equal(groupBrandOrder(groupParts[0]).length,24,'Each logo group needs all 24 brands');
 assert.equal((html.match(/class="sector-card(?:\s|")/g)||[]).length,7,'Seven industry sectors');
 assert(html.includes('id="ex-tab-defense"')&&html.includes('id="ex-panel-defense"'),'Dedicated high-security expertise must exist');
 assert(html.includes('id="high-security-title"')&&html.includes('data-open-expertise="defense"'),'Security showcase must link to the defense expertise');
