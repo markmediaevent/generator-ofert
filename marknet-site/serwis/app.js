@@ -38,6 +38,8 @@ async function initialize(){
 async function setupPortal(){
  const [meta,tickets]=await Promise.all([api('/api/meta'),api('/api/tickets')]);
  state.meta=meta;state.tickets=tickets.tickets;show('login-view',false);show('portal-view',true);
+ // Po zalogowaniu usuń przesunięcie poprzedniego widoku na iPhonie.
+ requestAnimationFrame(()=>{window.scrollTo(0,0);document.documentElement.scrollLeft=0;});
  // Firma klienta pochodzi wyłącznie z sesji serwera. Nie ma możliwości wyboru innej firmy.
  const isAdmin=state.me.role==='admin';
  show('new-org-wrap',isAdmin);
