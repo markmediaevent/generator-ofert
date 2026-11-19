@@ -165,7 +165,13 @@ footer {background:#fff;border-top-color:#dceaf2}
   text-align:center;font-size:.72rem;line-height:1.6;
   color:#7894a4;margin:18px 20px 0;
 }
-.tech-ticker:hover .tech-track,.tech-ticker:focus-within .tech-track{animation-play-state:paused}
+.tech-ticker{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.tech-track{flex-wrap:nowrap;transform:translate3d(0,0,0);pointer-events:none}
+.tech-group{flex-shrink:0;flex-wrap:nowrap;min-width:max-content}
+.tech-item{overflow:hidden;flex-shrink:0}
+.tech-item .tech-symbol,.tech-item strong{min-width:0}
+.tech-item strong{overflow-wrap:anywhere}
+.tech-ticker .tech-track{animation-play-state:running}
 @keyframes tech-marquee {from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 
 /* iPhone / mobile: układ bez poziomego rozciągania i automatycznego zoomu. */
