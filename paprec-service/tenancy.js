@@ -1,6 +1,7 @@
 'use strict';
+const crypto=require('crypto');
 
-function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId}){
+function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation}){
   const name=(v,max=140)=>clean(v,max);
   function passwordValid(s){return typeof s==='string'&&s.length>=8&&s.length<=128;}
   function emailValue(v){return typeof v==='string'?v.trim().toLowerCase():'';}
@@ -56,23 +57,34 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   });
   app.get('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     try{
-      const users=(await db.query("SELECT u.id,u.username,u.email,u.first_name,u.last_name,u.role,u.is_active,u.organization_id,o.name AS organization_name,u.created_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.deleted_at IS NULL ORDER BY u.role,u.username")).rows;
+      const users=(await db.query("SELECT u.id,u.username,u.email,u.first_name,u.last_name,u.role,u.is_active,u.must_set_password,u.organization_id,o.name AS organization_name,u.created_at,(SELECT i.status FROM user_invitations i WHERE i.user_id=u.id ORDER BY i.id DESC LIMIT 1) AS invitation_status,(SELECT i.expires_at FROM user_invitations i WHERE i.user_id=u.id ORDER BY i.id DESC LIMIT 1) AS invitation_expires_at FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.deleted_at IS NULL ORDER BY u.role,u.username")).rows;
       res.json({users});
     }catch(e){next(e);}
   });
   app.post('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
     const login=name(req.body?.username,50).toLowerCase();
-    const password=req.body?.password;
     const email=emailValue(req.body?.email),firstName=name(req.body?.first_name,80),lastName=name(req.body?.last_name,80);
     const company=orgId(req.body?.organization_id);
-    if(!usernameValid(login)||!passwordValid(password)||!company||!validEmail(email)||firstName.length<2||lastName.length<2)return problem(res,400,'Podaj login, imię, nazwisko, adres e-mail, hasło (minimum 8 znaków) i klienta.');
+    if(!usernameValid(login)||!company||!validEmail(email)||firstName.length<2||lastName.length<2)
+      return problem(res,400,'Podaj login, imię, nazwisko, adres e-mail i klienta.');
+    const client=await db.connect();
     try{
-      const org=(await db.query('SELECT id FROM organizations WHERE id=$1 AND is_active=true',[company])).rows[0];
-      if(!org)return problem(res,400,'Wybierz aktywnego klienta.');
-      const h=hashPassword(password);
-      const u=(await db.query("INSERT INTO users(username,email,first_name,last_name,role,pass_salt,pass_hash,organization_id,is_active) VALUES($1,$2,$3,$4,'client',$5,$6,$7,true) RETURNING id,username,email,first_name,last_name,role,organization_id,is_active,created_at",[login,email,firstName,lastName,h.salt,h.hash,company])).rows[0];
-      res.status(201).json({user:u});
-    }catch(e){if(!err(res,e,'user'))next(e);}
+      await client.query('BEGIN');
+      const org=(await client.query('SELECT id FROM organizations WHERE id=$1 AND is_active=true',[company])).rows[0];
+      if(!org){await client.query('ROLLBACK');return problem(res,400,'Wybierz aktywnego klienta.');}
+      const initial=hashPassword(crypto.randomBytes(48).toString('base64url'));
+      const u=(await client.query(
+        "INSERT INTO users(username,email,first_name,last_name,role,pass_salt,pass_hash,organization_id,is_active,must_set_password) "+
+        "VALUES($1,$2,$3,$4,'client',$5,$6,$7,true,true) "+
+        "RETURNING id,username,email,first_name,last_name,role,organization_id,is_active,must_set_password,created_at",
+        [login,email,firstName,lastName,initial.salt,initial.hash,company])).rows[0];
+      const invitation=await issueInvitation(client,u.id,email);
+      await client.query('COMMIT');
+      res.status(201).json({user:u,invitation:{status:invitation.status,expires_at:invitation.expires_at}});
+    }catch(e){
+      await client.query('ROLLBACK');
+      if(!err(res,e,'user'))next(e);
+    }finally{client.release();}
   });
   app.delete('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
     const c=await db.connect();
@@ -87,15 +99,29 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
   });
   app.patch('/api/admin/users/:id',auth,adminOnly,longId,async(req,res,next)=>{
     const active=req.body?.is_active,company=orgId(req.body?.organization_id),email=emailValue(req.body?.email),firstName=name(req.body?.first_name,80),lastName=name(req.body?.last_name,80);
-    if(typeof active!=='boolean'||!company||!validEmail(email)||firstName.length<2||lastName.length<2)return problem(res,400,'Wybierz klienta, imię i nazwisko, poprawny e-mail oraz stan konta.');
+    if(typeof active!=='boolean'||!company||!validEmail(email)||firstName.length<2||lastName.length<2)
+      return problem(res,400,'Wybierz klienta, imię i nazwisko, poprawny e-mail oraz stan konta.');
+    const client=await db.connect();
     try{
-      const org=(await db.query('SELECT id FROM organizations WHERE id=$1',[company])).rows[0];
-      if(!org)return problem(res,400,'Nie znaleziono klienta.');
-      const u=(await db.query("UPDATE users SET organization_id=$1,is_active=$2,email=$3,first_name=$4,last_name=$5 WHERE id=$6 AND role='client' AND deleted_at IS NULL RETURNING id,username,email,first_name,last_name,organization_id,is_active",[company,active,email,firstName,lastName,req.params.id])).rows[0];
-      if(!u)return problem(res,404,'Nie znaleziono konta klienta.');
-      await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
-      res.json({user:u});
-    }catch(e){next(e);}
+      await client.query('BEGIN');
+      const org=(await client.query('SELECT id,is_active FROM organizations WHERE id=$1',[company])).rows[0];
+      if(!org){await client.query('ROLLBACK');return problem(res,400,'Nie znaleziono klienta.');}
+      const previous=(await client.query("SELECT * FROM users WHERE id=$1 AND role='client' AND deleted_at IS NULL FOR UPDATE",[req.params.id])).rows[0];
+      if(!previous){await client.query('ROLLBACK');return problem(res,404,'Nie znaleziono konta klienta.');}
+      const changedCritical=String(previous.organization_id)!==String(company)||previous.email!==email||previous.is_active!==active;
+      const u=(await client.query(
+        "UPDATE users SET organization_id=$1,is_active=$2,email=$3,first_name=$4,last_name=$5 "+
+        "WHERE id=$6 AND role='client' AND deleted_at IS NULL "+
+        "RETURNING id,username,email,first_name,last_name,organization_id,is_active,must_set_password",
+        [company,active,email,firstName,lastName,req.params.id])).rows[0];
+      if(changedCritical){
+        await client.query("UPDATE user_invitations SET status='cancelled' WHERE user_id=$1 AND status IN ('pending','sent')",[u.id]);
+        if(u.must_set_password&&active&&org.is_active)await issueInvitation(client,u.id,email);
+      }
+      await client.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
+      await client.query('COMMIT');
+      res.json({user:u,invitation_queued:changedCritical&&u.must_set_password&&active&&org.is_active});
+    }catch(e){await client.query('ROLLBACK');next(e);}finally{client.release();}
   });
 }
 
