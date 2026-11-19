@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { strict as assert } from 'node:assert';
 import { randomBytes } from 'node:crypto';
 import webpush from 'web-push';
+import sharp from 'sharp';
 
 const port = 18182;
 const base = 'http://127.0.0.1:'+port;
@@ -11,8 +12,11 @@ if(!db) throw new Error('TEST_DATABASE_URL missing');
 const adminPass='S-'+randomBytes(24).toString('hex');
 const clientPass='S-'+randomBytes(24).toString('hex');
 const vapid=webpush.generateVAPIDKeys();
+// Bezpieczny, syntetyczny obraz ćwiczebny — test rzeczywistego układu pieczątki,
+// bez umieszczania autentycznego podpisu użytkownika w publicznym repozytorium.
+const signatureFixture=(await sharp({create:{width:520,height:280,channels:4,background:{r:255,g:255,b:255,alpha:0}}}).png().toBuffer()).toString('base64');
 const child=spawn(process.execPath,['server.js'],{cwd:new URL('../',import.meta.url).pathname,
- env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',MARKNET_TEST_SMTP:'1',SMTP_FROM:'MarkNet Test <test-marknet@example.com>',ADMIN_NOTIFY_EMAIL:'admin@example.com',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
+ env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',MARKNET_TEST_SMTP:'1',PROTOCOL_SIGNATURE_BASE64:signatureFixture,SMTP_FROM:'MarkNet Test <test-marknet@example.com>',ADMIN_NOTIFY_EMAIL:'admin@example.com',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
 const tryHttp=async(path,opts={})=>fetch(base+path,opts);
 async function ready(){
  for(let i=0;i<40;i++){
@@ -115,7 +119,7 @@ try{
  assert.equal((await api('/api/tickets/'+id+'/service-completion',{work_date:'2026-11-18'},'POST',client)).r.status,403);
  const completion={
   work_date:'2026-11-18',technicians:'Marek Wyganowski',hours:2.5,
-  work_done:'Weryfikacja toru światłowodowego GPEC, sprawdzenie medikonwertera i przywrócenie łączności poprzez przełączenie transmisji.',
+  work_done:'Stwierdzono brak komunikacji na łączu GPEC. W trakcie diagnostyki zlokalizowano przyczynę problemu – niestabilne połączenie w torze transmisyjnym mediakonwertera do switcha PA. Przeanalizowano możliwość obejścia uszkodzonego urządzenia z wykorzystaniem istniejącej infrastruktury sieciowej i wdrożono. Testy wykazały przywrócenie poprawnego połączenia.',
   system_operational:'tak',fit_for_use:'tak'
  };
  const complete=await api('/api/tickets/'+id+'/service-completion',completion,'POST',admin);
