@@ -5,10 +5,10 @@
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <link rel="icon" type="image/png" sizes="192x192" href="/serwis/marknet-icon-192.png"><link rel="apple-touch-icon" href="/serwis/marknet-icon-180.png">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261119-1">
-<link rel="stylesheet" href="brand.css?v=20261119-7">
-<script src="management.js?v=20261119-1" defer></script>
-<script src="app.js?v=20261119-7" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261119-10">
+<link rel="stylesheet" href="brand.css?v=20261119-10">
+<script src="management.js?v=20261119-10" defer></script>
+<script src="app.js?v=20261119-10" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -27,6 +27,22 @@
     <a class="home-link" href="/">← Powrót na stronę MarkNet</a>
   </div>
   <footer class="login-footer">© MarkNet — system obsługi zgłoszeń</footer>
+</section>
+
+<section id="activate-view" class="login-view hide">
+  <div class="login-decor"><span class="dot"></span> BEZPIECZNA AKTYWACJA KONTA</div>
+  <div class="login-card">
+    <div class="brand"><img class="logo-img logo-login" src="logo-marknet-hd.png" alt="MarkNet — Systemy Zabezpieczeń" width="230" height="95"><span class="brand-service">AKTYWACJA DOSTĘPU</span></div>
+    <h1>Witamy w MarkNet Serwis.</h1>
+    <p class="lead">Ustaw swoje prywatne hasło. Link aktywacyjny jest jednorazowy i ważny przez 72 godziny od wysłania zaproszenia.</p>
+    <form id="activation-form" class="form">
+      <label>Nowe hasło (minimum 8 znaków)<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <label>Powtórz nowe hasło<input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <button class="btn main" type="submit">Ustaw hasło i aktywuj konto</button>
+    </form>
+    <p class="foot-note">Po aktywacji wrócisz do strony logowania. Twój login znajduje się w otrzymanym e-mailu.</p>
+    <a class="home-link" href="/">← Poznaj stronę MarkNet</a>
+  </div>
 </section>
 
 <section id="portal-view" class="hide">
@@ -104,11 +120,23 @@
         <label>Nazwisko<input name="last_name" minlength="2" maxlength="80" autocomplete="family-name" required placeholder="Nazwisko"></label></div>
         <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
         <label>E-mail użytkownika<input name="email" type="email" maxlength="254" autocomplete="off" required placeholder="np. pracownik@firma.pl"></label></div>
-        <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label>
+        <p class="hint">Po utworzeniu konta użytkownik automatycznie otrzyma e-mail z loginem, linkiem do strony MarkNet i jednorazowym odnośnikiem do ustawienia własnego hasła. Hasło nie jest wysyłane e-mailem.</p>
         <label>Przypisz użytkownika do klienta<select name="organization_id" id="new-user-organization" required></select></label>
         <button type="submit" class="btn main">+ Utwórz użytkownika</button>
       </form>
       <div id="user-list" class="management-list"></div>
+    </div>
+    <div id="admin-login-history" class="panel reports hide">
+      <div><span class="eyebrow">Bezpieczeństwo i konta</span><h2>Historia logowań użytkowników</h2>
+      <p class="subtle">Dostęp tylko dla administratora MarkNet. Rejestrowane są udane oraz nieudane logowania istniejących kont: data, użytkownik, firma, adres IP i informacje o urządzeniu. Historia jest przechowywana przez 90 dni.</p></div>
+      <div class="login-history-filters">
+        <label>Firma<select id="login-history-org" aria-label="Firma w historii logowań"><option value="">Wszystkie firmy</option></select></label>
+        <label>Użytkownik<select id="login-history-user" aria-label="Użytkownik w historii logowań"><option value="">Wszyscy użytkownicy</option></select></label>
+        <label>Wynik<select id="login-history-result" aria-label="Wynik próby logowania"><option value="">Wszystkie próby</option><option value="success">Udane</option><option value="failure">Nieudane</option></select></label>
+        <button type="button" id="login-history-refresh" class="btn outline">Odśwież historię</button>
+      </div>
+      <div class="login-history-caption" id="login-history-caption" role="status" aria-live="polite">Wczytywanie historii logowań…</div>
+      <div id="login-history-list" class="login-history-list" aria-label="Ostatnie logowania"></div>
     </div>
     <div id="admin-reports" class="panel reports hide">
       <div><span class="eyebrow">Tylko MarkNet</span><h2>Raportowanie serwisu</h2><p class="subtle">Automatycznie przygotowane raporty na podstawie zapisanej historii zgłoszeń.</p></div>
