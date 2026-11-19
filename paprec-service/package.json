@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check tenancy.js && node --check notifications.js && node --check service-protocol.js && node --check public/app.js && node --check public/management.js && node --check public/sw.js && node --check invitations.js && node --check work-calendar-reports.js && node --check public/calendar.js && node --check work-calendar.js && node --check login-history.js"
+    "check": "node --check server.js && node --check tenancy.js && node --check notifications.js && node --check service-protocol.js && node --check public/app.js && node --check public/management.js && node --check public/sw.js && node --check invitations.js && node --check work-calendar-reports.js && node --check public/calendar.js && node --check public/calendar-report.js && node --check work-calendar.js && node --check login-history.js"
   },
   "engines": {
     "node": ">=20"
