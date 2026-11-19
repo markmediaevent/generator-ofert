@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const state={me:null,meta:null,tickets:[],selectedId:null,detail:null};
+const state={me:null,meta:null,tickets:[],selectedId:null,detail:null,sessionEpoch:0};
 function show(id,yes=true){$(id).classList.toggle('hide',!yes);}
 function pop(text,error=false){const el=$('toast');el.textContent=text;el.classList.toggle('error',error);show('toast',true);clearTimeout(pop.timer);pop.timer=setTimeout(()=>show('toast',false),4200);}
 const API_BASE = (location.hostname==='marknet.com.pl'||location.hostname==='www.marknet.com.pl') ? 'https://marknet-serwis-test.onrender.com' : '';
@@ -31,6 +31,33 @@ function clear(el){el.replaceChildren();}
 function option(select,label,value=label){const el=node('option','',label);el.value=value;select.append(el);}
 function modal(id){show(id,true);}
 function closeModal(id){show(id,false);}
+const adminSectionIds=['admin-reports','admin-push','admin-status','admin-users','admin-organizations','admin-archive','admin-login-history'];
+function restrictAdminSections(isAdmin){
+ for(const id of adminSectionIds){
+  const el=$(id);show(id,isAdmin);el.inert=!isAdmin;
+  el.setAttribute('aria-hidden',String(!isAdmin));
+ }
+}
+function purgeAdminData(){
+ restrictAdminSections(false);
+ for(const id of ['login-history-list','organization-list','user-list','archive-list'])clear($(id));
+ for(const id of ['login-history-org','login-history-user','filter-org','report-org','new-organization','new-user-organization'])clear($(id));
+ $('login-history-result').value='';
+ $('login-history-caption').textContent='Historia logowań dostępna tylko dla administratora MarkNet.';
+ $('notification-summary').textContent='';
+ $('push-status').textContent='';
+ $('user-label').textContent='';
+ state.organizations=[];state.users=[];
+}
+function logoutLocal(){
+ state.sessionEpoch++;
+ purgeAdminData();
+ state.me=null;state.meta=null;state.tickets=[];state.selectedId=null;state.detail=null;
+ if(typeof workCal!=='undefined'){workCal.visible=false;workCal.seq++;workCal.events=[];show('work-calendar',false);}
+ if(typeof closeWorkReport==='function'&&typeof calReport!=='undefined'&&calReport.current)closeWorkReport();
+ for(const overlay of document.querySelectorAll('.overlay'))show(overlay.id,false);
+ show('portal-view',false);show('login-view',true);
+}
 async function initialize(){
  if(new URLSearchParams(window.location.search).has('aktywacja')){
   show('portal-view',false);show('login-view',false);show('activate-view',true);
@@ -38,15 +65,20 @@ async function initialize(){
  }
  show('activate-view',false);
  try{state.me=await api('/api/me');await setupPortal();}
- catch(e){show('portal-view',false);show('login-view',true);}
+ catch(e){logoutLocal();}
 }
 async function setupPortal(){
+ const epoch=++state.sessionEpoch;
+ // Cleanup before new identity data is rendered, including cached admin audit records.
+ purgeAdminData();
  const [meta,tickets]=await Promise.all([api('/api/meta'),api('/api/tickets')]);
+ if(epoch!==state.sessionEpoch||!state.me)return;
  state.meta=meta;state.tickets=tickets.tickets;show('login-view',false);show('portal-view',true);
  // Po zalogowaniu usuń przesunięcie poprzedniego widoku na iPhonie.
  requestAnimationFrame(()=>{window.scrollTo(0,0);document.documentElement.scrollLeft=0;});
  // Firma klienta pochodzi wyłącznie z sesji serwera. Nie ma możliwości wyboru innej firmy.
  const isAdmin=state.me.role==='admin';
+ restrictAdminSections(isAdmin);
  show('new-org-wrap',isAdmin);
  show('client-org-wrap',!isAdmin);
  $('new-organization').disabled=!isAdmin;
@@ -64,7 +96,7 @@ async function setupPortal(){
  emailInput.placeholder=state.me.role==='client'?'E-mail przypisany do konta':'Adres odbiorcy potwierdzenia';
  $('page-title').textContent=state.me.role==='admin'?'Panel administratora MarkNet':'Panel zgłoszeń — '+state.me.clientName;
  $('page-subtitle').textContent=state.me.role==='admin'?'Zarządzanie serwisem, dokumentacją i raportami':'Zgłoś usterkę lub awarię i śledź historię obsługi';
- show('admin-reports',state.me.role==='admin');show('admin-push',state.me.role==='admin');show('admin-status',state.me.role==='admin');show('admin-users',state.me.role==='admin');show('admin-organizations',state.me.role==='admin');show('admin-archive',state.me.role==='admin');
+ // Audit and all administration modules are restricted together by restrictAdminSections().
  if(state.me.role==='admin')refreshArchive().catch(()=>{});
  if(state.me.role==='admin')refreshNotifications().catch(()=>{});
  const category=$('new-category'),filter=$('filter-category'),status=$('filter-status');
@@ -214,7 +246,19 @@ function wireEvents(){
   try{const result=await api('/api/login',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});if(API_BASE){if(!result.accessToken)throw Error('Brak tokenu dostępu.');sessionStorage.setItem(AUTH_KEY,result.accessToken);}e.target.reset();state.me=await api('/api/me');await setupPortal();}
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
- $('logout-button').addEventListener('click',async()=>{try{await api('/api/logout',{method:'POST'});}catch{}sessionStorage.removeItem(AUTH_KEY);state.me=null;state.tickets=[];show('portal-view',false);show('login-view',true);});
+ $('logout-button').addEventListener('click',async()=>{
+   // Remove sensitive content immediately instead of waiting for the network.
+   const previousToken=token();
+   logoutLocal();sessionStorage.removeItem(AUTH_KEY);
+   if(previousToken){
+    try{
+     await fetch(API_BASE+'/api/logout',{method:'POST',credentials:API_BASE?'omit':'same-origin',
+       headers:{'Content-Type':'application/json','Authorization':'Bearer '+previousToken}});
+    }catch{}
+   }else{
+    try{await api('/api/logout',{method:'POST'});}catch{}
+   }
+  });
  $('submission-dismiss').addEventListener('click',()=>show('submission-success',false));
   $('add-button').addEventListener('click',()=>{
   if(state.me?.role==='client'){
