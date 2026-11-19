@@ -136,9 +136,11 @@ async function renderProtocol(ticket,record,config={}){
   bodyLineY+=14.7;
  }
  doc.y=bodyLineY;
- const signatureMinimum=183;
+ // Zarezerwuj cały blok oceny, pieczątki, podpisów i podpisów pod liniami.
+ // Bez tego PDFKit automatycznie przenosi ostatnią etykietę na pustą drugą stronę.
+ const signatureMinimum=167;
  let assessY=Math.max(doc.y+17,565);
- if(assessY+signatureMinimum>PAGE_H-57){
+ if(assessY+signatureMinimum>PAGE_H-62){
   newContinuation(doc,ticket);
   assessY=130;
  }
@@ -150,13 +152,14 @@ async function renderProtocol(ticket,record,config={}){
  const sigY=doc.y+15;
  doc.font('Regular').fontSize(9.2).text('Prace serwisowe wykonał:',LEFT+5,sigY,{width:230});
  doc.text('Potwierdzenie wykonanych prac:',321,sigY,{width:220});
- const lineY=sigY+133;
- if(signatureImage)doc.image(signatureImage,LEFT+20,sigY+13,{fit:[165,133]});
+ const lineY=sigY+99;
+ if(signatureImage)doc.image(signatureImage,LEFT+20,sigY+5,{fit:[165,94]});
  doc.lineWidth(.6).strokeColor(GREY).moveTo(LEFT+10,lineY).lineTo(LEFT+228,lineY).stroke();
  doc.moveTo(325,lineY).lineTo(RIGHT-9,lineY).stroke();
- doc.font('Regular').fontSize(8.2).fillColor(GREY).text('(podpis przedstawiciela wykonawcy)',LEFT+11,lineY+7,{width:215,align:'center'});
- doc.text('(podpis przedstawiciela użytkownika)',326,lineY+7,{width:209,align:'center'});
- const footerBottom=PAGE_H-30;
+ doc.font('Regular').fontSize(8.2).fillColor(GREY).text('(podpis przedstawiciela wykonawcy)',LEFT+11,lineY+6,{width:215,align:'center',lineBreak:false});
+ doc.text('(podpis przedstawiciela użytkownika)',326,lineY+6,{width:209,align:'center',lineBreak:false});
+ // Cała stopka, w tym numer strony, musi pozostać wewnątrz wysokości A4.
+ const footerBottom=PAGE_H-34;
  const {start,count}=doc.bufferedPageRange();
  for(let i=start;i<start+count;i++){
   doc.switchToPage(i);
@@ -165,7 +168,7 @@ async function renderProtocol(ticket,record,config={}){
   doc.font('Bold').fontSize(9.2).fillColor(INK).text(companyName,LEFT,footerBottom-9,{width:290});
   doc.font('Regular').fontSize(7.7).fillColor(GREY).text('www.marknet.com.pl',LEFT,footerBottom+4,{width:220});
   if(footerLogo)doc.image(footerLogo,RIGHT-122,footerBottom-8,{fit:[90,29]});
-  doc.font('Regular').fontSize(7.9).fillColor(INK).text('Strona '+(i-start+1)+' z '+count,RIGHT-95,footerBottom+21,{width:95,align:'right'});
+  doc.font('Regular').fontSize(7.9).fillColor(INK).text('Strona '+(i-start+1)+' z '+count,RIGHT-95,footerBottom+6,{width:95,align:'right',lineBreak:false});
   doc.page.margins.bottom=prevBottom;
  }
  doc.end();return promise;
