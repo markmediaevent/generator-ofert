@@ -1,12 +1,27 @@
 'use strict';
 const crypto=require('crypto');
 
+function asciiNamePart(value){
+  return String(value||'').trim().toLowerCase()
+    .replace(/ł/g,'l')
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');
+}
+function usernameFromName(firstName,lastName){
+  const first=asciiNamePart(firstName),last=asciiNamePart(lastName);
+  if(!first||!last)return '';
+  return first[0]+'.'+last.slice(0,48);
+}
+function usernameWithSuffix(base,number){
+  if(number===1)return base;
+  const suffix=String(number);
+  return base.slice(0,50-suffix.length)+suffix;
+}
 function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation}){
   const name=(v,max=140)=>clean(v,max);
   function passwordValid(s){return typeof s==='string'&&s.length>=8&&s.length<=128;}
   function emailValue(v){return typeof v==='string'?v.trim().toLowerCase():'';}
   function validEmail(v){return v.length<=254 && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v);}
-  function usernameValid(s){return /^[a-z0-9][a-z0-9._-]{2,49}$/.test(s);}
   function validServices(items){return Array.isArray(items)&&items.length>0&&items.length<=categories.length&&items.every(x=>categories.includes(x))&&new Set(items).size===items.length;}
   function orgId(v){return /^[1-9]\d*$/.test(String(v||''))?String(v):null;}
   const profileKeys=['address','nip','regon','krs','contact_name','contact_role','contact_email','contact_phone','contact_mobile'];
@@ -62,16 +77,26 @@ function setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,probl
     }catch(e){next(e);}
   });
   app.post('/api/admin/users',auth,adminOnly,async(req,res,next)=>{
-    const login=name(req.body?.username,50).toLowerCase();
     const email=emailValue(req.body?.email),firstName=name(req.body?.first_name,80),lastName=name(req.body?.last_name,80);
     const company=orgId(req.body?.organization_id);
-    if(!usernameValid(login)||!company||!validEmail(email)||firstName.length<2||lastName.length<2)
-      return problem(res,400,'Podaj login, imię, nazwisko, adres e-mail i klienta.');
+    const baseLogin=usernameFromName(firstName,lastName);
+    if(!baseLogin||!company||!validEmail(email)||firstName.length<2||lastName.length<2)
+      return problem(res,400,'Podaj poprawne imię, nazwisko, adres e-mail i klienta. Nazwa użytkownika musi zawierać litery łacińskie.');
     const client=await db.connect();
     try{
       await client.query('BEGIN');
       const org=(await client.query('SELECT id FROM organizations WHERE id=$1 AND is_active=true',[company])).rows[0];
       if(!org){await client.query('ROLLBACK');return problem(res,400,'Wybierz aktywnego klienta.');}
+      // Rezerwuj kolejny wolny login w ramach transakcji, również przy jednoczesnym tworzeniu kont.
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[baseLogin]);
+      const existing=(await client.query('SELECT lower(username) AS username FROM users WHERE lower(username) LIKE $1',[baseLogin+'%'])).rows;
+      const taken=new Set(existing.map(row=>row.username));
+      let login='';
+      for(let i=1;i<=9999;i++){
+        const candidate=usernameWithSuffix(baseLogin,i);
+        if(!taken.has(candidate)){login=candidate;break;}
+      }
+      if(!login){await client.query('ROLLBACK');return problem(res,409,'Nie udało się wygenerować wolnego loginu dla tego nazwiska.');}
       const initial=hashPassword(crypto.randomBytes(48).toString('base64url'));
       const u=(await client.query(
         "INSERT INTO users(username,email,first_name,last_name,role,pass_salt,pass_hash,organization_id,is_active,must_set_password) "+
@@ -133,6 +158,7 @@ async function migrateTenancy(db,categories){
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT');
+  await db.query('CREATE INDEX IF NOT EXISTS users_username_lower_idx ON users (lower(username))');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT');
   await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ');
   await db.query('ALTER TABLE tickets ADD COLUMN IF NOT EXISTS organization_id BIGINT REFERENCES organizations(id)');
