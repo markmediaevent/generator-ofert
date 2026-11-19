@@ -129,6 +129,9 @@ try{
  const formalPdf=Buffer.from(await protocol.arrayBuffer());
  assert.equal(formalPdf.subarray(0,5).toString(),'%PDF-');
  assert.ok(formalPdf.length>3500,'Formal protocol PDF should contain substantive content');
+ // Krótkie protokoły z pieczątką i podpisem muszą mieścić się na jednej stronie A4.
+ const shortPages=(formalPdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
+ assert.equal(shortPages,1,'Formal protocol must not create a blank page after the signature');
  const clientFormal=await tryHttp('/api/tickets/'+id+'/service-protocol.pdf',{headers:{Cookie:client}});
  assert.equal(clientFormal.status,200);
  assert.equal(Buffer.from(await clientFormal.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
@@ -178,14 +181,23 @@ try{
   title:'Zablokowana kategoria GPEC',requester_name:'Test Klient',requester_email:'client@example.org',
   description:'Ten system nie należy do podpisanej umowy z klientem.'},'POST',newClientCookie);
  assert.equal(denied.r.status,400);
+ // Użytkownik PCE/innej firmy nie może nawet przesłać podmienionego identyfikatora PAPREC.
+ const forged=await api('/api/tickets',{
+  kind:'Usterka',priority:'Standardowy',category:'CCTV',
+  organization_id:me.json.organization_id,
+  requester_name:'Podmieniona nazwa',requester_email:'client@example.org',
+  description:'Próba wysłania zgłoszenia w imieniu obcej firmy.'
+ },'POST',newClientCookie);
+ assert.equal(forged.r.status,403,'The server must reject a forged organization_id');
  const createdOther=await api('/api/tickets',{
-  kind:'Usterka',priority:'Standardowy',category:'CCTV',organization_id:me.json.organization_id,
+  kind:'Usterka',priority:'Standardowy',category:'CCTV',
   requester_name:'Podmieniona nazwa',requester_email:'client@example.org',
   description:'Zgłoszenie z niezależnego klienta testowego.'
  },'POST',newClientCookie);
  assert.equal(createdOther.r.status,201,JSON.stringify(createdOther.json));
  const secondTicket=createdOther.json.ticket.id;
  assert.equal(String(createdOther.json.ticket.organization_id),String(newOrgId));
+ assert.equal((await api('/api/tickets',undefined,'GET',newClientCookie)).json.tickets.some(t=>String(t.organization_id)!==String(newOrgId)),false,'Client ticket list must be tenant-isolated');
  assert.equal(createdOther.json.ticket.requester_email,'demo.client@example.org');
  assert.equal(createdOther.json.ticket.requester_name,'Adam Próbny');
  assert.equal(createdOther.json.ticket.title,'Usterka – CCTV');
