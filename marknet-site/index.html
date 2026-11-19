@@ -41,7 +41,29 @@
   <link rel="stylesheet" href="/marknet-brand.css?v=20261119-6">
   <link rel="stylesheet" href="/experience.css?v=20261119-2">
   <noscript><style>.entry-intro{display:none!important}</style></noscript>
-  <script>try{if(sessionStorage.getItem("marknet-intro-seen")==="1")document.documentElement.classList.add("intro-seen")}catch{}</script>
+  <script>
+    (function(){
+      try{if(sessionStorage.getItem("marknet-intro-seen")==="1")document.documentElement.classList.add("intro-seen")}catch{}
+      function resetEntryScroll(){
+        if(location.hash&&location.hash!=="#top")return;
+        var root=document.documentElement,previous=root.style.scrollBehavior;
+        root.style.scrollBehavior="auto";
+        window.scrollTo(0,0);
+        root.scrollTop=0;
+        if(document.body)document.body.scrollTop=0;
+        root.style.scrollBehavior=previous;
+      }
+      if(!location.hash||location.hash==="#top"){
+        try{history.scrollRestoration="manual"}catch{}
+        resetEntryScroll();
+        window.addEventListener("pageshow",function(){
+          resetEntryScroll();
+          requestAnimationFrame(resetEntryScroll);
+        });
+        window.addEventListener("load",resetEntryScroll,{once:true});
+      }
+    })();
+  </script>
   <script src="/experience.js?v=20261119-2" defer></script>
 </head>
 <body>
