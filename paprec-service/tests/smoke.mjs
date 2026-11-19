@@ -4,6 +4,9 @@ import { strict as assert } from 'node:assert';
 import { randomBytes } from 'node:crypto';
 import webpush from 'web-push';
 import sharp from 'sharp';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,dirname} from 'node:path';
 
 const port = 18182;
 const base = 'http://127.0.0.1:'+port;
@@ -12,11 +15,12 @@ if(!db) throw new Error('TEST_DATABASE_URL missing');
 const adminPass='S-'+randomBytes(24).toString('hex');
 const clientPass='S-'+randomBytes(24).toString('hex');
 const vapid=webpush.generateVAPIDKeys();
+const capturePath=join(await mkdtemp(join(tmpdir(),'marknet-invitations-')),'mail.jsonl');
 // Bezpieczny, syntetyczny obraz ćwiczebny — test rzeczywistego układu pieczątki,
 // bez umieszczania autentycznego podpisu użytkownika w publicznym repozytorium.
 const signatureFixture=(await sharp({create:{width:520,height:280,channels:4,background:{r:255,g:255,b:255,alpha:0}}}).png().toBuffer()).toString('base64');
 const child=spawn(process.execPath,['server.js'],{cwd:new URL('../',import.meta.url).pathname,
- env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',MARKNET_TEST_SMTP:'1',PROTOCOL_SIGNATURE_BASE64:signatureFixture,SMTP_FROM:'MarkNet Test <test-marknet@example.com>',ADMIN_NOTIFY_EMAIL:'admin@example.com',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
+ env:{...process.env,PORT:String(port),DATABASE_URL:db,INIT_ADMIN_PASSWORD:adminPass,INIT_CLIENT_PASSWORD:clientPass,NODE_ENV:'test',MARKNET_TEST_SMTP:'1',MARKNET_TEST_INVITE_CAPTURE:capturePath,PROTOCOL_SIGNATURE_BASE64:signatureFixture,SMTP_FROM:'MarkNet Test <test-marknet@example.com>',ADMIN_NOTIFY_EMAIL:'admin@example.com',VAPID_SUBJECT:'mailto:test@example.com',VAPID_PUBLIC_KEY:vapid.publicKey,VAPID_PRIVATE_KEY:vapid.privateKey}, stdio:'inherit'});
 const tryHttp=async(path,opts={})=>fetch(base+path,opts);
 async function ready(){
  for(let i=0;i<40;i++){
@@ -68,6 +72,18 @@ try{
  assert.equal(me.json.email,'paprec.test@example.org');
  assert.equal(me.json.first_name,'Tester');
  assert.equal(me.json.last_name,'PAPREC');
+ const adminAudit=await api('/api/admin/login-history',undefined,'GET',admin);
+ assert.equal(adminAudit.r.status,200);
+ assert.equal(adminAudit.json.retention_days,90);
+ assert.ok(adminAudit.json.entries.some(x=>x.username==='marknet'&&x.success===true));
+ assert.ok(adminAudit.json.entries.some(x=>x.username==='paprec'&&x.success===false));
+ assert.ok(adminAudit.json.entries.some(x=>x.username==='paprec'&&x.success===true));
+ assert.equal((await api('/api/admin/login-history',undefined,'GET',client)).r.status,403);
+ assert.equal((await api('/api/admin/login-history?result=INVALID',undefined,'GET',admin)).r.status,400);
+ const paprecAudit=await api('/api/admin/login-history?user_id='+seedPaprec.id+'&result=success',undefined,'GET',admin);
+ assert.equal(paprecAudit.r.status,200);
+ assert.ok(paprecAudit.json.entries.length>0);
+ assert.ok(paprecAudit.json.entries.every(x=>x.username==='paprec'&&x.success===true));
  const {r:created,json:creation}=await api('/api/tickets',{
   kind:'Awaria', priority:'Krytyczny',category:'Połączenia GPEC',
   area:'Obiekt testowy',device:'Switch testowy',requester_name:'Tester PAPREC',requester_email:'spoofed@somewhere.example',
@@ -171,12 +187,49 @@ try{
  assert.ok(orgList.json.organizations.find(o=>String(o.id)===String(newOrgId)));
  assert.equal((await api('/api/admin/organizations',{name:'Nieuprawniona',systems:['CCTV']},'POST',newClient)).r.status,403);
  const loginName='demo'+randomBytes(4).toString('hex');
- const newUser=await api('/api/admin/users',{username:loginName,email:'demo.client@example.org',first_name:'Adam',last_name:'Próbny',password:'Haslo123',organization_id:newOrgId},'POST',admin);
+ const newUser=await api('/api/admin/users',{username:loginName,email:'demo.client@example.org',first_name:'Adam',last_name:'Próbny',organization_id:newOrgId},'POST',admin);
  assert.equal(newUser.r.status,201,JSON.stringify(newUser.json));
  assert.equal(newUser.json.user.email,'demo.client@example.org');
  assert.equal(newUser.json.user.first_name,'Adam');
  assert.equal(newUser.json.user.last_name,'Próbny');
- const newClientCookie=await login(loginName,'Haslo123');
+ assert.equal(newUser.json.user.must_set_password,true);
+ assert.equal(newUser.json.invitation.status,'pending');
+ assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401,'Invited account must not login until activation');
+ assert.equal((await api('/api/admin/users/'+newUser.json.user.id+'/invite',{},'POST',client)).r.status,403);
+ let mailData=[];
+ for(let attempts=0;attempts<70;attempts++){
+  try{mailData=(await readFile(capturePath,'utf8')).trim().split('\n').filter(Boolean).map(x=>JSON.parse(x));}catch{}
+  if(mailData.some(m=>m.to==='demo.client@example.org'))break;
+  await sleep(200);
+ }
+ assert.ok(mailData.some(m=>m.to==='demo.client@example.org'),'Invitation email should be sent automatically');
+ const firstInvite=mailData.find(m=>m.to==='demo.client@example.org');
+ assert.match(firstInvite.activation_url,/^https:\/\/marknet\.com\.pl\/serwis\/\?aktywacja=[a-f0-9]{64}$/);
+ const oldToken=new URL(firstInvite.activation_url).searchParams.get('aktywacja');
+ assert.equal((await api('/api/activate',{token:oldToken,password:'1234567',confirmPassword:'1234567'},'POST')).r.status,400);
+ const resend=await api('/api/admin/users/'+newUser.json.user.id+'/invite',{},'POST',admin);
+ assert.equal(resend.r.status,200,JSON.stringify(resend.json));
+ assert.equal((await api('/api/activate',{token:oldToken,password:'Haslo123',confirmPassword:'Haslo123'},'POST')).r.status,410);
+ for(let tries=0;tries<70;tries++){
+  try{mailData=(await readFile(capturePath,'utf8')).trim().split('\n').filter(Boolean).map(x=>JSON.parse(x));}catch{}
+  if(mailData.filter(m=>m.to==='demo.client@example.org').length>=2)break;
+  await sleep(200);
+ }
+ const invites=mailData.filter(m=>m.to==='demo.client@example.org');
+ assert.equal(invites.length,2,'Second invitation must be sent and first token invalidated');
+ const token=new URL(invites[1].activation_url).searchParams.get('aktywacja');
+ const chosenPassword='V4-'+randomBytes(10).toString('hex');
+ assert.equal((await api('/api/activate',{token,password:chosenPassword,confirmPassword:'not-matching'},'POST')).r.status,400);
+ const activated=await api('/api/activate',{token,password:chosenPassword,confirmPassword:chosenPassword},'POST');
+ assert.equal(activated.r.status,200,JSON.stringify(activated.json));
+ assert.equal(activated.json.username,loginName);
+ assert.equal((await api('/api/activate',{token,password:'Reset12345',confirmPassword:'Reset12345'},'POST')).r.status,410,'Invitation must be one-time');
+ const newClientCookie=await login(loginName,chosenPassword);
+ const newAudit=await api('/api/admin/login-history?user_id='+newUser.json.user.id,undefined,'GET',admin);
+ assert.equal(newAudit.r.status,200);
+ assert.ok(newAudit.json.entries.some(x=>x.username===loginName&&x.success===true));
+ assert.ok(newAudit.json.entries.some(x=>x.username===loginName&&x.success===false));
+ assert.ok(newAudit.json.entries.every(x=>String(x.organization_id)===String(newOrgId)),'Login audit events retain account company');
  const clientMeta=await api('/api/meta',undefined,'GET',newClientCookie);
  assert.deepEqual(clientMeta.json.categories,['CCTV','Telefonia']);
  assert.equal(clientMeta.json.clientName,'Drugi klient testowy');
@@ -247,20 +300,20 @@ try{
  const suspended=await api('/api/admin/organizations/'+newOrgId,{name:'Drugi klient testowy',systems:['CCTV'],is_active:false},'PATCH',admin);
  assert.equal(suspended.r.status,200);
  assert.equal((await api('/api/me',undefined,'GET',newClientCookie)).r.status,401);
- assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401);
+ assert.equal((await api('/api/login',{username:loginName,password:chosenPassword},'POST')).r.status,401);
  const resumed=await api('/api/admin/organizations/'+newOrgId,{name:'Drugi klient testowy',systems:['CCTV'],is_active:true},'PATCH',admin);
  assert.equal(resumed.r.status,200);
- const resumedClient=await login(loginName,'Haslo123');
+ const resumedClient=await login(loginName,chosenPassword);
  assert.ok(resumedClient);
  const disabled=await api('/api/admin/users/'+newUser.json.user.id,{organization_id:newOrgId,email:'demo.updated@example.org',first_name:'Adam',last_name:'Próbny',is_active:false},'PATCH',admin);
  assert.equal(disabled.r.status,200);
  assert.equal(disabled.json.user.email,'demo.updated@example.org');
  assert.equal((await api('/api/me',undefined,'GET',newClientCookie)).r.status,401);
- assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401);
+ assert.equal((await api('/api/login',{username:loginName,password:chosenPassword},'POST')).r.status,401);
  const removedUser=await api('/api/admin/users/'+newUser.json.user.id,undefined,'DELETE',admin);
  assert.equal(removedUser.r.status,200);
  assert.equal((await api('/api/admin/users',undefined,'GET',admin)).json.users.some(u=>String(u.id)===String(newUser.json.user.id)),false);
- assert.equal((await api('/api/login',{username:loginName,password:'Haslo123'},'POST')).r.status,401);
+ assert.equal((await api('/api/login',{username:loginName,password:chosenPassword},'POST')).r.status,401);
  assert.equal((await api('/api/admin/users/'+newUser.json.user.id,undefined,'DELETE',newClient)).r.status,403);
   const origins=await tryHttp('/api/login',{method:'POST',headers:{Origin:'https://unauthorized.example','Content-Type':'application/json'},body:JSON.stringify({username:'paprec',password:clientPass})});
  assert.equal(origins.status,403);
@@ -268,4 +321,5 @@ try{
 }finally{
  child.kill('SIGTERM');
  await sleep(300);
+ await rm(dirname(capturePath),{recursive:true,force:true});
 }
