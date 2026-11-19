@@ -26,6 +26,7 @@ function setupWorkCalendar(){
  show('work-calendar',allowed);
  if(!allowed){workCal.seq++;workCal.events=[];return;}
  if(!workCal.initialized)bindWorkCalendar();
+ show('cal-add',isWorkAdmin());show('cal-add-day',isWorkAdmin());
  const today=warToday();
  workCal.today=today;workCal.selected=today;workCal.year=Number(today.slice(0,4));workCal.month=Number(today.slice(5,7))-1;
  workCal.view='month';
@@ -89,7 +90,7 @@ function calendarRender(){
  const selectedItems=map.get(workCal.selected)||[];
  $('cal-selected-title').textContent=calDateLabel(workCal.selected);
  const agenda=$('cal-selected-list');clear(agenda);
- if(!selectedItems.length)agenda.append(node('div','cal-empty','Brak prac w tym dniu. Kliknij „Dodaj pracę”, aby zaplanować termin.'));
+ if(!selectedItems.length)agenda.append(node('div','cal-empty',isWorkAdmin()?'Brak prac w tym dniu. Kliknij „Dodaj pracę”, aby zaplanować termin.':'Brak prac w tym dniu.'));
  for(const item of selectedItems)agenda.append(calendarItem(item));
  const list=$('cal-list-area');clear(list);
  if(workCal.view==='list'){
@@ -102,14 +103,7 @@ function calendarRender(){
   }
  }
 }
-function calendarItem(item){
- const b=calButton('','cal-agenda-item',()=>openCalendarForm(item));
- const datePart=node('span','cal-agenda-date',calTime(item));
- const content=node('span','cal-agenda-details');
- content.append(node('strong','',item.title),node('small','',item.address));
- const status=node('span','cal-status '+calStateClass(item.status),item.status);
- b.append(datePart,content,status);return b;
-}
+function calendarItem(item){return makeCalendarEntry(item);}
 function calendarShift(offset){
  const next=calUTC(workCal.year,workCal.month+offset,1);
  workCal.year=next.getUTCFullYear();workCal.month=next.getUTCMonth();
@@ -118,7 +112,7 @@ function calendarShift(offset){
  calendarLoad();
 }
 function openCalendarForm(item){
- if(!workCal.visible)return;
+ if(!workCal.visible||!isWorkAdmin())return;
  const form=$('cal-form');form.reset();
  form.dataset.eventId=item?String(item.id):'';
  form.elements.title.value=item?.title||'';
@@ -171,3 +165,10 @@ function bindWorkCalendar(){
   }catch(error){pop(error.message,true);}finally{b.disabled=false;}
  });
 }
+
+setInterval(()=>{
+ if(workCal.visible&&state.me&&document.visibilityState==='visible'){
+  calendarLoad();
+  if(typeof calReport!=='undefined'&&calReport.current)refreshWorkReport(true);
+ }
+},60000);
