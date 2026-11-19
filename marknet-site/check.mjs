@@ -21,6 +21,10 @@ assert.equal((html.match(/class="tech-item tech-/g)||[]).length,36,'Two 18-brand
 assert.equal((html.match(/class="tech-group"/g)||[]).length,2,'Expected two ticker groups');
 assert(css.includes('prefers-reduced-motion'),'Reduced motion required');
 assert(css.includes('.entry-intro'),'Intro styles required');
+assert(html.includes('history.scrollRestoration="manual"'),'New homepage entries must disable browser scroll restoration');
+assert(html.includes('window.addEventListener("pageshow"'),'BFCache entries must reset page scroll');
+assert(html.includes('window.addEventListener("load",resetEntryScroll'),'Page load must reset page scroll');
+assert(html.includes('location.hash&&location.hash!=="#top"'),'Intentional in-page anchors must keep working');
 assert(js.includes('marknet-intro-seen'),'Intro must not replay repeatedly');
 assert(js.includes('setTimeout(finish,3100)'),'Intro must end automatically');
 assert(!html.includes('entry-skip'),'Intro skip control must not be present');
