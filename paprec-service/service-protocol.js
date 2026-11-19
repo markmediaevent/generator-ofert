@@ -9,7 +9,7 @@ const PAGE_W=595.28, PAGE_H=841.89, LEFT=50, RIGHT=545;
 const BLUE='#078fc5', YELLOW='#ffd500', INK='#171d22', GREY='#747b82', LINE='#757d83';
 const FONT_REGULAR='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
 const FONT_BOLD='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-const logoPath=path.join(__dirname,'public','logo-marknet.webp');
+const logoPath=path.join(__dirname,'public','logo-marknet-hd.png');
 
 function plDate(input){
  if(!input)return '—';
