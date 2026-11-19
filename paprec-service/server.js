@@ -264,6 +264,11 @@ app.post('/api/tickets',auth,async(req,res,next)=>{
   const validEmail=/^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(requesterEmail);
   if(!kinds.includes(kind)||!priorities.includes(priority)||!categories.includes(category)||description.length<10||requesterName.length<3)return problem(res,400,'Uzupełnij rodzaj, priorytet, kategorię, osobę zgłaszającą i opis.');
   if(!validEmail)return problem(res,400,req.user.role==='client'?'Nie masz przypisanego poprawnego adresu e-mail. Poproś administratora MarkNet o uzupełnienie adresu na Twoim koncie.':'Podaj prawidłowy adres e-mail odbiorcy potwierdzenia.');
+  // Serwer nigdy nie pozwala przypisać klientowi zgłoszenia innej firmy.
+  // Jawnie odrzucaj manipulację parametrem, nawet jeśli interfejs nie wysyła go normalnie.
+  if(req.user.role==='client' && req.body.organization_id!=null &&
+      String(req.body.organization_id)!==String(req.user.organization_id))
+    return problem(res,403,'Nie możesz zgłaszać usterek w imieniu innej firmy.');
   const orgId=req.user.role==='admin'?String(req.body.organization_id||''):String(req.user.organization_id||'');
   if(!/^[1-9]\d*$/.test(orgId))return problem(res,400,'Wybierz klienta dla zgłoszenia.');
   const c=await db.connect();
