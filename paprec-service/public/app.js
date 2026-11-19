@@ -40,7 +40,9 @@ function restrictAdminSections(isAdmin){
 }
 function purgeAdminData(){
  restrictAdminSections(false);
- for(const id of ['login-history-list','organization-list','user-list','archive-list'])clear($(id));
+ for(const id of ['login-history-list','organization-list','user-list','archive-list',
+   'ticket-list','summary','detail-information','detail-events','attachment-list','cal-selected-list',
+   'cal-list-area','cal-month-grid','cal-report-activity'])clear($(id));
  for(const id of ['login-history-org','login-history-user','filter-org','report-org','new-organization','new-user-organization'])clear($(id));
  $('login-history-result').value='';
  $('login-history-caption').textContent='Historia logowań dostępna tylko dla administratora MarkNet.';
