@@ -85,7 +85,7 @@ function orgRow(org){
 }
 function userRow(user){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
+ details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?(user.must_set_password?'Oczekuje na aktywację':'Aktywne'):'Zablokowane')));
  const form=node('form','form manager-form');
  const org=document.createElement('select');orgSelect(org,false,String(user.organization_id));
  const email=inputField('email','email',user.email||'',true);email.maxLength=254;email.autocomplete='off';
@@ -123,9 +123,75 @@ function userRow(user){
      await loadManagement();pop('Usunięto dostęp użytkownika '+user.username+'.');
    }catch(e){pop(e.message,true);}finally{deleteUser.disabled=false;}
  });
- const actions=node('div','manager-danger-zone');actions.append(deleteUser);
+ const actions=node('div','manager-danger-zone');
+ if(user.must_set_password){
+   const mailStatus=node('p','hint','Zaproszenie: '+(
+     user.invitation_status==='sent'?'e-mail wysłany, oczekuje na ustawienie hasła':
+     user.invitation_status==='pending'?'e-mail oczekuje na wysyłkę':
+     user.invitation_status==='expired'?'link wygasł':
+     user.invitation_status==='cancelled'?'poprzedni link unieważniono':
+     'brak aktywnego zaproszenia'
+   ));
+   const resend=node('button','btn outline','Wyślij zaproszenie ponownie');
+   resend.type='button';
+   resend.addEventListener('click',async()=>{
+     resend.disabled=true;
+     try{
+       await api('/api/admin/users/'+user.id+'/invite',{method:'POST',body:'{}'});
+       await loadManagement();
+       pop('Dodano nowe zaproszenie do kolejki e-mail dla '+user.username+'.');
+     }catch(e){pop(e.message,true);}finally{resend.disabled=false;}
+   });
+   actions.append(mailStatus,resend);
+ }
+ actions.append(deleteUser);
  details.append(form,reset,actions);
  return details;
+}
+function loginDevice(userAgent){
+ const ua=String(userAgent||'');
+ const platform=/iPad/i.test(ua)?'iPad':/iPhone/i.test(ua)?'iPhone':/Android/i.test(ua)?'Android':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'Mac':/Linux/i.test(ua)?'Linux':'Nieznane urządzenie';
+ const browser=/Edg\//i.test(ua)?'Edge':/CriOS|Chrome/i.test(ua)?'Chrome':/FxiOS|Firefox/i.test(ua)?'Firefox':/Safari/i.test(ua)?'Safari':'Przeglądarka';
+ return platform+' / '+browser;
+}
+function historyEntry(row){
+ const wrap=node('article','login-history-item');
+ const top=node('div','login-history-item-top');
+ const person=node('strong','', [row.username,row.organization_name||'MarkNet'].filter(Boolean).join(' • '));
+ const status=node('span','login-history-status '+(row.success?'success':'failed'),row.success?'Udane':'Nieudane');
+ top.append(person,status);
+ const details=node('div','login-history-details');
+ for(const field of [
+   ['Data',date(row.created_at)],
+   ['Urządzenie',loginDevice(row.user_agent)],
+   ['Adres IP',row.ip_address||'—']
+ ]) {
+   const entry=node('span','login-history-fact');
+   entry.append(node('span','login-history-fact-label',field[0]),node('span','',field[1]));
+   details.append(entry);
+ }
+ const fullAgent=node('div','login-history-agent',row.user_agent||'Brak informacji o przeglądarce');
+ wrap.append(top,details,fullAgent);
+ return wrap;
+}
+async function loadLoginHistory(){
+ if(state.me?.role!=='admin')return;
+ const params=new URLSearchParams({limit:'100'});
+ const org=$('login-history-org').value,user=$('login-history-user').value,result=$('login-history-result').value;
+ if(org)params.set('organization_id',org);
+ if(user)params.set('user_id',user);
+ if(result)params.set('result',result);
+ $('login-history-caption').textContent='Pobieranie historii…';
+ try{
+   const data=await api('/api/admin/login-history?'+params.toString());
+   const target=$('login-history-list');target.replaceChildren();
+   for(const entry of data.entries)target.append(historyEntry(entry));
+   if(!data.entries.length)target.append(node('p','hint','Brak logowań dla wybranych filtrów.'));
+   $('login-history-caption').textContent='Wyświetlono '+data.entries.length+' ostatnich prób logowania. Historia obejmuje ostatnie '+data.retention_days+' dni.';
+ }catch(e){
+   $('login-history-caption').textContent='Nie można pobrać historii logowań.';
+   throw e;
+ }
 }
 async function loadManagement(){
  const [o,u]=await Promise.all([api('/api/admin/organizations'),api('/api/admin/users')]);
@@ -136,6 +202,16 @@ async function loadManagement(){
  orgSelect($('report-org'),true,originalReport);
  orgSelect($('new-organization'),false,originalTicket);
  orgSelect($('new-user-organization'));
+ orgSelect($('login-history-org'),true,$('login-history-org').value);
+ const loginUser=$('login-history-user');
+ const selectedLoginUser=loginUser.value;
+ loginUser.replaceChildren();
+ option(loginUser,'Wszyscy użytkownicy','');
+ for(const u of state.users){
+   const displayName=[u.first_name,u.last_name].filter(Boolean).join(' ');
+   option(loginUser,(displayName?displayName+' — ':'')+u.username+' ('+(u.organization_name||'MarkNet')+')',String(u.id));
+ }
+ if([...loginUser.options].some(o=>o.value===selectedLoginUser))loginUser.value=selectedLoginUser;
  const orgList=$('organization-list');orgList.replaceChildren();
  for(const org of orgs)orgList.append(orgRow(org));
  const userList=$('user-list');userList.replaceChildren();
@@ -145,11 +221,17 @@ async function loadManagement(){
  show('filter-org',true);
  show('admin-organizations',true);
  show('admin-users',true);
+ show('admin-login-history',true);
  setTicketCategoryOptions();
+ try{await loadLoginHistory();}catch(err){pop(err.message,true);}
 }
 function initManagement(){
  $('new-organization').addEventListener('change',setTicketCategoryOptions);
  $('filter-org').addEventListener('change',renderTickets);
+ for(const id of ['login-history-org','login-history-user','login-history-result']){
+   $(id).addEventListener('change',()=>loadLoginHistory().catch(e=>pop(e.message,true)));
+ }
+ $('login-history-refresh').addEventListener('click',()=>loadLoginHistory().catch(e=>pop(e.message,true)));
  $('organization-form').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,btn=form.querySelector('button[type=submit]');btn.disabled=true;
   try{
@@ -163,7 +245,7 @@ function initManagement(){
   try{
    const payload=Object.fromEntries(new FormData(form));
    await api('/api/admin/users',{method:'POST',body:JSON.stringify(payload)});
-   form.reset();await loadManagement();pop('Dodano użytkownika z adresem e-mail. Hasło należy przekazać mu bezpiecznym kanałem.');
+   form.reset();await loadManagement();pop('Konto utworzone. Zaproszenie do ustawienia hasła zostało dodane do kolejki e-mail.');
   }catch(err){pop(err.message,true);}finally{button.disabled=false;}
  });
 }
