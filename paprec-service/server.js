@@ -25,7 +25,7 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: { directives: {
   defaultSrc: ["'self'"], scriptSrc: ["'self'"], styleSrc: ["'self'"],
-  imgSrc: ["'self'", 'data:'], objectSrc: ["'none'"], baseUri: ["'none'"],
+  imgSrc: ["'self'", 'data:', 'blob:'], objectSrc: ["'none'"], baseUri: ["'none'"],
   frameAncestors: ["'none'"], formAction: ["'self'"]
 }} }));
 app.use(express.json({ limit: '64kb' }));
