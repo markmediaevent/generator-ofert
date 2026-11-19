@@ -1,0 +1,58 @@
+/* Wspólny widok kalendarza MIWIPOL — desktop i iPhone */
+#work-calendar{background:linear-gradient(145deg,#fff,#f0f9fe);border:1px solid #b9dfed;box-shadow:0 18px 48px rgba(9,93,141,.07)}
+.cal-top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.cal-kicker{font-size:.69rem;color:#0878b0;letter-spacing:.15em;font-weight:850}
+.cal-top h2{font-size:1.65rem;color:#11354b;margin:7px 0}
+.cal-top p{font-size:.84rem;line-height:1.55;color:#6c8898;margin:0}
+.cal-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-tools .btn{min-height:40px;padding:9px 13px}
+.cal-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:25px 0 17px}
+.cal-navigation{display:flex;align-items:center;gap:8px}
+.cal-navigation h3{font-size:1.25rem;min-width:174px;text-align:center;color:#163f55;margin:0}
+.cal-arrow{width:41px;height:41px;padding:0;display:grid;place-items:center;background:#fff;color:#126b9c;border:1px solid #c4dfed;border-radius:11px;font-size:1.25rem;cursor:pointer}
+.cal-arrow:hover{background:#e8f7ff}
+.cal-views{display:flex;align-items:center;gap:4px;background:#eaf3fa;padding:4px;border-radius:12px}
+.cal-view{border:0;background:none;color:#517487;font-size:.78rem;font-weight:760;padding:10px 15px;border-radius:9px;cursor:pointer}
+.cal-view[aria-pressed=true]{background:#fff;color:#0b6f9c;box-shadow:0 2px 8px rgba(27,89,119,.11)}
+.cal-summary{font-size:.78rem;color:#517f99;margin:0 0 17px;min-height:18px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:7px}
+.cal-weekdays span{text-align:center;font-size:.68rem;font-weight:800;color:#7393a5;text-transform:uppercase;letter-spacing:.06em;padding:9px 2px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-day{appearance:none;min-width:0;min-height:114px;text-align:left;padding:10px 8px;display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #d8e8ef;border-radius:12px;color:#254e63;cursor:pointer;position:relative;transition:background .18s,border-color .18s,box-shadow .18s}
+.cal-day:hover{border-color:#6cb8db;box-shadow:0 3px 10px rgba(13,127,173,.08)}
+.cal-day.muted{background:#f5f8fa;color:#b8c8d1}
+.cal-day.weekend{background:#f8fcff}
+.cal-day.selected{border:2px solid #008ec6;padding:9px 7px;background:#edfaff;box-shadow:0 0 0 2px rgba(0,142,198,.07)}
+.cal-day:focus-visible,.cal-agenda-item:focus-visible,.cal-arrow:focus-visible,.cal-view:focus-visible{outline:3px solid #ffdb00;outline-offset:2px}
+.cal-day-number{display:inline-grid;place-items:center;font-weight:820;font-size:.85rem;height:25px;width:25px;border-radius:999px}
+.cal-day.today .cal-day-number{background:#0098d0;color:#fff}
+.cal-day-items{display:grid;gap:4px;width:100%}
+.cal-pill{display:block;font-size:.67rem;font-weight:770;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:5px;padding:5px 6px;background:#e4f3ff;color:#0e6b9d;border-left:3px solid #1398ce}
+.cal-pill.active{background:#fff4d0;color:#866303;border-left-color:#ffc400}
+.cal-pill.done{background:#e8f8ee;color:#177a46;border-left-color:#2caa6b}
+.cal-pill.cancelled{background:#f3f4f6;color:#848e98;border-left-color:#9aa7b3;text-decoration:line-through}
+.cal-more{font-size:.65rem;color:#63859a;font-weight:700}
+.cal-mobile-dots{display:none}
+.cal-agenda{margin-top:23px;padding:22px;border:1px solid #d5e9f2;border-radius:15px;background:#fff}
+.cal-agenda-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.cal-agenda-head h3{color:#143f58;margin:0;font-size:1.06rem}
+.cal-agenda-head .btn{min-height:36px;padding:7px 12px}
+.cal-agenda-list,.cal-list{display:grid;gap:9px}
+.cal-agenda-item{width:100%;border:1px solid #d9e9f1;border-radius:12px;background:#fcfeff;display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:15px;align-items:center;text-align:left;padding:15px;color:#173e54;cursor:pointer}
+.cal-agenda-item:hover{border-color:#68b6da;background:#f4fbff}
+.cal-agenda-date{font-size:.75rem;font-weight:820;color:#1f85b5}
+.cal-agenda-details{display:grid;gap:4px;min-width:0}
+.cal-agenda-details strong{font-size:.88rem;overflow-wrap:anywhere}
+.cal-agenda-details small{color:#7390a0;font-size:.77rem;overflow-wrap:anywhere}
+.cal-status{font-size:.7rem;font-weight:750;border-radius:999px;padding:7px 10px;white-space:nowrap;background:#e7f4ff;color:#1c75a2}
+.cal-status.active{background:#fff1c7;color:#80600a}
+.cal-status.done{background:#e0f7e9;color:#17754a}
+.cal-status.cancelled{background:#edf0f3;color:#778895}
+.cal-empty{border:1px dashed #c6dfe9;border-radius:13px;padding:23px;text-align:center;color:#7f9aaa;font-size:.83rem;line-height:1.55}
+.cal-list{margin-top:8px}
+.cal-group-date{font-weight:800;color:#147dab;font-size:.87rem;padding:12px 3px 4px;text-transform:capitalize}
+.cal-help{margin:15px 0 0;font-size:.75rem;color:#7994a5}
+.cal-form .cal-time-help{font-size:.75rem;color:#8299a6;margin:0}
+.cal-form .cal-delete-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+@media(max-width:800px){.cal-day{min-height:83px}.cal-agenda-item{grid-template-columns:95px minmax(0,1fr);gap:7px}.cal-status{grid-column:2;justify-self:start}}
+@media(max-width:600px){#work-calendar{padding:17px}.cal-top h2{font-size:1.4rem}.cal-tools{width:100%}.cal-tools .btn{flex:1}.cal-heading{margin-top:21px}.cal-navigation{width:100%;justify-content:space-between}.cal-navigation h3{min-width:0;font-size:1.12rem}.cal-views{width:100%}.cal-view{flex:1}.cal-weekdays,.cal-grid{gap:3px}.cal-weekdays span{font-size:.6rem}.cal-day{border-radius:8px;min-height:62px;padding:6px 2px;align-items:center;gap:5px}.cal-day.selected{padding:5px 1px}.cal-day-number{font-size:.73rem;height:24px;width:24px}.cal-day-items{display:none}.cal-mobile-dots{display:inline-grid;place-items:center;background:#d7ecfb;color:#087cb2;width:18px;height:18px;border-radius:999px;font-size:.66rem;font-weight:800}.cal-agenda{padding:15px;margin-top:17px}.cal-agenda-head{align-items:flex-start}.cal-agenda-head h3{font-size:.99rem}.cal-agenda-item{padding:12px 10px}.cal-help{font-size:.72rem}}
