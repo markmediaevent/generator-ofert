@@ -5,10 +5,10 @@
 <meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://marknet-serwis-test.onrender.com; form-action 'self'; object-src 'none'; base-uri 'none'"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="MarkNet Serwis"><link rel="manifest" href="/serwis/manifest.webmanifest"><meta name="robots" content="noindex,nofollow">
 <link rel="icon" type="image/png" sizes="192x192" href="/serwis/marknet-icon-192.png"><link rel="apple-touch-icon" href="/serwis/marknet-icon-180.png">
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
-<link rel="stylesheet" href="styles.css?v=20261118-16">
-<link rel="stylesheet" href="brand.css?v=20261118-16">
-<script src="management.js?v=20261118-16" defer></script>
-<script src="app.js?v=20261118-16" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261119-1">
+<link rel="stylesheet" href="brand.css?v=20261119-1">
+<script src="management.js?v=20261119-1" defer></script>
+<script src="app.js?v=20261119-1" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -127,7 +127,12 @@
     <form id="ticket-form" class="form">
       <div class="two"><label>Rodzaj zdarzenia<select name="kind" required><option>Usterka</option><option>Awaria</option></select></label>
       <label>Priorytet<select name="priority" required><option>Standardowy</option><option>Krytyczny</option></select></label></div>
-      <label id="new-org-wrap" class="hide">Klient<select name="organization_id" id="new-organization"></select></label>
+      <label id="new-org-wrap" class="hide">Klient (wybór administratora)<select name="organization_id" id="new-organization"></select></label>
+      <div id="client-org-wrap" class="client-org-fixed hide" aria-label="Firma przypisana do konta">
+        <span class="field-title">Firma zgłaszająca</span>
+        <strong id="client-org-name"></strong>
+        <span class="hint">Firma jest przypisana do konta. Zmienić ją może tylko administrator MarkNet.</span>
+      </div>
       <label>System / obszar<select name="category" id="new-category" required></select></label>
       <div class="two"><label>Osoba zgłaszająca<input id="requester-name" name="requester_name" minlength="3" maxlength="120" autocomplete="name" placeholder="Imię i nazwisko z profilu" required></label>
       <label>E-mail do potwierdzenia PDF<input id="requester-email" name="requester_email" type="email" maxlength="254" autocomplete="off" placeholder="Adres przypisany do konta" required></label></div>
