@@ -1,5 +1,6 @@
 'use strict';
 // Terminarz prac MIWIPOL — oddzielony od zgłoszeń awarii.
+const {migrateWorkReports,setupWorkReports}=require('./work-calendar-reports');
 const ORGANIZATION='MIWIPOL';
 const STATES=['Zaplanowane','W trakcie','Wykonane','Odwołane'];
 function validDate(v){
@@ -44,6 +45,7 @@ async function migrateWorkCalendar(db){
     "created_at TIMESTAMPTZ NOT NULL DEFAULT now(),"+
     "updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await db.query("CREATE INDEX IF NOT EXISTS work_calendar_org_day ON work_calendar(organization_id,work_date,id)");
+  await migrateWorkReports(db);
   const c=await db.connect();
   try{
     await c.query('BEGIN');
@@ -60,7 +62,7 @@ async function migrateWorkCalendar(db){
     await c.query('COMMIT');
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}
 }
-function setupWorkCalendar(app,{db,auth,problem}){
+function setupWorkCalendar(app,{db,auth,adminOnly,problem}){
   async function access(req,res,next){
     try{
       if(req.user.role!=='admin'&&!(req.user.role==='client'&&req.user.organization_name===ORGANIZATION))
@@ -82,7 +84,7 @@ function setupWorkCalendar(app,{db,auth,problem}){
       res.json({organization:ORGANIZATION,events:result.rows});
     }catch(error){next(error);}
   });
-  app.post('/api/work-calendar',auth,access,async(req,res,next)=>{
+  app.post('/api/work-calendar',auth,access,adminOnly,async(req,res,next)=>{
     try{
       const d=payload(req.body);
       if(!d)return problem(res,400,'Wpisz nazwę, adres, poprawną datę, godziny i status.');
@@ -92,20 +94,31 @@ function setupWorkCalendar(app,{db,auth,problem}){
       res.status(201).json({event:r.rows[0]});
     }catch(error){next(error);}
   });
-  app.patch('/api/work-calendar/:id',auth,access,async(req,res,next)=>{
+  app.patch('/api/work-calendar/:id',auth,access,adminOnly,async(req,res,next)=>{
     try{
       if(!/^[1-9]\d*$/.test(req.params.id))return problem(res,400,'Nieprawidłowy numer zadania.');
       const d=payload(req.body);
       if(!d)return problem(res,400,'Wpisz nazwę, adres, poprawną datę, godziny i status.');
-      const r=await db.query("UPDATE work_calendar SET title=$3,address=$4,work_date=$5::date,start_time=$6::time,"+
-        "end_time=$7::time,status=$8,notes=$9,updated_by=$10,updated_at=now() "+
-        "WHERE id=$1 AND organization_id=$2 RETURNING "+columns,
-        [req.params.id,req.calendarOrg,d.title,d.address,d.work_date,d.start_time,d.end_time,d.status,d.notes,req.user.id]);
-      if(!r.rowCount)return problem(res,404,'Nie znaleziono zadania.');
-      res.json({event:r.rows[0]});
+      const c=await db.connect();
+      try{
+        await c.query('BEGIN');
+        const oldStatus=(await c.query("SELECT status FROM work_calendar WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,req.calendarOrg])).rows[0];
+        if(!oldStatus){await c.query('ROLLBACK');return problem(res,404,'Nie znaleziono zadania.');}
+        const r=await c.query("UPDATE work_calendar SET title=$3,address=$4,work_date=$5::date,start_time=$6::time,"+
+          "end_time=$7::time,status=$8,notes=$9,updated_by=$10,updated_at=now(),"+
+          "completed_at=CASE WHEN $8='Wykonane' THEN COALESCE(completed_at,now()) ELSE NULL END,"+
+          "completed_by=CASE WHEN $8='Wykonane' THEN $10 ELSE NULL END "+
+          "WHERE id=$1 AND organization_id=$2 RETURNING "+columns,
+          [req.params.id,req.calendarOrg,d.title,d.address,d.work_date,d.start_time,d.end_time,d.status,d.notes,req.user.id]);
+        if(oldStatus.status!==d.status)
+          await c.query("INSERT INTO work_calendar_activity(calendar_id,author_id,kind,body,old_status,new_status) VALUES($1,$2,'status',$3,$4,$5)",
+            [req.params.id,req.user.id,'Zmiana statusu',oldStatus.status,d.status]);
+        await c.query('COMMIT');
+        res.json({event:r.rows[0]});
+      }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}
     }catch(error){next(error);}
   });
-  app.delete('/api/work-calendar/:id',auth,access,async(req,res,next)=>{
+  app.delete('/api/work-calendar/:id',auth,access,adminOnly,async(req,res,next)=>{
     try{
       if(!/^[1-9]\d*$/.test(req.params.id))return problem(res,400,'Nieprawidłowy numer zadania.');
       const r=await db.query('DELETE FROM work_calendar WHERE id=$1 AND organization_id=$2 RETURNING id',[req.params.id,req.calendarOrg]);
@@ -113,5 +126,6 @@ function setupWorkCalendar(app,{db,auth,problem}){
       res.json({ok:true});
     }catch(error){next(error);}
   });
+  setupWorkReports(app,{db,auth,access,adminOnly,problem});
 }
 module.exports={migrateWorkCalendar,setupWorkCalendar,validDate,validTime,payload};
