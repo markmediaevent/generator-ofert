@@ -610,7 +610,7 @@ app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
  }catch(e){next(e);}
 });
 setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation});
-setupWorkCalendar(app,{db,auth,problem});
+setupWorkCalendar(app,{db,auth,adminOnly,problem});
 setupInvitationRoutes(app,{db,auth,adminOnly,hashPassword,problem,longId});
 setupLoginHistoryRoutes(app,{db,auth,adminOnly,problem});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
