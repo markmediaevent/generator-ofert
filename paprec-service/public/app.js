@@ -76,6 +76,7 @@ async function setupPortal(){
  if(!$('report-month').value)$('report-month').value=new Date().toISOString().slice(0,7);
  if(state.me.role==='admin')await loadManagement();
  renderTickets();
+ if(typeof setupWorkCalendar==='function')setupWorkCalendar();
 }
 async function refreshArchive(){
  if(state.me?.role!=='admin')return;
