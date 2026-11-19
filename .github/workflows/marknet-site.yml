@@ -1,0 +1,20 @@
+name: MarkNet public website checks
+on:
+  push:
+    branches: [marknet-site]
+    paths:
+      - 'marknet-site/**'
+      - '.github/workflows/marknet-site.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate interactive scripts
+        run: node --check marknet-site/experience.js
+      - name: Validate site structure and mobile experience
+        run: node marknet-site/check.mjs
