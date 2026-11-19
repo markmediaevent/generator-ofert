@@ -10,6 +10,7 @@ const path = require('path');
 const notifications=require('./notifications');
 const webpush=require('web-push');
 const {setupTenancy,migrateTenancy}=require('./tenancy');
+const {migrateInvitations,issueInvitation,sendPendingInvitations,setupInvitationRoutes}=require('./invitations');
 const {renderProtocol}=require('./service-protocol');
 const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
@@ -78,6 +79,7 @@ async function init(){
     console.log('Initial accounts initialized (passwords never logged).');
   }
   await migrateTenancy(db,categories);
+  await migrateInvitations(db);
   // Jednorazowo odzyskaj wysyłki błędnie oznaczone jako wykonane przez starszą wersję procesora.
   await db.query("CREATE TABLE IF NOT EXISTS service_migrations (migration_key TEXT PRIMARY KEY, executed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   const repairRun=await db.query("INSERT INTO service_migrations(migration_key) VALUES('notification_delivery_repair_20261118') ON CONFLICT DO NOTHING RETURNING migration_key");
@@ -206,7 +208,7 @@ app.post('/api/login',async(req,res,next)=>{
     const username=clean(req.body.username,80).toLowerCase(), password=typeof req.body.password==='string'?req.body.password:'';
     if(!username || password.length<1 || password.length>256)return problem(res,400,'Podaj login i hasło.');
     const u=(await db.query('SELECT u.*,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.username=$1',[username])).rows[0];
-    if(!u || !u.is_active || u.deleted_at || (u.role==='client' && !u.org_active) || !comparePassword(password,u)){
+    if(!u || !u.is_active || u.deleted_at || u.must_set_password || (u.role==='client' && !u.org_active) || !comparePassword(password,u)){
       value.count++; attempts.set(ip,value); return problem(res,401,'Nieprawidłowy login lub hasło.');
     }
     attempts.delete(ip);
@@ -229,7 +231,7 @@ app.post('/api/change-password',auth,async(req,res,next)=>{
     const u=(await db.query('SELECT * FROM users WHERE id=$1',[req.user.id])).rows[0];
     if(!comparePassword(old,u))return problem(res,401,'Dotychczasowe hasło jest niepoprawne.');
     const p=hashPassword(fresh);
-    await db.query('UPDATE users SET pass_salt=$1,pass_hash=$2 WHERE id=$3',[p.salt,p.hash,u.id]);
+    await db.query('UPDATE users SET pass_salt=$1,pass_hash=$2,must_set_password=false WHERE id=$3',[p.salt,p.hash,u.id]);
     await db.query('DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2',[u.id,req.tokenHash]);
     res.json({ok:true});
   }catch(e){next(e);}
@@ -575,7 +577,7 @@ async function deliverNotifications(){
   }
 }
 let delivering=false;
-async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
+async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();await sendPendingInvitations(db,notifications);}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
 app.post('/api/admin/notifications/test-email',auth,adminOnly,async(req,res,next)=>{
  try{if(!notifications.smtpReady())return problem(res,503,'Brak hasła SMTP w konfiguracji Render.');
   await notifications.testEmail();res.json({ok:true});
@@ -588,7 +590,8 @@ app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
   res.json({jobs:jobs.rows,configured:{email:notifications.smtpReady(),phone:(pushConfigured&&phone.subscribed>0)||notifications.phoneReady(),push_subscriptions:phone.subscribed}});
  }catch(e){next(e);}
 });
-setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId});
+setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation});
+setupInvitationRoutes(app,{db,auth,adminOnly,hashPassword,problem,longId});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
  try{
   const password=typeof req.body?.newPassword==='string'?req.body.newPassword:'';
@@ -596,7 +599,8 @@ app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,r
   const u=(await db.query("SELECT id,username FROM users WHERE id=$1 AND role='client' AND deleted_at IS NULL",[req.params.id])).rows[0];
   if(!u)return problem(res,404,'Konto klienta nie istnieje.');
   const h=hashPassword(password);
-  await db.query('UPDATE users SET pass_hash=$1,pass_salt=$2 WHERE id=$3',[h.hash,h.salt,u.id]);
+  await db.query('UPDATE users SET pass_hash=$1,pass_salt=$2,must_set_password=false WHERE id=$3',[h.hash,h.salt,u.id]);
+  await db.query("UPDATE user_invitations SET status='cancelled' WHERE user_id=$1 AND status IN ('pending','sent')",[u.id]);
   await db.query('DELETE FROM sessions WHERE user_id=$1',[u.id]);
   res.json({ok:true,username:u.username});
  }catch(e){next(e);}
