@@ -225,6 +225,16 @@ async function loadManagement(){
  setTicketCategoryOptions();
  try{await loadLoginHistory();}catch(err){pop(err.message,true);}
 }
+function previewUsernamePart(v){
+ return String(v||'').trim().toLowerCase().replace(/ł/g,'l').normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');
+}
+function updateUsernamePreview(){
+ const form=$('user-create-form');
+ const first=previewUsernamePart(form.elements.first_name.value);
+ const last=previewUsernamePart(form.elements.last_name.value);
+ $('new-user-login-preview').value=first&&last?first[0]+'.'+last.slice(0,48):'';
+}
 function initManagement(){
  $('new-organization').addEventListener('change',setTicketCategoryOptions);
  $('filter-org').addEventListener('change',renderTickets);
@@ -240,12 +250,16 @@ function initManagement(){
    form.reset();await loadManagement();pop('Dodano klienta.');
   }catch(err){pop(err.message,true);}finally{btn.disabled=false;}
  });
+ const createForm=$('user-create-form');
+ for(const field of ['first_name','last_name'])createForm.elements[field].addEventListener('input',updateUsernamePreview);
+ updateUsernamePreview();
  $('user-create-form').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,button=form.querySelector('button[type=submit]');button.disabled=true;
   try{
    const payload=Object.fromEntries(new FormData(form));
-   await api('/api/admin/users',{method:'POST',body:JSON.stringify(payload)});
-   form.reset();await loadManagement();pop('Konto utworzone. Zaproszenie do ustawienia hasła zostało dodane do kolejki e-mail.');
+   const result=await api('/api/admin/users',{method:'POST',body:JSON.stringify(payload)});
+   form.reset();updateUsernamePreview();await loadManagement();
+   pop('Utworzono login '+result.user.username+'. Zaproszenie do ustawienia hasła dodano do kolejki e-mail.');
   }catch(err){pop(err.message,true);}finally{button.disabled=false;}
  });
 }
