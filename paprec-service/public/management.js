@@ -176,6 +176,7 @@ function historyEntry(row){
 }
 async function loadLoginHistory(){
  if(state.me?.role!=='admin')return;
+ const epoch=state.sessionEpoch;
  const params=new URLSearchParams({limit:'100'});
  const org=$('login-history-org').value,user=$('login-history-user').value,result=$('login-history-result').value;
  if(org)params.set('organization_id',org);
@@ -184,17 +185,23 @@ async function loadLoginHistory(){
  $('login-history-caption').textContent='Pobieranie historii…';
  try{
    const data=await api('/api/admin/login-history?'+params.toString());
+   // A request started by an admin cannot repopulate audit data after account switch.
+   if(epoch!==state.sessionEpoch||state.me?.role!=='admin')return;
    const target=$('login-history-list');target.replaceChildren();
    for(const entry of data.entries)target.append(historyEntry(entry));
    if(!data.entries.length)target.append(node('p','hint','Brak logowań dla wybranych filtrów.'));
    $('login-history-caption').textContent='Wyświetlono '+data.entries.length+' ostatnich prób logowania. Historia obejmuje ostatnie '+data.retention_days+' dni.';
  }catch(e){
+   if(epoch!==state.sessionEpoch||state.me?.role!=='admin')return;
    $('login-history-caption').textContent='Nie można pobrać historii logowań.';
    throw e;
  }
 }
 async function loadManagement(){
+ if(state.me?.role!=='admin')return;
+ const epoch=state.sessionEpoch;
  const [o,u]=await Promise.all([api('/api/admin/organizations'),api('/api/admin/users')]);
+ if(epoch!==state.sessionEpoch||state.me?.role!=='admin')return;
  state.organizations=o.organizations;state.users=u.users;
  const originalFilter=$('filter-org').value,originalReport=$('report-org').value,originalTicket=$('new-organization').value;
  const orgs=state.organizations;
