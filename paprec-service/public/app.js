@@ -32,6 +32,11 @@ function option(select,label,value=label){const el=node('option','',label);el.va
 function modal(id){show(id,true);}
 function closeModal(id){show(id,false);}
 async function initialize(){
+ if(new URLSearchParams(window.location.search).has('aktywacja')){
+  show('portal-view',false);show('login-view',false);show('activate-view',true);
+  return;
+ }
+ show('activate-view',false);
  try{state.me=await api('/api/me');await setupPortal();}
  catch(e){show('portal-view',false);show('login-view',true);}
 }
@@ -338,7 +343,23 @@ function wireEvents(){
  $('ticket-pdf').addEventListener('click',async()=>{if(state.selectedId)try{await downloadFile('/api/reports/tickets/'+state.selectedId+'.pdf','MarkNet-'+state.selectedId+'.pdf');}catch(err){pop(err.message,true);}});
  $('month-pdf').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.pdf?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Raport-MarkNet-'+m+'.pdf');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
  $('month-csv').addEventListener('click',async()=>{const m=$('report-month').value,org=$('report-org').value;if(m)try{await downloadFile('/api/reports/month.csv?month='+encodeURIComponent(m)+(org?'&organization_id='+encodeURIComponent(org):''),'Zgloszenia-MarkNet-'+m+'.csv');}catch(err){pop(err.message,true);}else pop('Wybierz miesiąc.',true);});
- $('password-form').addEventListener('submit',async e=>{
+ $('activation-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=e.target,button=f.querySelector('button[type=submit]');button.disabled=true;
+  try{
+    const tokenValue=new URLSearchParams(location.search).get('aktywacja')||'';
+    const password=f.elements.password.value,confirmPassword=f.elements.confirmPassword.value;
+    if(password.length<8||password!==confirmPassword)throw Error('Hasła muszą być identyczne i mieć co najmniej 8 znaków.');
+    const result=await api('/api/activate',{method:'POST',body:JSON.stringify({token:tokenValue,password,confirmPassword})});
+    history.replaceState(null,'',location.pathname);
+    f.reset();show('activate-view',false);show('login-view',true);
+    $('login-form').elements.username.value=result.username;
+    $('login-form').elements.password.focus();
+    pop('Konto aktywowane! Zaloguj się własnym hasłem.');
+  }catch(err){pop(err.message,true);}
+  finally{button.disabled=false;}
+ });
+  $('password-form').addEventListener('submit',async e=>{
   e.preventDefault();const f=e.target,btn=f.querySelector('button');btn.disabled=true;
   try{await api('/api/change-password',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(f)))});f.reset();closeModal('password-modal');pop('Hasło zostało zmienione.');}
   catch(err){pop(err.message,true);}finally{btn.disabled=false;}
