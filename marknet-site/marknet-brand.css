@@ -15,7 +15,7 @@
 body {background:#f7fbfe;color:#173b54}
 ::selection {background:#ffdd18;color:#103850}
 .brand {display:flex;align-items:center;gap:0}
-.brand-logo {display:block;width:205px;max-width:100%;height:auto;object-fit:contain;mix-blend-mode:multiply}
+.brand-logo {display:block;width:205px;max-width:100%;height:auto;object-fit:contain;image-rendering:auto}
 .nav {
   height:95px;
   background:rgba(255,255,255,.96);
