@@ -235,3 +235,35 @@ img,video{max-width:100%}
   .tech-group[aria-hidden="true"]{display:none}
   .tech-ticker{overflow-x:auto;scrollbar-width:thin;-webkit-mask-image:none;mask-image:none}
 }
+
+
+/* Znaki opisowe potwierdzonych systemów zabezpieczeń (IFTER, GORKE, iSTAR, Carrier, Interlogix, Roger). */
+.tech-item.tech-detailed{
+  flex:0 0 255px;width:255px;gap:10px;
+  padding-inline:14px;
+}
+.tech-item.tech-detailed .tech-symbol{
+  width:136px;flex:0 0 136px;height:52px;
+}
+.tech-item.tech-detailed .tech-symbol img{
+  display:block;width:100%;height:100%;
+  max-width:136px;max-height:52px;
+  object-fit:contain;
+}
+.tech-item.tech-detailed strong{
+  flex:1;font-size:.70rem;line-height:1.25;
+  font-weight:730;white-space:normal;
+  overflow-wrap:break-word;
+}
+.tech-carrier.tech-detailed strong,.tech-istar.tech-detailed strong{font-size:.68rem}
+@media(max-width:760px){
+  .tech-item.tech-detailed{flex-basis:225px;width:225px;gap:7px;padding-inline:9px}
+  .tech-item.tech-detailed .tech-symbol{width:116px;flex-basis:116px;height:43px}
+  .tech-item.tech-detailed .tech-symbol img{max-width:116px;max-height:43px}
+  .tech-item.tech-detailed strong{font-size:.66rem}
+}
+@media(max-width:390px){
+  .tech-item.tech-detailed{width:209px;flex-basis:209px}
+  .tech-item.tech-detailed .tech-symbol{width:109px;flex-basis:109px}
+  .tech-item.tech-detailed .tech-symbol img{max-width:109px}
+}
