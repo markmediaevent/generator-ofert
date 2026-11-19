@@ -85,7 +85,7 @@ function orgRow(org){
 }
 function userRow(user){
  const details=document.createElement('details');details.className='management-item';
- details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?'Aktywne':'Zablokowane')));
+ details.append(node('summary','manager-heading',(user.first_name&&user.last_name?user.first_name+' '+user.last_name+' • ':'')+user.username+' • '+(user.email||'Brak adresu e-mail')+' • '+(user.organization_name||'Bez klienta')+' • '+(user.is_active?(user.must_set_password?'Oczekuje na aktywację':'Aktywne'):'Zablokowane')));
  const form=node('form','form manager-form');
  const org=document.createElement('select');orgSelect(org,false,String(user.organization_id));
  const email=inputField('email','email',user.email||'',true);email.maxLength=254;email.autocomplete='off';
@@ -123,7 +123,28 @@ function userRow(user){
      await loadManagement();pop('Usunięto dostęp użytkownika '+user.username+'.');
    }catch(e){pop(e.message,true);}finally{deleteUser.disabled=false;}
  });
- const actions=node('div','manager-danger-zone');actions.append(deleteUser);
+ const actions=node('div','manager-danger-zone');
+ if(user.must_set_password){
+   const mailStatus=node('p','hint','Zaproszenie: '+(
+     user.invitation_status==='sent'?'e-mail wysłany, oczekuje na ustawienie hasła':
+     user.invitation_status==='pending'?'e-mail oczekuje na wysyłkę':
+     user.invitation_status==='expired'?'link wygasł':
+     user.invitation_status==='cancelled'?'poprzedni link unieważniono':
+     'brak aktywnego zaproszenia'
+   ));
+   const resend=node('button','btn outline','Wyślij zaproszenie ponownie');
+   resend.type='button';
+   resend.addEventListener('click',async()=>{
+     resend.disabled=true;
+     try{
+       await api('/api/admin/users/'+user.id+'/invite',{method:'POST',body:'{}'});
+       await loadManagement();
+       pop('Dodano nowe zaproszenie do kolejki e-mail dla '+user.username+'.');
+     }catch(e){pop(e.message,true);}finally{resend.disabled=false;}
+   });
+   actions.append(mailStatus,resend);
+ }
+ actions.append(deleteUser);
  details.append(form,reset,actions);
  return details;
 }
@@ -163,7 +184,7 @@ function initManagement(){
   try{
    const payload=Object.fromEntries(new FormData(form));
    await api('/api/admin/users',{method:'POST',body:JSON.stringify(payload)});
-   form.reset();await loadManagement();pop('Dodano użytkownika z adresem e-mail. Hasło należy przekazać mu bezpiecznym kanałem.');
+   form.reset();await loadManagement();pop('Konto utworzone. Zaproszenie do ustawienia hasła zostało dodane do kolejki e-mail.');
   }catch(err){pop(err.message,true);}finally{button.disabled=false;}
  });
 }
