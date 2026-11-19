@@ -38,6 +38,10 @@ function makeCalendarEntry(item){
  const datePart=node('span','cal-agenda-date',calTime(item));
  const content=node('span','cal-agenda-details');
  content.append(node('strong','',item.title),node('small','',item.address));
+ const counts=[];
+ if(Number(item.notes_count)>0)counts.push('📝 '+item.notes_count+' notatek');
+ if(Number(item.photos_count)>0)counts.push('📷 '+item.photos_count+' zdjęć');
+ if(counts.length)content.append(node('small','cal-progress-count',counts.join(' · ')));
  const status=node('span','cal-status '+calStateClass(item.status),item.status);
  b.append(datePart,content,status);
  row.append(b);
@@ -76,7 +80,7 @@ function paintWorkReport(result,seq){
  $('cal-report-address').textContent=e.address;
  $('cal-report-date').textContent=calDateLabel(e.work_date)+(e.start_time?' · '+calTime(e):'');
  const badge=$('cal-report-status');badge.textContent=e.status;badge.className='cal-status '+calStateClass(e.status);
- $('cal-report-feedback').textContent='Aktualizacja na żywo · '+result.activity.length+' wpisów · '+result.photos.length+' zdjęć';
+ $('cal-report-feedback').textContent='Bieżący raport · '+result.activity.length+' wpisów · '+result.photos.length+' zdjęć';
  $('cal-report-planned-note').textContent=e.notes?'Uwagi do planu: '+e.notes:'';
  const done=e.status==='Wykonane';
  const mark=$('cal-report-complete');
@@ -160,7 +164,7 @@ function setupWorkReporting(){
  });
  $('cal-photo-input').addEventListener('change',()=>{
   const files=[...$('cal-photo-input').files];
-  $('cal-photo-selected').textContent=files.length?('Wybrano '+files.length+' zdjęć: '+files.map(f=>f.name).join(', ')):'JPG, PNG, WebP lub HEIC · maks. 8 MB · 12 zdjęć na pracę';
+  $('cal-photo-selected').textContent=files.length?('Wybrano '+files.length+' zdjęć: '+files.map(f=>f.name).join(', ')):'JPG, PNG, WebP lub HEIC · do 12 naraz, 40 na pracę · maks. 8 MB';
  });
  $('cal-photo-form').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -176,7 +180,7 @@ function setupWorkReporting(){
     try{await api('/api/work-calendar/'+encodeURIComponent(calReport.current.id)+'/photos',{method:'POST',body:fd});saved++;}
     catch(err){pop('Zapisano '+saved+' zdjęć. Błąd: '+err.message,true);break;}
    }
-   form.reset();$('cal-photo-selected').textContent='JPG, PNG, WebP lub HEIC · maks. 8 MB · 12 zdjęć na pracę';
+   form.reset();$('cal-photo-selected').textContent='JPG, PNG, WebP lub HEIC · do 12 naraz, 40 na pracę · maks. 8 MB';
    await refreshWorkReport();
    if(saved===files.length)pop('Zdjęcia dodane do raportu: '+saved+'.');
   }catch(error){pop(error.message,true);}finally{button.disabled=false;}
