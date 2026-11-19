@@ -29,6 +29,22 @@
   <footer class="login-footer">© MarkNet — system obsługi zgłoszeń</footer>
 </section>
 
+<section id="activate-view" class="login-view hide">
+  <div class="login-decor"><span class="dot"></span> BEZPIECZNA AKTYWACJA KONTA</div>
+  <div class="login-card">
+    <div class="brand"><img class="logo-img logo-login" src="/logo-marknet-hd.png" alt="MarkNet — Systemy Zabezpieczeń" width="230" height="95"><span class="brand-service">AKTYWACJA DOSTĘPU</span></div>
+    <h1>Witamy w MarkNet Serwis.</h1>
+    <p class="lead">Ustaw swoje prywatne hasło. Link aktywacyjny jest jednorazowy i ważny przez 72 godziny od wysłania zaproszenia.</p>
+    <form id="activation-form" class="form">
+      <label>Nowe hasło (minimum 8 znaków)<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <label>Powtórz nowe hasło<input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+      <button class="btn main" type="submit">Ustaw hasło i aktywuj konto</button>
+    </form>
+    <p class="foot-note">Po aktywacji wrócisz do strony logowania. Twój login znajduje się w otrzymanym e-mailu.</p>
+    <a class="home-link" href="/">← Poznaj stronę MarkNet</a>
+  </div>
+</section>
+
 <section id="portal-view" class="hide">
   <header class="topbar">
     <div class="container topbar-inner">
@@ -104,7 +120,7 @@
         <label>Nazwisko<input name="last_name" minlength="2" maxlength="80" autocomplete="family-name" required placeholder="Nazwisko"></label></div>
         <div class="two"><label>Login użytkownika<input name="username" pattern="[a-zA-Z0-9._-]{3,50}" minlength="3" maxlength="50" required placeholder="Np. serwis.paprec"></label>
         <label>E-mail użytkownika<input name="email" type="email" maxlength="254" autocomplete="off" required placeholder="np. pracownik@firma.pl"></label></div>
-        <label>Hasło użytkownika<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Wpisz własne hasło"></label>
+        <p class="hint">Po utworzeniu konta użytkownik automatycznie otrzyma e-mail z loginem, linkiem do strony MarkNet i jednorazowym odnośnikiem do ustawienia własnego hasła. Hasło nie jest wysyłane e-mailem.</p>
         <label>Przypisz użytkownika do klienta<select name="organization_id" id="new-user-organization" required></select></label>
         <button type="submit" class="btn main">+ Utwórz użytkownika</button>
       </form>
