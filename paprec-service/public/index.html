@@ -126,6 +126,18 @@
       </form>
       <div id="user-list" class="management-list"></div>
     </div>
+    <div id="admin-login-history" class="panel reports hide">
+      <div><span class="eyebrow">Bezpieczeństwo i konta</span><h2>Historia logowań użytkowników</h2>
+      <p class="subtle">Dostęp tylko dla administratora MarkNet. Rejestrowane są udane oraz nieudane logowania istniejących kont: data, użytkownik, firma, adres IP i informacje o urządzeniu. Historia jest przechowywana przez 90 dni.</p></div>
+      <div class="login-history-filters">
+        <label>Firma<select id="login-history-org" aria-label="Firma w historii logowań"><option value="">Wszystkie firmy</option></select></label>
+        <label>Użytkownik<select id="login-history-user" aria-label="Użytkownik w historii logowań"><option value="">Wszyscy użytkownicy</option></select></label>
+        <label>Wynik<select id="login-history-result" aria-label="Wynik próby logowania"><option value="">Wszystkie próby</option><option value="success">Udane</option><option value="failure">Nieudane</option></select></label>
+        <button type="button" id="login-history-refresh" class="btn outline">Odśwież historię</button>
+      </div>
+      <div class="login-history-caption" id="login-history-caption" role="status" aria-live="polite">Wczytywanie historii logowań…</div>
+      <div id="login-history-list" class="login-history-list" aria-label="Ostatnie logowania"></div>
+    </div>
     <div id="admin-reports" class="panel reports hide">
       <div><span class="eyebrow">Tylko MarkNet</span><h2>Raportowanie serwisu</h2><p class="subtle">Automatycznie przygotowane raporty na podstawie zapisanej historii zgłoszeń.</p></div>
       <div class="report-tools"><label>Klient <select id="report-org" aria-label="Klient w raporcie"><option value="">Wszyscy klienci</option></select></label><label>Miesiąc raportu <input id="report-month" type="month"></label>
