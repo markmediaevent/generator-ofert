@@ -128,9 +128,61 @@ async function mobileAlert(t){
  if(!res.ok||!data.ok)throw new Error('Telegram '+res.status+': '+String(data.description||'Błąd').slice(0,100));
  return String(data.result?.message_id||'ok');
 }
+async function welcomeUser({email,username,first_name,last_name,organization_name,activation_url,expiresHours}) {
+ if(!smtpReady())throw new Error('Brak SMTP dla zaproszenia użytkownika');
+ if(!/^https:\/\/marknet\.com\.pl\/serwis\/\?aktywacja=[a-f0-9]{64}$/.test(activation_url))
+   throw new Error('Niepoprawny adres zaproszenia');
+ const fullName=[first_name,last_name].filter(Boolean).join(' ').trim()||username;
+ const safe=escapeHtml;
+ const subject='MarkNet — dostęp do panelu serwisowego ('+organization_name+')';
+ const message=[
+  'Dzień dobry, '+fullName+',',
+  '',
+  'Utworzono dla Ciebie konto w systemie zgłoszeń serwisowych MarkNet.',
+  'Firma: '+organization_name,
+  'Twój login: '+username,
+  '',
+  'Najpierw poznaj stronę MarkNet: https://marknet.com.pl/',
+  'Wejście do panelu znajduje się w górnym menu strony głównej pod nazwą „Panel serwisowy”.',
+  'Na telefonie otwórz przycisk „Menu”, a następnie wybierz „Panel serwisowy”.',
+  'Bezpośredni adres logowania: https://marknet.com.pl/serwis/',
+  '',
+  'Ustaw swoje prywatne hasło, otwierając ten jednorazowy link:',
+  activation_url,
+  '',
+  'Link jest ważny przez '+expiresHours+' godziny. Po ustawieniu hasła zaloguj się podanym wyżej loginem.',
+  'Hasła nie wysyłamy e-mailem ze względów bezpieczeństwa.',
+  'Jeżeli nie spodziewasz się tej wiadomości, skontaktuj się z MarkNet.',
+  '',
+  'MarkNet — Systemy Zabezpieczeń',
+  'https://marknet.com.pl/'
+ ].join('\n');
+ const html='<!doctype html><html lang="pl"><head><meta charset="utf-8"></head>'+
+  '<body style="font-family:Arial,sans-serif;margin:0;background:#f3f8fb;color:#183e57">'+
+  '<div style="max-width:640px;margin:22px auto;background:#fff;border:1px solid #d9e8f1;border-radius:16px;overflow:hidden">'+
+  '<div style="border-top:6px solid #ffdb00;padding:23px 27px"><strong style="color:#008fd0;font-size:26px">MARK</strong><strong style="color:#f5c300;font-size:26px">NET</strong><div style="font-size:12px;color:#58758a">SYSTEMY ZABEZPIECZEŃ</div></div>'+
+  '<div style="padding:0 27px 27px"><h1 style="font-size:23px;color:#143d58">Witamy w panelu serwisowym</h1>'+
+  '<p>Dzień dobry, <strong>'+safe(fullName)+'</strong>!</p>'+
+  '<p>Utworzono dla Ciebie konto w systemie zgłoszeń serwisowych <strong>MarkNet</strong>.</p>'+
+  '<p><strong>Firma:</strong> '+safe(organization_name)+'<br><strong>Login:</strong> '+safe(username)+'</p>'+
+  '<div style="background:#f0f8fd;border-radius:12px;padding:16px 18px;margin:19px 0">'+
+  '<p style="margin-top:0"><strong>Najpierw poznaj MarkNet:</strong> <a href="https://marknet.com.pl/" style="color:#087cad">marknet.com.pl</a></p>'+
+  '<p>Na stronie głównej w górnym menu kliknij <strong>„Panel serwisowy”</strong>. Na telefonie otwórz <strong>„Menu” → „Panel serwisowy”</strong>.</p>'+
+  '<p style="margin-bottom:0">Bezpośredni adres: <a href="https://marknet.com.pl/serwis/" style="color:#087cad">marknet.com.pl/serwis/</a></p></div>'+
+  '<p>Przed pierwszym logowaniem ustaw własne hasło przyciskiem poniżej:</p>'+
+  '<p><a href="'+safe(activation_url)+'" style="display:inline-block;background:#ffdb00;color:#183b54;font-size:15px;font-weight:bold;padding:15px 22px;text-decoration:none;border-radius:10px">Ustaw hasło i aktywuj dostęp</a></p>'+
+  '<p style="font-size:13px;color:#628094">Link jest ważny przez '+expiresHours+' godziny. Hasło wybierasz samodzielnie i nie jest przesyłane e-mailem.</p>'+
+  '<p style="margin-top:28px;color:#839ba7;font-size:12px">Automatyczna wiadomość MarkNet. Jeżeli nie zlecano utworzenia konta, skontaktuj się z administratorem serwisu.</p>'+
+  '</div></div></body></html>';
+ const info=await mailer().sendMail({from:process.env.SMTP_FROM,to:email,subject,text:message,html});
+ if(fakeMail&&process.env.MARKNET_TEST_INVITE_CAPTURE){
+  await fs.promises.writeFile(process.env.MARKNET_TEST_INVITE_CAPTURE,JSON.stringify({to:email,subject,activation_url})+'\n',{flag:'a',mode:0o600});
+ }
+ return info.messageId||'ok';
+}
 async function testEmail(){
  if(!process.env.ADMIN_NOTIFY_EMAIL)throw new Error('Brak adresu administratora');
  const r=await mailer().sendMail({from:process.env.SMTP_FROM,to:process.env.ADMIN_NOTIFY_EMAIL,subject:'MarkNet Serwis - test powiadomień',text:'Połączenie SMTP działa poprawnie. Powiadomienia o zgłoszeniach mogą być wysyłane.'});
  return r.messageId||'ok';
 }
-module.exports={confirmation,emailConfirmation,adminEmail,mobileAlert,smtpReady,phoneReady,testEmail};
+module.exports={confirmation,emailConfirmation,adminEmail,mobileAlert,smtpReady,phoneReady,testEmail,welcomeUser};
