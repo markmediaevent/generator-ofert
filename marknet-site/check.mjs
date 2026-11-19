@@ -11,7 +11,7 @@ const known=new Set(ids);
 assert.equal(ids.length,known.size,'HTML IDs must be unique');
 for(const required of ['entry-intro','entry-canvas','main','kompetencje','branze','utrzymanie','kontakt','technologies-title'])assert(known.has(required),'Missing '+required);
 const tabs=[...html.matchAll(/class="expertise-tab"/g)];
-const panels=[...html.matchAll(/class="expertise-panel(?:\\s|")/g)];
+const panels=[...html.matchAll(/class="expertise-panel(?:\s|")/g)];
 assert.equal(tabs.length,12);
 assert.equal(panels.length,tabs.length);
 for(const match of html.matchAll(/aria-controls="([^"]+)"/g))assert(known.has(match[1]),'Missing aria target '+match[1]);
