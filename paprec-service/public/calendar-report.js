@@ -190,4 +190,4 @@ function setupWorkReporting(){
   }
  });
 }
-setupWorkReporting();
+document.addEventListener('DOMContentLoaded',setupWorkReporting);
