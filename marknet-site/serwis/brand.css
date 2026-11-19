@@ -15,7 +15,7 @@
 html { background:#f4f8fc; }
 body { background:#f4f8fc; color:#17364c; }
 ::selection {background:#ffea64;color:#17364c;}
-.logo-img {object-fit:contain;display:block;max-width:100%;height:auto;mix-blend-mode:multiply}
+.logo-img {object-fit:contain;display:block;max-width:100%;height:auto;image-rendering:auto}
 .brand {display:flex;align-items:center;gap:12px;color:#0a92c6}
 .brand-service {background:#fff4b0;color:#806600;font-size:.66rem;font-weight:850;letter-spacing:.13em;border:1px solid #ffe179;padding:7px 11px;border-radius:999px;white-space:nowrap}
 .brand-small .brand-service {font-size:.65rem;}
