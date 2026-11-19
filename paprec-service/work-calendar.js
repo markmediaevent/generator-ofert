@@ -80,7 +80,9 @@ function setupWorkCalendar(app,{db,auth,adminOnly,problem}){
       if(!validDate(from)||!validDate(to))return problem(res,400,'Podaj poprawny zakres dat.');
       const diff=(new Date(to+'T12:00:00Z')-new Date(from+'T12:00:00Z'))/86400000;
       if(diff<0||diff>62)return problem(res,400,'Podaj zakres dat do 63 dni.');
-      const result=await db.query("SELECT "+columns+" FROM work_calendar WHERE organization_id=$1 AND work_date BETWEEN $2::date AND $3::date ORDER BY work_date,start_time NULLS FIRST,id",[req.calendarOrg,from,to]);
+      const result=await db.query("SELECT "+columns+",(SELECT count(*)::int FROM work_calendar_photos p WHERE p.calendar_id=work_calendar.id) AS photos_count,"+
+        "(SELECT count(*)::int FROM work_calendar_activity a WHERE a.calendar_id=work_calendar.id AND a.kind='note') AS notes_count "+
+        "FROM work_calendar WHERE organization_id=$1 AND work_date BETWEEN $2::date AND $3::date ORDER BY work_date,start_time NULLS FIRST,id",[req.calendarOrg,from,to]);
       res.json({organization:ORGANIZATION,events:result.rows});
     }catch(error){next(error);}
   });
