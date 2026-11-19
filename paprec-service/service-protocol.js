@@ -49,6 +49,7 @@ async function renderProtocol(ticket,record,config={}){
  doc.registerFont('Bold',fs.existsSync(FONT_BOLD)?FONT_BOLD:'Helvetica-Bold');
  const chunks=[];
  let footerLogo=null;
+ let signatureImage=null;
  const promise=new Promise((resolve,reject)=>{
    doc.on('data',chunk=>chunks.push(chunk));
    doc.on('end',()=>resolve(Buffer.concat(chunks)));
@@ -58,6 +59,14 @@ async function renderProtocol(ticket,record,config={}){
  const address=config.address||'';
  const email=config.email||'marknet.biuro@gmail.com';
  const phone=config.phone||'';
+ // The original owner's scan is supplied privately through the Render environment.
+ // Never serve the image as a public asset or check it into version control.
+ if(process.env.PROTOCOL_SIGNATURE_BASE64){
+  try{
+   const raw=Buffer.from(process.env.PROTOCOL_SIGNATURE_BASE64,'base64');
+   if(raw.length>0&&raw.length<1024*1024)signatureImage=await sharp(raw).ensureAlpha().png().toBuffer();
+  }catch(e){console.error('Protocol stamp could not be loaded:',e.message);}
+ }
  // Exact user-supplied MarkNet logo. PDFKit needs PNG/JPEG, so decode the existing WebP.
  try{
   if(fs.existsSync(logoPath)){
@@ -127,9 +136,9 @@ async function renderProtocol(ticket,record,config={}){
   bodyLineY+=14.7;
  }
  doc.y=bodyLineY;
- const signatureMinimum=131;
- let assessY=Math.max(doc.y+17,606);
- if(assessY+signatureMinimum>PAGE_H-82){
+ const signatureMinimum=183;
+ let assessY=Math.max(doc.y+17,565);
+ if(assessY+signatureMinimum>PAGE_H-57){
   newContinuation(doc,ticket);
   assessY=130;
  }
@@ -141,12 +150,13 @@ async function renderProtocol(ticket,record,config={}){
  const sigY=doc.y+15;
  doc.font('Regular').fontSize(9.2).text('Prace serwisowe wykonał:',LEFT+5,sigY,{width:230});
  doc.text('Potwierdzenie wykonanych prac:',321,sigY,{width:220});
- const lineY=sigY+49;
+ const lineY=sigY+133;
+ if(signatureImage)doc.image(signatureImage,LEFT+20,sigY+13,{fit:[165,133]});
  doc.lineWidth(.6).strokeColor(GREY).moveTo(LEFT+10,lineY).lineTo(LEFT+228,lineY).stroke();
  doc.moveTo(325,lineY).lineTo(RIGHT-9,lineY).stroke();
  doc.font('Regular').fontSize(8.2).fillColor(GREY).text('(podpis przedstawiciela wykonawcy)',LEFT+11,lineY+7,{width:215,align:'center'});
  doc.text('(podpis przedstawiciela użytkownika)',326,lineY+7,{width:209,align:'center'});
- const footerBottom=PAGE_H-67;
+ const footerBottom=PAGE_H-30;
  const {start,count}=doc.bufferedPageRange();
  for(let i=start;i<start+count;i++){
   doc.switchToPage(i);
