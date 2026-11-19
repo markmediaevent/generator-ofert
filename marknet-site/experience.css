@@ -13,8 +13,6 @@
 .entry-status i{display:block;width:5px;height:5px;border-radius:50%;background:#ffde28;box-shadow:0 0 9px #ffde28}
 .entry-progress{height:3px;background:rgba(61,159,196,.2);width:min(340px,80%);border-radius:30px;overflow:hidden;margin-top:8px}
 .entry-progress:after{content:"";display:block;height:100%;background:linear-gradient(90deg,#009bd6,#ffdb00);transform:scaleX(0);transform-origin:left;animation:entry-load 2.75s linear forwards;box-shadow:0 0 13px rgba(255,219,0,.65)}
-.entry-skip{position:absolute;z-index:4;top:max(20px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(135,214,236,.35);background:rgba(7,31,49,.85);color:#e9faff;border-radius:999px;padding:10px 17px;cursor:pointer;font:700 .76rem Inter,system-ui,sans-serif}
-.entry-skip:hover,.entry-skip:focus-visible{background:#0b4665;border-color:#5ec9ea}
 .entry-intro.is-exiting{animation:entry-fade .48s cubic-bezier(.2,.75,.3,1) forwards;pointer-events:none}
 .intro-seen .entry-intro{display:none}
 body.entry-lock{overflow:hidden}
@@ -89,7 +87,6 @@ body.entry-lock{overflow:hidden}
  .entry-panel p{font-size:.8rem}
  .entry-kicker{font-size:.52rem;letter-spacing:.16em}
  .entry-status{font-size:.52rem;gap:9px}
- .entry-skip{padding:9px 13px;top:max(12px,env(safe-area-inset-top));right:13px}
  .enterprise{padding-block:61px}
  .expertise-layout{grid-template-columns:minmax(0,1fr);gap:15px}
  .expertise-tabs{position:relative;top:auto;display:flex;flex-wrap:nowrap;overflow-x:auto;max-height:none;scroll-snap-type:x proximity;padding:2px 1px 10px;overscroll-behavior-x:contain}
