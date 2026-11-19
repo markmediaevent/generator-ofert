@@ -105,3 +105,133 @@ footer {background:#fff;border-top-color:#dceaf2}
   .hero h1 {font-size:clamp(2.7rem,10vw,4.45rem)}
 }
 @media(max-width:370px){.brand-logo{width:166px}}
+
+
+/* MarkNet / bezpieczeństwo i IT — karuzela 17 marek technicznych. */
+.technologies{
+  position:relative;overflow:hidden;
+  padding:66px 0 49px;
+  border-top:1px solid #d9ebf4;
+  background:linear-gradient(180deg,#fff 0%,#f2f9fd 100%);
+}
+.tech-heading{
+  display:flex;align-items:end;justify-content:space-between;gap:32px;
+  margin-bottom:28px;
+}
+.tech-heading h2{
+  margin:12px 0 0;color:#114762;
+  font-size:clamp(1.5rem,3.2vw,2.35rem);
+  line-height:1.18;letter-spacing:-.04em;
+}
+.tech-heading p{
+  color:#658195;line-height:1.65;font-size:.86rem;
+  max-width:425px;margin:0;
+}
+.tech-ticker{
+  position:relative;overflow:hidden;width:100%;max-width:100%;
+  padding-block:7px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+}
+.tech-track{display:flex;width:max-content;max-width:none;animation:tech-marquee 75s linear infinite;will-change:transform}
+.tech-group{display:flex;flex:0 0 auto;align-items:center;gap:14px;padding-right:14px}
+.tech-item{
+  display:flex;align-items:center;gap:11px;
+  flex:0 0 195px;width:195px;height:83px;padding:13px 16px;
+  background:#fff;border:1px solid #d7e7ef;border-radius:14px;
+  box-shadow:0 7px 21px rgba(15,83,125,.055);
+}
+.tech-symbol{
+  display:grid;place-items:center;
+  width:39px;height:39px;flex:0 0 39px;
+}
+.tech-symbol img{display:block;max-width:38px;max-height:38px;width:100%;height:100%;object-fit:contain}
+.tech-item strong{
+  color:#214b65;font-weight:800;font-size:.88rem;
+  line-height:1.16;overflow-wrap:anywhere;
+}
+.tech-cisco strong{color:#007bac}
+.tech-hikvision strong,.tech-dahua strong{color:#c71f35}
+.tech-qnap strong{color:#3e8a2d}
+.tech-paloalto strong{font-size:.77rem}
+.tech-aruba strong{font-size:.82rem}
+.tech-axis strong{font-size:.8rem}
+.tech-initial{
+  display:grid;place-items:center;width:36px;height:36px;
+  border-radius:10px;color:#087bb0;background:#e6f6ff;
+  font-weight:900;font-size:1.12rem;
+}
+.tech-disclaimer{
+  text-align:center;font-size:.72rem;line-height:1.6;
+  color:#7894a4;margin:18px 20px 0;
+}
+.tech-ticker:hover .tech-track,.tech-ticker:focus-within .tech-track{animation-play-state:paused}
+@keyframes tech-marquee {from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+
+/* iPhone / mobile: układ bez poziomego rozciągania i automatycznego zoomu. */
+html{width:100%;max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{width:100%;max-width:100%;min-width:0;overflow-x:clip}
+img,video{max-width:100%}
+.layout,.hero-grid,.hero-copy,.split,.section-head,.area-wrap,.contact-panel,.footer-row{min-width:0}
+.hero-grid>*,.split>*,.section-head>*,.area-wrap>*,.contact-panel>*,.footer-row>*{min-width:0}
+.btn{max-width:100%}
+.service-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.service{min-width:0;min-height:250px}
+.service h3,.service p{overflow-wrap:anywhere}
+@media(max-width:1024px){
+  .service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .layout{width:calc(100% - 28px);max-width:1180px}
+  .nav{height:76px}
+  .nav .layout{gap:8px}
+  .brand-logo{width:min(44vw,166px);max-width:100%;height:auto}
+  .menu-btn{flex:0 0 auto;min-height:42px;white-space:nowrap;font-size:.86rem}
+  .nav-links{top:76px}
+  .hero-grid{padding-block:43px 41px;gap:7px}
+  .hero h1{font-size:clamp(2.1rem,8.9vw,3.25rem);line-height:1.08;letter-spacing:-.055em;margin:24px 0 22px}
+  .hero-lead{font-size:.98rem;line-height:1.65;margin-bottom:27px}
+  .eyebrow-pill{max-width:100%;letter-spacing:.045em;font-size:.62rem;line-height:1.45}
+  .actions{gap:10px}
+  .actions .btn{flex:1 1 100%;min-width:0;width:100%;white-space:normal;text-align:center;line-height:1.35}
+  .capabilities{margin-top:29px;gap:7px}
+  .capabilities span{font-size:.7rem;padding:8px 10px}
+  .visual{width:100%;max-width:310px;min-height:290px;margin-inline:auto}
+  .orbital{max-width:290px;width:90%}
+  .floatlabel{font-size:.65rem;padding:7px}
+  .fl1{right:0}.fl2{left:0}.fl3{right:0}
+  .section-space{padding-block:59px}
+  .section-head h2,.split h2{font-size:clamp(1.86rem,7.7vw,2.7rem);line-height:1.16}
+  .service-grid{grid-template-columns:1fr;gap:12px}
+  .service{min-height:0;padding:23px}
+  .service-icon{margin-bottom:17px}
+  .contact-panel{padding:23px 18px}
+  .contact-panel h2{font-size:clamp(1.85rem,8vw,2.65rem)}
+  .contact-panel .btn{min-width:0;width:100%;white-space:normal;line-height:1.35;padding:13px}
+  .footer-row{gap:17px}
+  .footer-right{flex-wrap:wrap;justify-content:flex-start;gap:12px 20px}
+  .technologies{padding:48px 0 36px}
+  .tech-heading{display:block;margin-bottom:22px}
+  .tech-heading h2{font-size:clamp(1.5rem,7vw,2rem)}
+  .tech-heading p{margin-top:12px;font-size:.82rem}
+  .tech-item{width:173px;flex-basis:173px;height:74px;padding:10px 12px;gap:8px}
+  .tech-symbol{width:32px;height:32px;flex-basis:32px}
+  .tech-symbol img{max-width:30px;max-height:30px}
+  .tech-item strong{font-size:.8rem}
+  .tech-paloalto strong,.tech-aruba strong,.tech-axis strong{font-size:.72rem}
+}
+@media(max-width:390px){
+  .brand-logo{width:min(41vw,149px)}
+  .menu-btn{padding:8px;font-size:.78rem}
+  .hero h1{font-size:clamp(1.94rem,8.4vw,2.45rem)}
+  .eyebrow-pill{font-size:.57rem;padding:9px 11px}
+  .layout{width:calc(100% - 24px)}
+  .visual{max-width:270px;min-height:265px}
+  .orbital{max-width:260px}
+  .tech-item{width:160px;flex-basis:160px}
+}
+@media(prefers-reduced-motion:reduce){
+  .tech-track{animation:none!important;transform:none!important;will-change:auto}
+  .tech-group[aria-hidden="true"]{display:none}
+  .tech-ticker{overflow-x:auto;scrollbar-width:thin;-webkit-mask-image:none;mask-image:none}
+}
