@@ -7,8 +7,10 @@
 <title>MarkNet • Panel zgłoszeń serwisowych</title>
 <link rel="stylesheet" href="styles.css?v=20261119-11">
 <link rel="stylesheet" href="brand.css?v=20261119-11">
+<link rel="stylesheet" href="calendar.css?v=20261119-1">
 <script src="management.js?v=20261119-11" defer></script>
-<script src="app.js?v=20261119-11" defer></script>
+<script src="calendar.js?v=20261119-1" defer></script>
+<script src="app.js?v=20261119-12" defer></script>
 </head>
 <body>
 <div id="toast" class="toast hide" role="alert"></div>
@@ -71,6 +73,37 @@
     </div>
     <div class="safety-note" role="note"><strong>Awaria krytyczna?</strong> Po wysłaniu zgłoszenia skontaktuj się również z MarkNet telefonicznie, korzystając z numeru wskazanego w uzgodnionych procedurach zakładu. Panel nie zastępuje zgłoszenia alarmowego.</div>
     <div id="summary" class="summary"></div>
+    <section id="work-calendar" class="panel hide" aria-labelledby="cal-title">
+      <div class="cal-top">
+        <div><span class="cal-kicker">MIWIPOL / PLANOWANIE PRAC</span><h2 id="cal-title">Kalendarz prac</h2>
+          <p>Terminy montaży, przeglądów i weryfikacji w jednym przejrzystym miejscu.</p></div>
+        <div class="cal-tools"><button type="button" class="btn main" id="cal-add">+ Zaplanuj pracę</button></div>
+      </div>
+      <div class="cal-heading">
+        <div class="cal-navigation">
+          <button type="button" id="cal-prev" class="cal-arrow" aria-label="Poprzedni miesiąc">‹</button>
+          <h3 id="cal-month">Listopad 2026</h3>
+          <button type="button" id="cal-next" class="cal-arrow" aria-label="Następny miesiąc">›</button>
+          <button type="button" id="cal-today" class="btn outline small">Dziś</button>
+        </div>
+        <div class="cal-views" role="group" aria-label="Widok kalendarza">
+          <button type="button" class="cal-view" id="cal-month-view" aria-pressed="true">Miesiąc</button>
+          <button type="button" class="cal-view" id="cal-list-view" aria-pressed="false">Lista prac</button>
+        </div>
+      </div>
+      <p class="cal-summary" id="cal-feedback" role="status" aria-live="polite">Ładowanie terminarza…</p>
+      <div id="cal-month-area">
+        <div class="cal-weekdays" aria-hidden="true"><span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Nd</span></div>
+        <div id="cal-month-grid" class="cal-grid" role="group" aria-label="Dni miesiąca"></div>
+        <div class="cal-agenda">
+          <div class="cal-agenda-head"><h3 id="cal-selected-title">Wybrany dzień</h3><button type="button" class="btn outline small" id="cal-add-day">+ Dodaj pracę w tym dniu</button></div>
+          <div class="cal-agenda-list" id="cal-selected-list"></div>
+        </div>
+      </div>
+      <div id="cal-list-area" class="cal-list hide" aria-label="Lista prac w wybranym miesiącu"></div>
+      <p class="cal-help">Dotknij dnia, aby zobaczyć zaplanowane zadania. Dotknij zadania, aby zmienić termin, status lub notatkę. Godziny są opcjonalne.</p>
+    </section>
+
     <div class="panel">
       <div class="panel-head"><div><h2>Lista zgłoszeń</h2><p class="subtle">Kliknij zgłoszenie, aby otworzyć szczegóły i historię.</p></div>
         <div class="filters"><select id="filter-org" class="hide" aria-label="Filtr klienta"><option value="">Wszyscy klienci</option></select><select id="filter-status" aria-label="Filtr statusu"><option value="">Wszystkie statusy</option></select>
@@ -150,6 +183,28 @@
     <p class="page-foot">MarkNet • rejestr obsługi technicznej • Czas Europe/Warsaw</p>
   </main>
 </section>
+
+<div id="cal-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="cal-modal-title">
+  <div class="modal wide">
+    <div class="modal-header"><div><span class="eyebrow">MIWIPOL · TERMINARZ</span><h2 id="cal-modal-title">Nowa praca</h2></div>
+      <button type="button" class="close" data-close="cal-modal" aria-label="Zamknij">×</button></div>
+    <form id="cal-form" class="form cal-form">
+      <label>Co trzeba wykonać?<input name="title" maxlength="140" minlength="3" required placeholder="Np. Montaż szlabanu"></label>
+      <label>Adres realizacji<input name="address" maxlength="240" minlength="3" required placeholder="Np. Pawła Gdańca 4, Gdańsk"></label>
+      <div class="two"><label>Data prac<input name="work_date" type="date" required></label>
+        <label>Status<select name="status"><option>Zaplanowane</option><option>W trakcie</option><option>Wykonane</option><option>Odwołane</option></select></label></div>
+      <div class="two"><label>Godzina rozpoczęcia (opcjonalnie)<input name="start_time" type="time" step="900"></label>
+        <label>Godzina zakończenia (opcjonalnie)<input name="end_time" type="time" step="900"></label></div>
+      <p class="cal-time-help">Bez godziny praca pojawi się jako zadanie całodniowe. Podanie zakończenia wymaga godziny rozpoczęcia.</p>
+      <label>Notatka do zadania (opcjonalnie)<textarea name="notes" rows="3" maxlength="2000" placeholder="Zakres prac, sprzęt, ustalenia z klientem…"></textarea></label>
+      <div class="form-actions cal-delete-row">
+        <button type="button" class="btn danger-outline hide" id="cal-remove">Usuń pracę</button>
+        <div class="form-actions"><button type="button" class="btn outline" data-close="cal-modal">Anuluj</button>
+          <button type="submit" class="btn main" id="cal-save">Zapisz termin</button></div>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div id="new-ticket-modal" class="overlay hide" role="dialog" aria-modal="true" aria-labelledby="new-ticket-title">
   <div class="modal wide"><div class="modal-header"><div><span class="eyebrow">Formularz</span><h2 id="new-ticket-title">Nowe zgłoszenie</h2></div><button class="close" data-close="new-ticket-modal" aria-label="Zamknij">×</button></div>
