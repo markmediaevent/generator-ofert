@@ -11,6 +11,7 @@ const notifications=require('./notifications');
 const webpush=require('web-push');
 const {setupTenancy,migrateTenancy}=require('./tenancy');
 const {migrateInvitations,issueInvitation,sendPendingInvitations,setupInvitationRoutes}=require('./invitations');
+const {migrateLoginHistory,purgeLoginHistory,recordLogin,setupLoginHistoryRoutes}=require('./login-history');
 const {renderProtocol}=require('./service-protocol');
 const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
@@ -80,6 +81,7 @@ async function init(){
   }
   await migrateTenancy(db,categories);
   await migrateInvitations(db);
+  await migrateLoginHistory(db);
   // Jednorazowo odzyskaj wysyłki błędnie oznaczone jako wykonane przez starszą wersję procesora.
   await db.query("CREATE TABLE IF NOT EXISTS service_migrations (migration_key TEXT PRIMARY KEY, executed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   const repairRun=await db.query("INSERT INTO service_migrations(migration_key) VALUES('notification_delivery_repair_20261118') ON CONFLICT DO NOTHING RETURNING migration_key");
@@ -207,13 +209,15 @@ app.post('/api/login',async(req,res,next)=>{
     if(value.count>=8)return problem(res,429,'Za dużo prób. Spróbuj ponownie później.');
     const username=clean(req.body.username,80).toLowerCase(), password=typeof req.body.password==='string'?req.body.password:'';
     if(!username || password.length<1 || password.length>256)return problem(res,400,'Podaj login i hasło.');
-    const u=(await db.query('SELECT u.*,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.username=$1',[username])).rows[0];
+    const u=(await db.query('SELECT u.*,o.name AS organization_name,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.username=$1',[username])).rows[0];
     if(!u || !u.is_active || u.deleted_at || u.must_set_password || (u.role==='client' && !u.org_active) || !comparePassword(password,u)){
+      if(u)await recordLogin(db,req,u,false);
       value.count++; attempts.set(ip,value); return problem(res,401,'Nieprawidłowy login lub hasło.');
     }
     attempts.delete(ip);
     const token=crypto.randomBytes(32).toString('hex');
     await db.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'7 days\')',[crypto.createHash('sha256').update(token).digest('hex'),u.id]);
+    await recordLogin(db,req,u,true);
     if(req.headers.origin && TRUSTED_FRONTENDS.has(req.headers.origin)) {
       res.json({ok:true,role:u.role,username:u.username,accessToken:token});
     } else {
@@ -577,7 +581,20 @@ async function deliverNotifications(){
   }
 }
 let delivering=false;
-async function runNotificationJobs(){if(delivering)return;delivering=true;try{await deliverNotifications();await sendPendingInvitations(db,notifications);}catch(e){console.error('Notification queue error',e.message);}finally{delivering=false;}}
+let lastHistoryPrune=Date.now();
+async function runNotificationJobs(){
+ if(delivering)return;
+ delivering=true;
+ try{
+  await deliverNotifications();
+  await sendPendingInvitations(db,notifications);
+  if(Date.now()-lastHistoryPrune>86400000){
+   await purgeLoginHistory(db);
+   lastHistoryPrune=Date.now();
+  }
+ }catch(e){console.error('Notification queue error',e.message);}
+ finally{delivering=false;}
+}
 app.post('/api/admin/notifications/test-email',auth,adminOnly,async(req,res,next)=>{
  try{if(!notifications.smtpReady())return problem(res,503,'Brak hasła SMTP w konfiguracji Render.');
   await notifications.testEmail();res.json({ok:true});
@@ -592,6 +609,7 @@ app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
 });
 setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation});
 setupInvitationRoutes(app,{db,auth,adminOnly,hashPassword,problem,longId});
+setupLoginHistoryRoutes(app,{db,auth,adminOnly,problem});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
  try{
   const password=typeof req.body?.newPassword==='string'?req.body.newPassword:'';
