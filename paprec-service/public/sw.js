@@ -6,8 +6,8 @@ self.addEventListener('push',event=>{
   const options={
     body:String(data.body||'Nowe zdarzenie serwisowe').slice(0,180),
     tag:String(data.tag||'marknet-service').slice(0,90),
-    icon:'/serwis/logo-marknet-hd.png',
-    badge:'/serwis/logo-marknet-hd.png',
+    icon:'/serwis/marknet-icon-192.png',
+    badge:'/serwis/marknet-icon-192.png',
     data:{url:'/serwis/'},
     renotify:Boolean(data.critical)
   };
