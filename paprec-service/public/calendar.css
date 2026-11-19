@@ -56,3 +56,75 @@
 .cal-form .cal-delete-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 @media(max-width:800px){.cal-day{min-height:83px}.cal-agenda-item{grid-template-columns:95px minmax(0,1fr);gap:7px}.cal-status{grid-column:2;justify-self:start}}
 @media(max-width:600px){#work-calendar{padding:17px}.cal-top h2{font-size:1.4rem}.cal-tools{width:100%}.cal-tools .btn{flex:1}.cal-heading{margin-top:21px}.cal-navigation{width:100%;justify-content:space-between}.cal-navigation h3{min-width:0;font-size:1.12rem}.cal-views{width:100%}.cal-view{flex:1}.cal-weekdays,.cal-grid{gap:3px}.cal-weekdays span{font-size:.6rem}.cal-day{border-radius:8px;min-height:62px;padding:6px 2px;align-items:center;gap:5px}.cal-day.selected{padding:5px 1px}.cal-day-number{font-size:.73rem;height:24px;width:24px}.cal-day-items{display:none}.cal-mobile-dots{display:inline-grid;place-items:center;background:#d7ecfb;color:#087cb2;width:18px;height:18px;border-radius:999px;font-size:.66rem;font-weight:800}.cal-agenda{padding:15px;margin-top:17px}.cal-agenda-head{align-items:flex-start}.cal-agenda-head h3{font-size:.99rem}.cal-agenda-item{padding:12px 10px}.cal-help{font-size:.72rem}}
+
+
+/* Kolumny dopasowane do iPhone Safari: date/time nigdy nie wychodzą za krawędź. */
+#cal-modal .modal,#cal-report-modal .modal{max-width:calc(100vw - 24px);min-width:0;box-sizing:border-box}
+#cal-form,#cal-report-modal .form{min-width:0;max-width:100%;width:100%}
+#cal-form .two,#cal-report-modal .two{grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;max-width:100%}
+#cal-form label,#cal-form .two>label,#cal-report-modal label{min-width:0;max-width:100%;width:100%;overflow-wrap:anywhere}
+#cal-form input,#cal-form select,#cal-form textarea,#cal-report-modal input,#cal-report-modal textarea{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+#cal-form input[type="date"],#cal-form input[type="time"]{width:100%;max-width:100%;min-width:0;display:block;min-height:46px;text-align:left}
+#cal-form input[type="date"]::-webkit-date-and-time-value,#cal-form input[type="time"]::-webkit-date-and-time-value{min-width:0;text-align:left}
+#cal-form input::-webkit-datetime-edit{min-width:0}
+#cal-modal .modal-header h2,#cal-report-modal .modal-header h2{overflow-wrap:anywhere}
+.cal-entry{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;width:100%;min-width:0}
+.cal-entry .cal-agenda-item{min-width:0}
+.cal-check{width:42px;height:42px;min-width:42px;display:grid;place-items:center;border:2px solid #b8d8e8;background:#fff;color:#6a99b1;border-radius:13px;font-size:1.15rem;font-weight:900;cursor:pointer;padding:0}
+.cal-check:hover{border-color:#0b9dd0;background:#edfaff}
+.cal-check.checked{border-color:#27a76b;background:#e1f7e9;color:#178252}
+.cal-check-readonly{cursor:default;opacity:.8;font-size:1rem}
+.cal-check:focus-visible{outline:3px solid #ffda00;outline-offset:2px}
+.cal-report-modal{width:min(780px,100%)}
+.cal-report-brief{padding:17px 20px;margin-bottom:16px;border:1px solid #dcebf3;background:#f7fcff;border-radius:15px}
+.cal-report-brief-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cal-report-date{font-size:.81rem;font-weight:740;color:#286480;text-transform:capitalize}
+.cal-report-address{margin:12px 0 5px;font-size:.97rem;color:#1f4d63;font-weight:760;overflow-wrap:anywhere}
+.cal-report-note{color:#7b94a5;font-size:.81rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.cal-report-brief .btn{margin-top:5px}
+.cal-report-controls{display:grid;gap:14px;min-width:0}
+.cal-report-controls .form{padding:18px;border:1px solid #d8e9f3;background:#fff;border-radius:15px;gap:11px}
+.cal-report-controls h3{margin:0;color:#184d65;font-size:1rem}
+.cal-report-controls textarea{resize:vertical}
+.cal-report-controls .btn{justify-self:start;white-space:normal;text-align:center}
+.cal-completion{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;padding:17px 18px;border:1px solid #c9e4f0;background:#ecf9ff;border-radius:15px}
+.cal-completion>div{display:grid;gap:6px;flex:1;min-width:170px}
+.cal-completion strong{font-size:.94rem;color:#204d65}
+.cal-completion small{font-size:.74rem;color:#6e90a3}
+.cal-done-action{background:#e2f7e9;border:1px solid #8fd5ae;color:#167348}
+.cal-done-action:hover{background:#d0f4df}
+.cal-report-history{margin-top:22px;border-top:1px solid #ddeaf2;padding-top:20px}
+.cal-report-history-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+.cal-report-history-head h3{font-size:1.1rem;margin:0;color:#1f4d62}
+.cal-report-activity{display:grid;gap:11px;margin-top:15px}
+.cal-log-entry{padding:17px;border:1px solid #dae9f0;border-radius:14px;background:#fafdff;min-width:0}
+.cal-log-top{display:flex;justify-content:space-between;gap:9px;align-items:flex-start;flex-wrap:wrap}
+.cal-log-top strong{color:#236c91;font-size:.84rem}
+.cal-log-top small{color:#7895a7;font-size:.73rem}
+.cal-log-body{font-size:.87rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#335970;margin:10px 0 0}
+.cal-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:11px}
+.cal-photo-link{display:grid;gap:5px;min-width:0;border:1px solid #d7e4ec;padding:5px;background:#fff;border-radius:11px;color:#236f9a;text-decoration:none;overflow:hidden}
+.cal-photo{display:block;width:100%;height:120px;object-fit:cover;background:#dcecf5;border-radius:7px}
+.cal-photo-name{font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px}
+#cal-photo-selected{font-size:.75rem;color:#7796a6;overflow-wrap:anywhere;max-width:100%}
+#cal-photo-form input[type="file"]{max-width:100%;font-size:.83rem}
+@media(max-width:760px){
+ #cal-form .two,#cal-report-modal .two{grid-template-columns:minmax(0,1fr)!important}
+ #cal-modal .modal,#cal-report-modal .modal{width:calc(100vw - 24px);padding:18px}
+ #cal-form .form-actions.cal-delete-row{flex-direction:column;align-items:stretch}
+ #cal-form .form-actions.cal-delete-row>.form-actions{width:100%;flex-wrap:wrap}
+ .cal-completion{align-items:stretch;flex-direction:column}
+ .cal-completion .btn{width:100%;white-space:normal}
+ .cal-report-controls .form{padding:14px}
+ .cal-entry{grid-template-columns:35px minmax(0,1fr);gap:7px}
+ .cal-check{width:35px;height:35px;min-width:35px;border-radius:11px}
+ .cal-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cal-photo{height:110px}
+ .cal-report-brief{padding:14px}
+}
+@media(max-width:380px){
+ #cal-modal .modal,#cal-report-modal .modal{width:calc(100vw - 18px);padding:14px;max-width:calc(100vw - 18px)}
+ .cal-entry{grid-template-columns:33px minmax(0,1fr)}
+ .cal-check{width:33px;height:33px;min-width:33px}
+ .cal-report-brief-top{align-items:flex-start;flex-direction:column}
+}
