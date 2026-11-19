@@ -15,6 +15,13 @@ function initTabs(){
   });
   if(focus)tabs[index].focus({preventScroll:true});
  }
+ qsa('[data-open-expertise]').forEach(link=>{
+  link.addEventListener('click',()=>{
+   const key=link.getAttribute('data-open-expertise');
+   const index=tabs.findIndex(tab=>tab.id==='ex-tab-'+key);
+   if(index>=0)activate(index,false);
+  });
+ });
  tabs.forEach((tab,index)=>{
   tab.addEventListener("click",()=>activate(index,false));
   tab.addEventListener("keydown",event=>{
