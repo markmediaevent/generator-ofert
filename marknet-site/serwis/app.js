@@ -109,12 +109,15 @@ async function setupPortal(){
  const d=$('detail-status');clear(d);for(const s of meta.statuses)option(d,s);
  if(!$('report-month').value)$('report-month').value=new Date().toISOString().slice(0,7);
  if(state.me.role==='admin')await loadManagement();
+ if(epoch!==state.sessionEpoch||!state.me)return;
  renderTickets();
  if(typeof setupWorkCalendar==='function')setupWorkCalendar();
 }
 async function refreshArchive(){
  if(state.me?.role!=='admin')return;
+ const epoch=state.sessionEpoch;
  const response=await api('/api/admin/archived-tickets');
+ if(epoch!==state.sessionEpoch||state.me?.role!=='admin')return;
  const box=$('archive-list');clear(box);
  if(!response.tickets.length){box.append(node('p','subtle','Brak zgłoszeń w archiwum.'));return;}
  for(const t of response.tickets){
@@ -134,7 +137,10 @@ async function refreshArchive(){
  }
 }
 async function refreshNotifications(){
+ if(state.me?.role!=='admin')return;
+ const epoch=state.sessionEpoch;
  const data=await api('/api/admin/notifications');
+ if(epoch!==state.sessionEpoch||state.me?.role!=='admin')return;
  const jobs=data.jobs||[];
  const counts=(kind,status)=>jobs.filter(x=>x.kind===kind&&x.status===status).length;
  const pending=jobs.filter(x=>x.status==='pending');
@@ -169,14 +175,20 @@ function renderTickets(){
  }
 }
 async function refresh(){
- const r=await api('/api/tickets');state.tickets=r.tickets;renderTickets();
+ const epoch=state.sessionEpoch;
+ const r=await api('/api/tickets');
+ if(epoch!==state.sessionEpoch||!state.me)return;
+ state.tickets=r.tickets;renderTickets();
 }
 function info(target,label,text){
  const box=node('div');box.append(node('small','',label),node('strong','',text||'—'));target.append(box);
 }
 async function openTicket(id){
  try{
-  state.selectedId=id;state.detail=await api('/api/tickets/'+id);
+  const epoch=state.sessionEpoch;
+  const detail=await api('/api/tickets/'+id);
+  if(epoch!==state.sessionEpoch||!state.me)return;
+  state.selectedId=id;state.detail=detail;
   const {ticket:t,events,files}=state.detail;
   $('detail-number').textContent=t.number+' • '+t.kind+' / '+t.priority;
   $('detail-title').textContent=t.title;
