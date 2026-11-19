@@ -148,6 +148,51 @@ function userRow(user){
  details.append(form,reset,actions);
  return details;
 }
+function loginDevice(userAgent){
+ const ua=String(userAgent||'');
+ const platform=/iPad/i.test(ua)?'iPad':/iPhone/i.test(ua)?'iPhone':/Android/i.test(ua)?'Android':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'Mac':/Linux/i.test(ua)?'Linux':'Nieznane urządzenie';
+ const browser=/Edg\//i.test(ua)?'Edge':/CriOS|Chrome/i.test(ua)?'Chrome':/FxiOS|Firefox/i.test(ua)?'Firefox':/Safari/i.test(ua)?'Safari':'Przeglądarka';
+ return platform+' / '+browser;
+}
+function historyEntry(row){
+ const wrap=node('article','login-history-item');
+ const top=node('div','login-history-item-top');
+ const person=node('strong','', [row.username,row.organization_name||'MarkNet'].filter(Boolean).join(' • '));
+ const status=node('span','login-history-status '+(row.success?'success':'failed'),row.success?'Udane':'Nieudane');
+ top.append(person,status);
+ const details=node('div','login-history-details');
+ for(const field of [
+   ['Data',date(row.created_at)],
+   ['Urządzenie',loginDevice(row.user_agent)],
+   ['Adres IP',row.ip_address||'—']
+ ]) {
+   const entry=node('span','login-history-fact');
+   entry.append(node('span','login-history-fact-label',field[0]),node('span','',field[1]));
+   details.append(entry);
+ }
+ const fullAgent=node('div','login-history-agent',row.user_agent||'Brak informacji o przeglądarce');
+ wrap.append(top,details,fullAgent);
+ return wrap;
+}
+async function loadLoginHistory(){
+ if(state.me?.role!=='admin')return;
+ const params=new URLSearchParams({limit:'100'});
+ const org=$('login-history-org').value,user=$('login-history-user').value,result=$('login-history-result').value;
+ if(org)params.set('organization_id',org);
+ if(user)params.set('user_id',user);
+ if(result)params.set('result',result);
+ $('login-history-caption').textContent='Pobieranie historii…';
+ try{
+   const data=await api('/api/admin/login-history?'+params.toString());
+   const target=$('login-history-list');target.replaceChildren();
+   for(const entry of data.entries)target.append(historyEntry(entry));
+   if(!data.entries.length)target.append(node('p','hint','Brak logowań dla wybranych filtrów.'));
+   $('login-history-caption').textContent='Wyświetlono '+data.entries.length+' ostatnich prób logowania. Historia obejmuje ostatnie '+data.retention_days+' dni.';
+ }catch(e){
+   $('login-history-caption').textContent='Nie można pobrać historii logowań.';
+   throw e;
+ }
+}
 async function loadManagement(){
  const [o,u]=await Promise.all([api('/api/admin/organizations'),api('/api/admin/users')]);
  state.organizations=o.organizations;state.users=u.users;
@@ -157,6 +202,16 @@ async function loadManagement(){
  orgSelect($('report-org'),true,originalReport);
  orgSelect($('new-organization'),false,originalTicket);
  orgSelect($('new-user-organization'));
+ orgSelect($('login-history-org'),true,$('login-history-org').value);
+ const loginUser=$('login-history-user');
+ const selectedLoginUser=loginUser.value;
+ loginUser.replaceChildren();
+ option(loginUser,'Wszyscy użytkownicy','');
+ for(const u of state.users){
+   const displayName=[u.first_name,u.last_name].filter(Boolean).join(' ');
+   option(loginUser,(displayName?displayName+' — ':'')+u.username+' ('+(u.organization_name||'MarkNet')+')',String(u.id));
+ }
+ if([...loginUser.options].some(o=>o.value===selectedLoginUser))loginUser.value=selectedLoginUser;
  const orgList=$('organization-list');orgList.replaceChildren();
  for(const org of orgs)orgList.append(orgRow(org));
  const userList=$('user-list');userList.replaceChildren();
@@ -166,11 +221,17 @@ async function loadManagement(){
  show('filter-org',true);
  show('admin-organizations',true);
  show('admin-users',true);
+ show('admin-login-history',true);
  setTicketCategoryOptions();
+ try{await loadLoginHistory();}catch(err){pop(err.message,true);}
 }
 function initManagement(){
  $('new-organization').addEventListener('change',setTicketCategoryOptions);
  $('filter-org').addEventListener('change',renderTickets);
+ for(const id of ['login-history-org','login-history-user','login-history-result']){
+   $(id).addEventListener('change',()=>loadLoginHistory().catch(e=>pop(e.message,true)));
+ }
+ $('login-history-refresh').addEventListener('click',()=>loadLoginHistory().catch(e=>pop(e.message,true)));
  $('organization-form').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,btn=form.querySelector('button[type=submit]');btn.disabled=true;
   try{
