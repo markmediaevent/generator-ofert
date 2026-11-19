@@ -209,7 +209,7 @@ app.post('/api/login',async(req,res,next)=>{
     if(value.count>=8)return problem(res,429,'Za dużo prób. Spróbuj ponownie później.');
     const username=clean(req.body.username,80).toLowerCase(), password=typeof req.body.password==='string'?req.body.password:'';
     if(!username || password.length<1 || password.length>256)return problem(res,400,'Podaj login i hasło.');
-    const u=(await db.query('SELECT u.*,o.name AS organization_name,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE u.username=$1',[username])).rows[0];
+    const u=(await db.query('SELECT u.*,o.name AS organization_name,o.is_active AS org_active FROM users u LEFT JOIN organizations o ON o.id=u.organization_id WHERE lower(u.username)=$1 ORDER BY u.id LIMIT 1',[username])).rows[0];
     if(!u || !u.is_active || u.deleted_at || u.must_set_password || (u.role==='client' && !u.org_active) || !comparePassword(password,u)){
       if(u)await recordLogin(db,req,u,false);
       value.count++; attempts.set(ip,value); return problem(res,401,'Nieprawidłowy login lub hasło.');
