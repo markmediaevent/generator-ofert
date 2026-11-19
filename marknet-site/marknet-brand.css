@@ -1,5 +1,4 @@
-/* MARKNET — oficjalna kolorystyka firmowa, niebieski / żółty / biel.
-   Warstwa stylów zastępuje wcześniejszą kolorystykę turkusowo-granatową. */
+
 :root {
   color-scheme: light;
   --bg: #f7fbfe;
@@ -106,8 +105,6 @@ footer {background:#fff;border-top-color:#dceaf2}
 }
 @media(max-width:370px){.brand-logo{width:166px}}
 
-
-/* MarkNet / bezpieczeństwo i IT — karuzela 17 marek technicznych. */
 .technologies{
   position:relative;overflow:hidden;
   padding:66px 0 49px;
@@ -174,7 +171,6 @@ footer {background:#fff;border-top-color:#dceaf2}
 .tech-ticker .tech-track{animation-play-state:running}
 @keyframes tech-marquee {from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
 
-/* iPhone / mobile: układ bez poziomego rozciągania i automatycznego zoomu. */
 html{width:100%;max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 img,video{max-width:100%}
@@ -242,8 +238,6 @@ img,video{max-width:100%}
   .tech-ticker{overflow-x:auto;scrollbar-width:thin;-webkit-mask-image:none;mask-image:none}
 }
 
-
-/* Znaki opisowe potwierdzonych systemów zabezpieczeń (IFTER, GORKE, iSTAR, Carrier, Interlogix, Roger). */
 .tech-item.tech-detailed{
   flex:0 0 255px;width:255px;gap:10px;
   padding-inline:14px;
