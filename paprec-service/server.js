@@ -13,6 +13,7 @@ const {setupTenancy,migrateTenancy}=require('./tenancy');
 const {migrateInvitations,issueInvitation,sendPendingInvitations,setupInvitationRoutes}=require('./invitations');
 const {migrateLoginHistory,purgeLoginHistory,recordLogin,setupLoginHistoryRoutes}=require('./login-history');
 const {renderProtocol}=require('./service-protocol');
+const {migrateWorkCalendar,setupWorkCalendar}=require('./work-calendar');
 const pushConfigured=Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 if(pushConfigured)webpush.setVapidDetails(process.env.VAPID_SUBJECT,process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
 
@@ -49,7 +50,7 @@ app.use((req,res,next) => {
 });
 app.use('/api',(req,res,next)=>{if(!CONFIGURED && req.path!=='/health')return res.status(503).json({error:'Panel oczekuje na konfigurację bazy danych.'});next();});
 const db = new Pool({connectionString:process.env.DATABASE_URL||'postgres://localhost/unconfigured',ssl:process.env.DB_SSL==='true'?{rejectUnauthorized:true}:false,max:8});
-const categories = ['CCTV','Kontrola dostępu (SKD)','Alarmy (SSWiN)','Telefonia','Sieć LAN / Wi-Fi','Światłowody','Połączenia GPEC','Inne'];
+const categories = ['CCTV','Kontrola dostępu (SKD)','Alarmy (SSWiN)','Telefonia','Sieć LAN / Wi-Fi','Światłowody','Połączenia GPEC','Bramy i szlabany','Domofony i wideodomofony','Inne'];
 const statuses = ['Nowe','Weryfikacja','W realizacji','Oczekiwanie na klienta','Rozwiązane','Zamknięte'];
 const kinds = ['Usterka','Awaria'];
 const priorities = ['Standardowy','Krytyczny'];
@@ -84,6 +85,7 @@ async function init(){
   await migrateLoginHistory(db);
   // Jednorazowo odzyskaj wysyłki błędnie oznaczone jako wykonane przez starszą wersję procesora.
   await db.query("CREATE TABLE IF NOT EXISTS service_migrations (migration_key TEXT PRIMARY KEY, executed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  await migrateWorkCalendar(db);
   const repairRun=await db.query("INSERT INTO service_migrations(migration_key) VALUES('notification_delivery_repair_20261118') ON CONFLICT DO NOTHING RETURNING migration_key");
   if(repairRun.rowCount){
     const repair=await db.query("UPDATE notification_jobs SET status='pending', attempt_count=0, retry_at=now(), delivered_at=NULL, last_error=NULL WHERE status='delivered' AND delivered_at IS NOT NULL AND delivered_at < TIMESTAMPTZ '2026-11-18 08:30:00+00'");
@@ -608,6 +610,7 @@ app.get('/api/admin/notifications',auth,adminOnly,async(req,res,next)=>{
  }catch(e){next(e);}
 });
 setupTenancy(app,{db,categories,auth,adminOnly,hashPassword,clean,problem,longId,issueInvitation});
+setupWorkCalendar(app,{db,auth,problem});
 setupInvitationRoutes(app,{db,auth,adminOnly,hashPassword,problem,longId});
 setupLoginHistoryRoutes(app,{db,auth,adminOnly,problem});
 app.post('/api/admin/users/:id/reset-password',auth,adminOnly,longId,async(req,res,next)=>{
