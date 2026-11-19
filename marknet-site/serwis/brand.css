@@ -153,3 +153,9 @@ input:focus,textarea:focus,select:focus {border-color:#099fda;box-shadow:0 0 0 4
 #complete-ticket{margin-top:9px}
 #completion-form .form-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end;margin-top:10px}
 @media(max-width:640px){#completion-form .form-actions>.btn{width:100%}}
+
+/* Firma klienta przypisana sztywno do konta. Zmiana tylko przez administratora. */
+.client-org-fixed{display:grid;gap:6px;padding:14px 16px;background:#f1faff;border:1px solid #c9e3f0;border-radius:12px;color:#174c69}
+.client-org-fixed strong{font-size:1.04rem;font-weight:820;overflow-wrap:anywhere}
+.client-org-fixed .hint{margin:0;color:#597b90}
+.client-org-fixed.hide{display:none!important}
