@@ -16,6 +16,7 @@ const pageRoles = new Map([
   ['/admin-magazyn',['admin']],['/admin-magazyn.html',['admin']],
   ['/admin-wrzutka',['admin']],['/admin-wrzutka.html',['admin']],
   ['/live',['admin','realizator']],['/live.html',['admin','realizator']],
+  ['/admin-wizualizacje',['admin']],['/admin-wizualizacje.html',['admin']],
   ['/packlists',['admin','realizator','pracownik']],['/packlists.html',['admin','realizator','pracownik']],
   ['/packlist',['admin','realizator','pracownik']],['/packlist.html',['admin','realizator','pracownik']]
 ]);
@@ -70,6 +71,10 @@ function recordLogin(user){
   finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
 }
 const sessions = new Map();
+const visualizationSessions = new Map();
+const visualizationLoginAttempts = new Map();
+const VISUALIZATIONS_DIR = path.join(DATA_DIR, 'wizualizacje');
+const VISUALIZATIONS_FILE = path.join(DATA_DIR, 'wizualizacje.json');
 
 // Wrzutka zapisuje materiały bezpośrednio na Google Drive i nie korzysta z bazy magazynu ani szkiców ofert.
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1R1v8RQVpYK6I6I4ePIQ76bVq7A-76xRA';
@@ -723,6 +728,56 @@ function requireAuth(req, res, next) {
   req.user = sessions.get(token);
   next();
 }
+function getVisualizationToken(req) {
+  const cookies = String(req.headers.cookie || '').split(';');
+  for (const cookie of cookies) {
+    const [name, ...valueParts] = cookie.trim().split('=');
+    if (name === 'mm_visual_session') return decodeURIComponent(valueParts.join('='));
+  }
+  return null;
+}
+function setVisualizationCookie(res, token) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+  res.setHeader('Set-Cookie', 'mm_visual_session=' + encodeURIComponent(token) + '; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800' + (secure ? '; Secure' : ''));
+}
+function clearVisualizationCookie(res) {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+  res.setHeader('Set-Cookie', 'mm_visual_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' + (secure ? '; Secure' : ''));
+}
+function requireVisualizationAuth(req, res, next) {
+  res.setHeader('Cache-Control', 'private, no-store');
+  const token = getVisualizationToken(req);
+  const session = token && visualizationSessions.get(token);
+  if (!session || session.expiresAt < Date.now()) {
+    if (token) visualizationSessions.delete(token);
+    return res.status(401).json({ ok: false, message: 'Zaloguj się, aby zobaczyć wizualizacje.' });
+  }
+  session.expiresAt = Date.now() + 8 * 60 * 60 * 1000;
+  next();
+}
+function readVisualizations() {
+  if (!fs.existsSync(VISUALIZATIONS_FILE)) return [];
+  const items = JSON.parse(fs.readFileSync(VISUALIZATIONS_FILE, 'utf8'));
+  if (!Array.isArray(items)) throw new Error('Nie można odczytać wizualizacji.');
+  return items;
+}
+function writeVisualizations(items) {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(VISUALIZATIONS_DIR)) fs.mkdirSync(VISUALIZATIONS_DIR, { recursive: true });
+  const tmp = VISUALIZATIONS_FILE + '.tmp-' + crypto.randomBytes(6).toString('hex');
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(items, null, 2), 'utf8');
+    fs.renameSync(tmp, VISUALIZATIONS_FILE);
+  } finally {
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  }
+}
+function safeVisualization(item) {
+  return { id: item.id, title: item.title, client: item.client, description: item.description, createdAt: item.createdAt, imageUrl: '/api/wizualizacje/' + encodeURIComponent(item.id) + '/obraz' };
+}
+function visualizationMimeExtension(mimeType) {
+  return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' })[mimeType] || null;
+}
 function requireRole(...allowedRoles) {
   return (req,res,next)=>requireAuth(req,res,()=>{
     if(!allowedRoles.includes(normalizedRole(req.user.role)))
@@ -820,9 +875,113 @@ app.post('/wrzutka-api/upload/:submissionId', async (req, res) => {
   }
 });
 
+app.post('/api/wizualizacje/login', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const expected = String(process.env.WIZUALIZACJE_PASSWORD || '');
+  if (!expected) return res.status(503).json({ ok: false, message: 'Strefa wizualizacji nie jest jeszcze skonfigurowana.' });
+  const password = String(req.body?.password || '').slice(0, 256);
+  const now = Date.now();
+  const key = String(req.ip || 'client');
+  let attempt = visualizationLoginAttempts.get(key);
+  if (!attempt || attempt.resetAt <= now) attempt = { count: 0, resetAt: now + 15 * 60 * 1000 };
+  if (attempt.count >= 6) return res.status(429).json({ ok: false, message: 'Za dużo prób logowania. Spróbuj ponownie za 15 minut.' });
+  const a = Buffer.from(password);
+  const b = Buffer.from(expected);
+  const valid = a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (!valid) {
+    attempt.count++;
+    visualizationLoginAttempts.set(key, attempt);
+    return res.status(401).json({ ok: false, message: 'Nieprawidłowe hasło.' });
+  }
+  visualizationLoginAttempts.delete(key);
+  const token = createToken();
+  visualizationSessions.set(token, { expiresAt: now + 8 * 60 * 60 * 1000 });
+  setVisualizationCookie(res, token);
+  res.json({ ok: true });
+});
+app.use('/api/wizualizacje', (req, res, next) => {
+  if (req.path === '/login') return next();
+  return requireVisualizationAuth(req, res, next);
+});
+app.get('/api/wizualizacje', requireVisualizationAuth, (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.json({ ok: true, visualizations: readVisualizations().map(safeVisualization) });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się pobrać wizualizacji.' });
+  }
+});
+app.post('/api/wizualizacje/wyloguj', requireVisualizationAuth, (req, res) => {
+  const token = getVisualizationToken(req);
+  if (token) visualizationSessions.delete(token);
+  clearVisualizationCookie(res);
+  res.json({ ok: true });
+});
+app.get('/api/wizualizacje/:id/obraz', requireVisualizationAuth, (req, res) => {
+  const item = readVisualizations().find(x => x.id === req.params.id);
+  if (!item || !/^[a-f0-9]{24}$/.test(item.id) || path.basename(item.fileName || '') !== item.fileName)
+    return res.status(404).end();
+  const file = path.join(VISUALIZATIONS_DIR, item.fileName);
+  if (!fs.existsSync(file)) return res.status(404).end();
+  res.setHeader('Content-Type', item.mimeType);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(file);
+});
+app.get('/api/admin/wizualizacje', requireAdmin, (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, visualizations: readVisualizations().map(safeVisualization) });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się pobrać listy wizualizacji.' });
+  }
+});
+app.post('/api/admin/wizualizacje', requireAdmin, (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim().slice(0, 120);
+    const client = String(req.body?.client || '').trim().slice(0, 120);
+    const description = String(req.body?.description || '').trim().slice(0, 1000);
+    const mimeType = String(req.body?.mimeType || '');
+    const ext = visualizationMimeExtension(mimeType);
+    const data = String(req.body?.imageBase64 || '');
+    if (!title || !client || !ext || data.length > 1800000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(data))
+      return res.status(400).json({ ok: false, message: 'Uzupełnij nazwę, klienta i wybierz obraz JPG, PNG lub WebP do 1,3 MB.' });
+    const buffer = Buffer.from(data, 'base64');
+    if (!buffer.length || buffer.length > 1300000)
+      return res.status(400).json({ ok: false, message: 'Obraz przekracza limit 1,3 MB.' });
+    if (!fs.existsSync(VISUALIZATIONS_DIR)) fs.mkdirSync(VISUALIZATIONS_DIR, { recursive: true });
+    const id = crypto.randomBytes(12).toString('hex');
+    const fileName = id + '.' + ext;
+    fs.writeFileSync(path.join(VISUALIZATIONS_DIR, fileName), buffer, { flag: 'wx' });
+    const items = readVisualizations();
+    const item = { id, title, client, description, mimeType, fileName, createdAt: new Date().toISOString() };
+    items.unshift(item);
+    writeVisualizations(items);
+    res.status(201).json({ ok: true, visualization: safeVisualization(item) });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się zapisać wizualizacji.' });
+  }
+});
+app.delete('/api/admin/wizualizacje/:id', requireAdmin, (req, res) => {
+  try {
+    const items = readVisualizations();
+    const item = items.find(x => x.id === req.params.id);
+    if (!item) return res.status(404).json({ ok: false, message: 'Nie znaleziono wizualizacji.' });
+    const next = items.filter(x => x.id !== item.id);
+    writeVisualizations(next);
+    if (/^[a-f0-9]{24}$/.test(item.id) && path.basename(item.fileName || '') === item.fileName) {
+      const file = path.join(VISUALIZATIONS_DIR, item.fileName);
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się usunąć wizualizacji.' });
+  }
+});
+
 app.use('/api', (req,res,next)=>{
   const publicApi=new Set(['/login','/health','/test']);
-  if(publicApi.has(req.path))return next();
+  if(publicApi.has(req.path) || req.path.startsWith('/wizualizacje'))return next();
   return requireAuth(req,res,()=>{
     // Domyślnie tylko realizator i administrator mają dostęp do pozostałego API
     // (w tym ofert, cen, magazynu, szkiców, materiałów klientów).
@@ -1489,6 +1648,8 @@ app.get('/api/drafts/:offerNumber', async (req, res) => {
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/wizualizacje', (req, res) => res.sendFile(path.join(__dirname, 'public', 'wizualizacje.html')));
+app.get('/admin-wizualizacje', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-wizualizacje.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 app.get('/login', (req, res) => {
   const token = getToken(req);
