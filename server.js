@@ -772,8 +772,9 @@ function writeVisualizations(items) {
     if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
   }
 }
-function safeVisualization(item) {
-  return { id: item.id, title: item.title, client: item.client, description: item.description, createdAt: item.createdAt, imageUrl: '/api/wizualizacje/' + encodeURIComponent(item.id) + '/obraz' };
+function safeVisualization(item, admin = false) {
+  const base = admin ? '/api/admin/wizualizacje/' : '/api/wizualizacje/';
+  return { id: item.id, title: item.title, client: item.client, description: item.description, createdAt: item.createdAt, mimeType: item.mimeType, fileUrl: base + encodeURIComponent(item.id) + '/plik' };
 }
 function visualizationMimeExtension(mimeType) {
   return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' })[mimeType] || null;
@@ -917,25 +918,28 @@ app.post('/api/wizualizacje/wyloguj', requireVisualizationAuth, (req, res) => {
   clearVisualizationCookie(res);
   res.json({ ok: true });
 });
-app.get('/api/wizualizacje/:id/obraz', requireVisualizationAuth, (req, res) => {
+function sendVisualizationFile(req, res) {
   const item = readVisualizations().find(x => x.id === req.params.id);
   if (!item || !/^[a-f0-9]{24}$/.test(item.id) || path.basename(item.fileName || '') !== item.fileName)
     return res.status(404).end();
   const file = path.join(VISUALIZATIONS_DIR, item.fileName);
   if (!fs.existsSync(file)) return res.status(404).end();
   res.setHeader('Content-Type', item.mimeType);
+  res.setHeader('Content-Disposition', 'inline; filename="' + item.fileName + '"');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'private, no-store');
   res.sendFile(file);
-});
+}
+app.get('/api/wizualizacje/:id/plik', requireVisualizationAuth, sendVisualizationFile);
 app.get('/api/admin/wizualizacje', requireAdmin, (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ ok: true, visualizations: readVisualizations().map(safeVisualization) });
+    res.json({ ok: true, visualizations: readVisualizations().map(item => safeVisualization(item, true)) });
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Nie udało się pobrać listy wizualizacji.' });
   }
 });
+app.get('/api/admin/wizualizacje/:id/plik', requireAdmin, sendVisualizationFile);
 app.post('/api/admin/wizualizacje', requireAdmin, (req, res) => {
   try {
     const title = String(req.body?.title || '').trim().slice(0, 120);
@@ -960,6 +964,28 @@ app.post('/api/admin/wizualizacje', requireAdmin, (req, res) => {
     res.status(201).json({ ok: true, visualization: safeVisualization(item) });
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Nie udało się zapisać wizualizacji.' });
+  }
+});
+app.post('/api/admin/wizualizacje-pdf', express.raw({ type: 'application/pdf', limit: '8mb' }), requireAdmin, (req, res) => {
+  try {
+    const title = String(req.query?.title || '').trim().slice(0, 120);
+    const client = String(req.query?.client || '').trim().slice(0, 120);
+    const description = String(req.query?.description || '').trim().slice(0, 1000);
+    const data = req.body;
+    if (!title || !client || !Buffer.isBuffer(data) || data.length < 8 || data.length > 8 * 1024 * 1024 ||
+        data.subarray(0, 5).toString('ascii') !== '%PDF-' || data.lastIndexOf(Buffer.from('%%EOF')) < 0)
+      return res.status(400).json({ ok: false, message: 'Wybierz prawidłowy plik PDF do 8 MB i uzupełnij klienta oraz tytuł.' });
+    if (!fs.existsSync(VISUALIZATIONS_DIR)) fs.mkdirSync(VISUALIZATIONS_DIR, { recursive: true });
+    const id = crypto.randomBytes(12).toString('hex');
+    const fileName = id + '.pdf';
+    fs.writeFileSync(path.join(VISUALIZATIONS_DIR, fileName), data, { flag: 'wx' });
+    const items = readVisualizations();
+    const item = { id, title, client, description, mimeType: 'application/pdf', fileName, createdAt: new Date().toISOString() };
+    items.unshift(item);
+    writeVisualizations(items);
+    res.status(201).json({ ok: true, visualization: safeVisualization(item) });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: 'Nie udało się zapisać pliku PDF.' });
   }
 });
 app.delete('/api/admin/wizualizacje/:id', requireAdmin, (req, res) => {
