@@ -907,7 +907,7 @@ app.use('/api/wizualizacje', (req, res, next) => {
 app.get('/api/wizualizacje', requireVisualizationAuth, (req, res) => {
   try {
     res.setHeader('Cache-Control', 'private, no-store');
-    res.json({ ok: true, visualizations: readVisualizations().map(safeVisualization) });
+    res.json({ ok: true, visualizations: readVisualizations().map(item => safeVisualization(item)) });
   } catch (error) {
     res.status(500).json({ ok: false, message: 'Nie udało się pobrać wizualizacji.' });
   }
